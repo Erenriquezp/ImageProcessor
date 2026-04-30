@@ -1,0 +1,66 @@
+.root-pane {
+    -fx-background-color: #202124;
+    -fx-font-family: "Segoe UI", "Roboto", sans-serif;
+    -fx-text-fill: #e8eaed;
+}
+
+.label {
+    -fx-text-fill: #e8eaed;
+}
+
+.top-bar {
+    -fx-background-color: #2b2c2f;
+    -fx-border-color: #3c4043;
+    -fx-border-width: 0 0 1 0;
+}
+
+.left-panel {
+    -fx-background-color: #2a2b2e;
+    -fx-border-color: #3c4043;
+    -fx-border-width: 0 1 0 0;
+}
+
+.preview-pane {
+    -fx-background-color: #1f1f22;
+}
+
+.bottom-bar {
+    -fx-background-color: #2b2c2f;
+    -fx-border-color: #3c4043;
+    -fx-border-width: 1 0 0 0;
+}
+
+.button {
+    -fx-background-color: #3b82f6;
+    -fx-text-fill: white;
+    -fx-background-radius: 8;
+    -fx-padding: 8 12 8 12;
+}
+
+.button:hover {
+    -fx-background-color: #2563eb;
+}
+
+.combo-box,
+.spinner,
+.slider,
+.color-picker {
+    -fx-pref-width: 260;
+}
+
+.tab-pane {
+    -fx-background-color: #202124;
+}
+
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: #2b2c2f;
+}
+
+.tab {
+    -fx-background-color: #3c4043;
+}
+
+.tab:selected {
+    -fx-background-color: #3b82f6;
+}
+
