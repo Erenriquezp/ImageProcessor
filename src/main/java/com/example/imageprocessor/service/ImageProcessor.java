@@ -39,6 +39,19 @@ public final class ImageProcessor {
         return ArtisticFilters.retro1(original, levels);
     }
 
+    public static BufferedImage retro2(BufferedImage original, int levels,
+                                       boolean quantR, boolean quantG, boolean quantB) {
+        return ArtisticFilters.retro2(original, levels, quantR, quantG, quantB);
+    }
+
+    public static BufferedImage grayscaleQuantized(BufferedImage original, int levels) {
+        return ColorFilters.grayscaleQuantized(original, levels);
+    }
+
+    public static BufferedImage alphaGlobal(BufferedImage original, int alpha) {
+        return ColorFilters.alphaGlobal(original, alpha);
+    }
+
     public static BufferedImage bwThreshold(BufferedImage original, int threshold) {
         return ColorFilters.bwThreshold(original, threshold);
     }

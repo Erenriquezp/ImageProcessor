@@ -73,6 +73,30 @@ final class ArtisticFilters {
         return out;
     }
 
+    static BufferedImage retro2(BufferedImage original, int levels,
+                                boolean quantR, boolean quantG, boolean quantB) {
+        int w = original.getWidth();
+        int h = original.getHeight();
+        BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int p = original.getRGB(x, y);
+                int a = (p >> 24) & 0xFF;
+                int r = (p >> 16) & 0xFF;
+                int g = (p >>  8) & 0xFF;
+                int b =  p        & 0xFF;
+
+                int nr = quantR ? PixelMath.quantize(r, levels) : r;
+                int ng = quantG ? PixelMath.quantize(g, levels) : g;
+                int nb = quantB ? PixelMath.quantize(b, levels) : b;
+
+                out.setRGB(x, y, (a << 24) | (nr << 16) | (ng << 8) | nb);
+            }
+        }
+        return out;
+    }
+
     static BufferedImage recolor(BufferedImage original, int toneR, int toneG, int toneB) {
         int w = original.getWidth();
         int h = original.getHeight();

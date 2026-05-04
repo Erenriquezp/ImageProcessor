@@ -2,13 +2,13 @@
 
 ## 1. Visión del producto
 
-Aplicación de escritorio en Java con JavaFX para edición no destructiva de imágenes, con interfaz oscura y profesional inspirada en Adobe Lightroom.
+Aplicación de escritorio en Java con JavaFX para edición no destructiva de imágenes, con interfaz oscura y profesional inspirada en Adobe Lightroom / DaVinci Resolve.
 
 Capacidades principales:
 
 - Carga de imágenes en formatos comunes (`png`, `jpg`, `jpeg`, `bmp`, `gif`).
 - Edición no destructiva: la imagen original nunca se modifica en memoria.
-- Aplicación parametrizable de todos los filtros implementados.
+- Aplicación parametrizable y apilable de todos los filtros implementados.
 - Generación de imágenes sintéticas (degradados lineales y radial).
 - Exportación en formato detectado automáticamente por extensión.
 
@@ -35,12 +35,12 @@ Ver sección **6. Estado de implementación** para el detalle completo.
 ### 2.4 Experiencia de usuario
 
 - Layout oscuro profesional:
-  - **Top**: acciones globales (Abrir, Guardar, Reset, Comparar original).
+  - **Top**: acciones globales (Abrir, Guardar, Reset, Comparar original, Zoom).
   - **Left**: panel de herramientas con controles dinámicos por filtro.
   - **Center**: área de preview con pestañas (Editor / Generador).
   - **Bottom**: barra de estado.
 - Controles dinámicos: solo se muestran los parámetros del filtro seleccionado.
-- Comparador antes/después con checkbox.
+- Comparador antes/después con zoom independiente por panel.
 
 ---
 
@@ -52,6 +52,7 @@ Ver sección **6. Estado de implementación** para el detalle completo.
 | JavaFX | 21.0.6 | UI de escritorio |
 | javafx-swing | 21.0.6 | Puente `BufferedImage ↔ Image` via `SwingFXUtils` |
 | java.desktop (AWT) | JDK 21 | Procesamiento de imagen (`BufferedImage`, `Color`, `ConvolveOp`) |
+| Ikonli (FontAwesome 6) | 12.4.0 | Iconos vectoriales en la toolbar |
 | Maven | 3.x | Build y gestión de dependencias |
 | JUnit Jupiter | 5.12.1 | Tests unitarios |
 
@@ -63,70 +64,62 @@ Ver sección **6. Estado de implementación** para el detalle completo.
 
 ```
 com.example.imageprocessor
-├── app/                         ← Arranque y coordinación
-│   ├── ImageProcessorApp.java   ← Punto de entrada JavaFX (Application)
-│   └── ui/                      ← Componentes de interfaz reutilizables
-│       ├── EditorFilterPane.java
+├── app/                             ← Arranque y coordinación
+│   ├── ImageProcessorApp.java       ← Coordinador principal (Application)
+│   └── ui/                          ← Componentes de interfaz reutilizables
+│       ├── EditorPreviewPane.java   ← Panel de preview, compare mode y zoom
+│       ├── TopBar.java              ← Barra de herramientas y controles de zoom
+│       ├── EditorFilterPane.java    ← Panel izquierdo: filtros y parámetros
 │       ├── GradientGeneratorPane.java
 │       └── ImageFileChooserFactory.java
-├── domain/                      ← Tipos y enumeraciones del dominio
+├── domain/                          ← Tipos y enumeraciones del dominio
 │   ├── FilterType.java
 │   ├── ConvolutionKernel.java
 │   ├── GradientType.java
 │   └── StretchMode.java
-└── service/                     ← Lógica de procesamiento puro
-    ├── ImageProcessor.java      ← Fachada pública (API estable)
-    ├── ColorFilters.java        ← Filtros de color básicos
-    ├── ArtisticFilters.java     ← Efectos artísticos y cuantización
-    ├── ConvolutionFilters.java  ← Convolución espacial
-    ├── GradientGenerator.java   ← Generación de degradados
-    ├── ImageIOService.java      ← Lectura/escritura de archivos
-    └── PixelMath.java           ← Utilidades matemáticas internas
+└── service/                         ← Lógica de procesamiento puro
+    ├── ImageProcessor.java          ← Fachada pública (API estable)
+    ├── ColorFilters.java
+    ├── ArtisticFilters.java
+    ├── ConvolutionFilters.java
+    ├── GradientGenerator.java
+    ├── ImageIOService.java
+    └── PixelMath.java
 ```
 
 ### 4.2 Capas y responsabilidades
 
 #### `app` — Presentación y coordinación
 
-`ImageProcessorApp` es el orquestador principal. Mantiene el estado de sesión (`originalImage`, `processedImage`) y delega la construcción del layout a los componentes de `app/ui`. No contiene lógica de procesamiento de imagen.
+`ImageProcessorApp` es el coordinador principal. Mantiene el estado de sesión (`originalImage`, `processedImage`) y cablea los componentes de UI mediante callbacks. No contiene lógica de procesamiento de imagen.
 
-`EditorFilterPane` encapsula todos los controles del panel izquierdo: selector de filtro, sliders, spinners y color pickers. Expone getters tipados para que la app lea los parámetros sin conocer los detalles de la UI. Gestiona internamente la visibilidad dinámica de controles por tipo de filtro.
+`EditorPreviewPane` encapsula todo el área de visualización: los dos `ScrollPane` (original / resultado), el modo comparar 50/50 con borde de foco, y el sistema de zoom independiente por panel.
 
-`GradientGeneratorPane` encapsula la pestaña de generador completa. Se comunica con la app a través de dos callbacks: uno para entregar la imagen generada al editor, y otro para reportar mensajes de estado.
+`TopBar` construye la barra superior recibiendo callbacks como `Runnable`. Embebe el `Label` del indicador de zoom propiedad de `EditorPreviewPane`.
 
-`ImageFileChooserFactory` centraliza la construcción de `FileChooser` para abrir y guardar imágenes, evitando duplicación.
+`EditorFilterPane` encapsula los controles del panel izquierdo. Expone getters tipados para que la app lea los parámetros sin conocer los detalles de la UI.
+
+`GradientGeneratorPane` se comunica con la app a través de dos callbacks: entregar la imagen generada al editor, y reportar mensajes de estado.
+
+`ImageFileChooserFactory` centraliza la construcción de `FileChooser`.
 
 #### `domain` — Tipos del dominio
 
 Enumeraciones que tipan las opciones del sistema:
-
-- `FilterType`: todos los filtros disponibles con su etiqueta de visualización.
-- `ConvolutionKernel`: kernels predefinidos (Blur, Sharpen, Bordes, Emboss) con sus matrices.
-- `GradientType`: las cinco variantes de degradado.
-- `StretchMode`: modos de estiramiento de 4 bits (Binario, Decimal, Hexadecimal).
+- `FilterType`, `ConvolutionKernel`, `GradientType`, `StretchMode`.
 
 #### `service` — Procesamiento puro
 
-`ImageProcessor` es la **fachada pública** del servicio. Expone todos los métodos estáticos con firma estable y delega internamente a las clases especializadas. Es el único punto de contacto que la capa `app` usa para procesar imágenes.
-
-`ColorFilters` contiene los filtros de color básicos que operan canal a canal: escala de grises, negativo, brillo, ajuste HSV y umbral B/N.
-
-`ArtisticFilters` contiene efectos que manipulan el canal alpha o realizan cuantización: vidrio esmerilado, desvanecimiento circular, retro1 (cuantización RGB), recolorización por luminancia y compresión a 4 bits con estiramiento.
-
-`ConvolutionFilters` aplica matrices de convolución 3×3 usando `java.awt.image.ConvolveOp`.
-
-`GradientGenerator` genera imágenes sintéticas pixel a pixel interpolando entre dos colores según el tipo de degradado seleccionado.
-
-`PixelMath` provee utilidades matemáticas de visibilidad de paquete (`clamp`, `clamp01`, `lerp`, `quantize`) usadas internamente por los filtros para evitar duplicación.
-
-`ImageIOService` abstrae la lectura y escritura de archivos detectando el formato por extensión.
+`ImageProcessor` es la **fachada pública**. Todos los métodos son estáticos y puros; delega a las clases internas de paquete.
 
 ### 4.3 Principios de diseño
 
-- **Edición no destructiva**: `originalImage` nunca se modifica. Cada aplicación de filtro produce una nueva imagen independiente.
-- **Fachada estable**: toda la capa `app` interactúa únicamente con `ImageProcessor`. Las clases internas del servicio (`ColorFilters`, `ArtisticFilters`, etc.) son de visibilidad de paquete y no forman parte de la API pública.
-- **Sin estado en servicios**: todos los métodos de procesamiento son estáticos y puros — no guardan estado ni producen efectos secundarios.
-- **Separación UI/lógica**: los paneles de UI solo coordinan interacciones y leen parámetros; no calculan nada sobre píxeles.
+- **Edición no destructiva**: `originalImage` nunca se modifica.
+- **Fachada estable**: la capa `app` interactúa únicamente con `ImageProcessor`.
+- **Sin estado en servicios**: métodos estáticos y puros.
+- **Separación UI / lógica**: los paneles no calculan nada sobre píxeles.
+- **SRP**: cada clase de UI tiene una sola razón para cambiar.
+- **Dependency Inversion**: `TopBar` recibe callbacks (`Runnable`), no referencias directas a la app.
 
 ---
 
@@ -141,11 +134,11 @@ ImageIOService.read(file) → originalImage
        ↓
 Usuario selecciona filtro + ajusta parámetros en EditorFilterPane
        ↓
-ImageProcessorApp.applySelectedFilter()
+ImageProcessorApp.applySelectedFilter()        (o preview instantáneo para filtros simples)
        ↓
-ImageProcessor.<filtro>(originalImage, parámetros) → processedImage
-       ↓
-SwingFXUtils.toFXImage(processedImage) → ImageView (preview)
+ImageProcessor.<filtro>(processedImage*, parámetros) → nuevo processedImage
+       ↓                                              (* o originalImage en modo no apilado)
+EditorPreviewPane.showProcessed(processedImage) → ImageView
        ↓
 Usuario guarda
        ↓
@@ -182,12 +175,15 @@ ImageIOService.write(processedImage, file)
 |---|---|---|
 | Vidrio esmerilado (alpha por brillo local) | `ArtisticFilters` | `FilterType.FROSTED` |
 | Desvanecimiento circular / viñeta | `ArtisticFilters` | `FilterType.CIRCULAR_FADE` |
+| Transparencia global (alpha uniforme) | `ColorFilters` | `FilterType.ALPHA_GLOBAL` |
 
 #### Estética retro y cuantización
 | Funcionalidad | Clase | Enum |
 |---|---|---|
 | Retro 1 — cuantización RGB a N niveles | `ArtisticFilters` | `FilterType.RETRO1` |
 | Compresión a 4 bits + estiramiento (Binario / Decimal / Hexadecimal) | `ArtisticFilters` | `FilterType.STRETCH_4_BITS` |
+| Retro 2 — canales parciales ("glitch") | `ArtisticFilters` | `FilterType.RETRO2` |
+| Grises cuantizados con bandas | `ColorFilters` | `FilterType.GRAYSCALE_QUANTIZED` |
 
 #### Filtros espaciales (convolución 3×3)
 | Funcionalidad | Clase | Enum |
@@ -197,42 +193,133 @@ ImageIOService.write(processedImage, file)
 | Detección de bordes | `ConvolutionFilters` | `ConvolutionKernel.EDGES` |
 | Emboss (relieve 3D) | `ConvolutionFilters` | `ConvolutionKernel.EMBOSS` |
 
+#### UX / Interfaz
+| Funcionalidad | Descripción |
+|---|---|
+| Zoom independiente por panel | Scroll de rueda, botones −/+/fit en toolbar. Cada panel (original/resultado) mantiene su propio nivel de zoom (100 %–800 %). |
+| Click-to-focus en modo comparar | Clic en un panel lo marca como activo (borde azul `#4a8fd6`); los botones de zoom actúan sobre él. |
+| Modo comparar 50/50 | Divide el área central en dos `ScrollPane` enlazados al 50 % del ancho con borde de foco. |
+| Checkboxes de canal con estilos premium | Retro 2 muestra checkboxes coloreados (R rojo, G verde, B azul) con gradiente de fondo al activarse. |
+| Supresión de warnings JVM | `--enable-native-access=javafx.graphics` + `--sun-misc-unsafe-memory-access=allow` en `pom.xml` y `.mvn/jvm.config`. |
+| Refactorización en capas SRP | `ImageProcessorApp` (coordinador) · `EditorPreviewPane` (preview + zoom) · `TopBar` (barra de herramientas). |
+
 ---
 
 ### ❌ Pendiente de implementar
 
-#### Efectos de transparencia
+#### Filtros adicionales
 | Funcionalidad | Descripción y ubicación sugerida |
 |---|---|
-| Transparencia global | Slider de alpha uniforme (0–255) aplicado a toda la imagen. Agregar `FilterType.ALPHA_GLOBAL`, implementar en `ColorFilters`, exponer slider en `EditorFilterPane`. |
+| Sepia | Preset de `recolor` con tonos fijos (R=112, G=66, B=20). Agregar `FilterType.SEPIA`, implementar en `ArtisticFilters`. No requiere controles adicionales. |
+| Temperatura (frío/cálido) | Suma al canal B (frío) o a R+G (cálido). Agregar `FilterType.TEMPERATURE` en `ColorFilters`, slider de temperatura (−100 frío / +100 cálido) en `EditorFilterPane`. |
+| Animación / secuencia de Hue | Genera N imágenes desplazando H en el espacio HSV y las guarda en carpeta. Diálogo de exportación + iteración en `ArtisticFilters`. |
 
-#### Estética retro y cuantización
-| Funcionalidad | Descripción y ubicación sugerida |
-|---|---|
-| Retro 2 — canales parciales ("glitch") | Cuantizar solo 1 o 2 canales seleccionados (R, G, B), dejando los demás intactos o en cero. Agregar `FilterType.RETRO2`, implementar en `ArtisticFilters`, agregar checkboxes de canal en `EditorFilterPane`. |
-| Grises cuantizados con bandas | Escala de grises limitada a N niveles, generando bandas de tono marcadas. Combina `grayscale` + `quantize`. Agregar `FilterType.GRAYSCALE_QUANTIZED`, implementar en `ColorFilters`. |
+---
 
-#### Filtros adicionales sugeridos
-| Funcionalidad | Descripción y ubicación sugerida |
-|---|---|
-| Sepia | Variante directa de `recolor` con tonos fijos (R=112, G=66, B=20). Agregar `FilterType.SEPIA`, implementar en `ArtisticFilters` como preset de `recolor`. No requiere controles adicionales en el panel. |
-| Temperatura (frío/cálido) | Suma valores al canal B (frío) o a los canales R+G (cálido). Agregar `FilterType.TEMPERATURE`, implementar en `ColorFilters`, exponer un slider de temperatura (negativo=frío, positivo=cálido) en `EditorFilterPane`. |
-| Animación / secuencia de Hue | Genera N variaciones de la imagen desplazando el canal H (Tono) gradualmente y las guarda en una carpeta. Requiere un diálogo de exportación de secuencia. Implementar en `ArtisticFilters` iterando el desplazamiento de H en el espacio HSV. |
+#### Pipeline de filtros (apilado)
+
+**Objetivo**: permitir aplicar varios filtros secuencialmente — cada filtro actúa sobre el resultado del anterior — y poder deshacer paso a paso hasta la imagen original.
+
+**Plan de implementación**:
+
+1. **Historial de resultados** (`FilterHistoryService` o lista en `ImageProcessorApp`):
+   - Mantener un `Deque<BufferedImage> filterHistory` (pila LIFO, máx. ~20 entradas).
+   - Cada vez que se aplica un filtro, `process(processedImage)` y `filterHistory.push(processedImage)`.
+   - `originalImage` sigue inalterada y es el fondo de la pila.
+
+2. **Botón "Revertir último filtro"** en `TopBar`:
+   - Icono `fas-undo`. Activo solo si hay entradas en la pila.
+   - Al pulsarlo: `processedImage = filterHistory.pop()` y refresca la vista.
+   - Si la pila queda vacía, `processedImage = originalImage`.
+
+3. **Indicador de pila** en la barra de estado o en `TopBar`:
+   - Texto tipo `"Filtros aplicados: 3"` que se actualiza en cada push/pop.
+
+4. **Archivos a modificar**:
+   - `ImageProcessorApp.java` — añadir `filterHistory`, lógica de push/pop, callback `onUndo`.
+   - `TopBar.java` — añadir botón Revertir con referencia a `onUndo` y `BooleanProperty undoEnabled`.
+   - `EditorFilterPane` — sin cambios (los filtros siguen invocándose igual).
+
+---
+
+#### Preview instantáneo para filtros simples
+
+**Objetivo**: los filtros sin parámetros o con parámetros de slider/spinner muestran el efecto en tiempo real al mover el control; el botón **Aplicar filtro** queda reservado para operaciones más costosas o para confirmar filtros avanzados antes de añadirlos al historial.
+
+**Criterio de clasificación**:
+
+| Tipo | Comportamiento | Filtros |
+|---|---|---|
+| **Simple / instantáneo** | El preview se actualiza en tiempo real al cambiar el parámetro | `GRAYSCALE`, `NEGATIVE`, `BRIGHTNESS`, `BW_THRESHOLD`, `ALPHA_GLOBAL`, `GRAYSCALE_QUANTIZED`, `SEPIA` (futuro) |
+| **Avanzado / manual** | Requiere pulsar **Aplicar filtro** para confirmar y añadir al historial | `HSV`, `RETRO1`, `RETRO2`, `RECOLOR`, `STRETCH_4_BITS`, `CONVOLUTION`, `FROSTED`, `CIRCULAR_FADE`, `TEMPERATURE` (futuro) |
+
+**Plan de implementación**:
+
+1. **Clasificación en `FilterType`**: añadir un campo `boolean instantPreview` al enum.
+   ```java
+   GRAYSCALE("Escala de grises", true),
+   BRIGHTNESS("Brillo", true),
+   RETRO1("Retro1", false), ...
+   ```
+
+2. **Listeners en `EditorFilterPane`**: para cada control de filtro simple, exponer un método `setOnParamChanged(Runnable callback)` que la app registre.
+
+3. **`ImageProcessorApp`**: al registrar el callback, ejecutar `applyPreview()` (aplica el filtro sobre `originalImage` al igual que ahora pero SIN añadir al historial). `applySelectedFilter()` sigue siendo el único punto que hace `filterHistory.push()`.
+
+4. **Archivos a modificar**:
+   - `FilterType.java` — añadir campo `instantPreview`.
+   - `EditorFilterPane.java` — exponer `setOnParamChanged(Runnable)` y conectar listeners a los sliders/spinners de filtros simples.
+   - `ImageProcessorApp.java` — `applyPreview()` sin historial; `applySelectedFilter()` con historial.
+
+---
+
+#### Mejoras de estilo en el panel de herramientas
+
+**Objetivo**: elevar la calidad visual del panel izquierdo al nivel del resto de la interfaz.
+
+**Plan de implementación**:
+
+1. **Separadores visuales entre secciones de parámetros**:
+   - Añadir un `Separator` con `opacity: 0.2` entre el selector de filtro y la zona de parámetros.
+   - Añadir un título de sección dinamico (ej. `"PARÁMETROS"`) que aparezca solo cuando hay parámetros visibles.
+
+2. **Labels de valor en tiempo real junto a cada slider**:
+   - Cada `Slider` muestra su valor actual a la derecha (ej. `"Brillo: +40"`).
+   - Implementar con un `Label` enlazado mediante `Bindings.format()`.
+
+3. **Botón Reset por parámetro**:
+   - Pequeño botón circular `↺` junto a cada control que restaura el valor por defecto.
+
+4. **Agrupación visual con tarjetas**:
+   - Cada `VBox` de sección (`brightnessBox`, `hsvBox`, etc.) recibe estilo de "tarjeta" (`-fx-background-color`, `border-radius`, `padding`) para separarse visualmente.
+
+5. **Indicador del filtro activo**:
+   - El `ComboBox` de filtros muestra un punto de color a la izquierda del ítem seleccionado según la categoría (azul = básico, naranja = retro, verde = transparencia, púrpura = convolución).
+
+6. **Archivos a modificar**:
+   - `EditorFilterPane.java` — añadir labels de valor, botones reset y grupos visuales.
+   - `styles.css` — añadir estilos `.filter-card`, `.param-value-label`, `.param-reset-btn`.
 
 ---
 
 ## 7. Roadmap
 
-### Fase actual — Completada ✅
+### Fase 1 — Completada ✅
 - Arquitectura limpia en capas separadas (`app`, `domain`, `service`).
-- UI modular con panel de filtros, panel de generador y barra de estado.
-- Implementados: 5 degradados, 6 ajustes básicos, 2 efectos alpha, 2 efectos retro, 4 kernels de convolución.
-- Compilación y arranque verificados con Java 21 + JavaFX 21.
+- UI modular: `EditorPreviewPane`, `TopBar`, `EditorFilterPane`, `GradientGeneratorPane`.
+- **15 filtros** implementados: 6 ajustes básicos, 3 transparencia, 4 retro/cuantización, 4 kernels de convolución.
+- **5 degradados** sintéticos.
+- Zoom independiente por panel (100 %–800 %), compare mode 50/50 con borde de foco.
+- Checkboxes premium de canal para Retro 2.
+- Supresión de warnings JVM de JavaFX en `pom.xml` y `.mvn/jvm.config`.
+- Documentación completa: README.md y PLAN.md actualizados.
 
-### Siguiente fase — Implementación pendiente
-1. **Transparencia global** — `FilterType.ALPHA_GLOBAL` + `ColorFilters` + control en `EditorFilterPane`.
-2. **Retro 2 (canales parciales)** — `FilterType.RETRO2` + `ArtisticFilters` + checkboxes de canal en `EditorFilterPane`.
-3. **Grises cuantizados** — `FilterType.GRAYSCALE_QUANTIZED` + combinación en `ColorFilters`.
-4. **Sepia** — `FilterType.SEPIA` + preset en `ArtisticFilters.recolor`.
-5. **Temperatura** — `FilterType.TEMPERATURE` + ajuste de canales en `ColorFilters` + slider en `EditorFilterPane`.
-6. **Animación / secuencia de Hue** — diálogo de exportación + iteración de H en `ArtisticFilters`.
+### Fase 2 — Próxima iteración
+1. **Pipeline de filtros + historial** — pila de resultados + botón Revertir en `TopBar`.
+2. **Preview instantáneo** — campo `instantPreview` en `FilterType` + listeners en `EditorFilterPane`.
+3. **Mejoras de estilo del panel de herramientas** — labels de valor, tarjetas, indicador de categoría.
+4. **Sepia** — preset de recolor, sin parámetros.
+5. **Temperatura** — slider frío/cálido en `ColorFilters`.
+
+### Fase 3 — Mejoras avanzadas
+6. **Animación / secuencia de Hue** — diálogo de exportación de secuencia de frames.

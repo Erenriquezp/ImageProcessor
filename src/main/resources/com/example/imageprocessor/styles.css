@@ -299,6 +299,162 @@
     -fx-alignment: center;
 }
 
+/* ── CHANNEL CHECKBOXES (Retro 2 — R / G / B) ────────────────────────── */
+.channel-check {
+    -fx-pref-width: 265px;
+    -fx-pref-height: 32px;
+    -fx-padding: 0 12 0 10;
+    -fx-background-color: #28292d;
+    -fx-background-radius: 7;
+    -fx-border-radius: 7;
+    -fx-border-color: #44444a;
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+    -fx-text-fill: #888890;
+    -fx-font-size: 12px;
+    -fx-font-weight: 500;
+    -fx-graphic-text-gap: 10;
+}
+.channel-check:hover {
+    -fx-background-color: #2e2f34;
+    -fx-border-color: #585860;
+    -fx-text-fill: #b0b0b8;
+}
+
+/* ── Shared box (the checkbox square) ── */
+.channel-check > .box {
+    -fx-background-color: #1e1e21;
+    -fx-border-color: #505056;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-border-width: 1.5;
+    -fx-min-width: 15px;
+    -fx-min-height: 15px;
+    -fx-pref-width: 15px;
+    -fx-pref-height: 15px;
+}
+.channel-check > .box > .mark {
+    -fx-background-color: transparent;
+    -fx-shape: "M 0 4 L 3 7 L 8 1";
+    -fx-scale-shape: false;
+}
+
+/* ── RED channel ── */
+.channel-check-r:selected {
+    -fx-background-color: linear-gradient(to right, rgba(180,40,50,0.22), rgba(40,41,45,0));
+    -fx-border-color: rgba(200,60,70,0.55);
+    -fx-text-fill: #e87880;
+}
+.channel-check-r:selected > .box {
+    -fx-background-color: #b42832;
+    -fx-border-color: #d03840;
+}
+.channel-check-r:selected > .box > .mark { -fx-background-color: #fff0f1; }
+
+/* ── GREEN channel ── */
+.channel-check-g:selected {
+    -fx-background-color: linear-gradient(to right, rgba(40,160,80,0.20), rgba(40,41,45,0));
+    -fx-border-color: rgba(50,180,90,0.50);
+    -fx-text-fill: #6dcc8a;
+}
+.channel-check-g:selected > .box {
+    -fx-background-color: #237a42;
+    -fx-border-color: #2ea055;
+}
+.channel-check-g:selected > .box > .mark { -fx-background-color: #f0fff4; }
+
+/* ── BLUE channel ── */
+.channel-check-b:selected {
+    -fx-background-color: linear-gradient(to right, rgba(40,100,200,0.22), rgba(40,41,45,0));
+    -fx-border-color: rgba(74,143,214,0.55);
+    -fx-text-fill: #6aaee0;
+}
+.channel-check-b:selected > .box {
+    -fx-background-color: #1f4a7a;
+    -fx-border-color: #4a8fd6;
+}
+.channel-check-b:selected > .box > .mark { -fx-background-color: #eef5ff; }
+
+/* ── PREVIEW SCROLL PANES ─────────────────────────────────────────────── */
+.preview-scroll-pane {
+    -fx-background-color: #0f0f11;
+    -fx-background: #0f0f11;
+    -fx-padding: 0;
+    -fx-border-width: 2;
+    -fx-border-color: transparent;   /* reservamos espacio; sin borde por defecto */
+    -fx-border-radius: 0;
+}
+/* Panel activo en modo comparar — borde accent en los 4 lados */
+.preview-scroll-pane-focused {
+    -fx-border-color: #4a8fd6;
+    -fx-effect: dropshadow(two-pass-box, rgba(74,143,214,0.25), 8, 0, 0, 0);
+}
+.preview-scroll-pane > .viewport {
+    -fx-background-color: #0f0f11;
+}
+/* Scrollbar track */
+.preview-scroll-pane .scroll-bar {
+    -fx-background-color: #1a1a1d;
+    -fx-pref-height: 9px;
+    -fx-pref-width:  9px;
+}
+.preview-scroll-pane .scroll-bar > .track {
+    -fx-background-color: #1e1e21;
+    -fx-background-radius: 0;
+}
+.preview-scroll-pane .scroll-bar > .thumb {
+    -fx-background-color: #44444a;
+    -fx-background-radius: 4;
+}
+.preview-scroll-pane .scroll-bar > .thumb:hover  { -fx-background-color: #585860; }
+.preview-scroll-pane .scroll-bar > .thumb:pressed { -fx-background-color: #4a8fd6; }
+/* Hide increment/decrement arrows */
+.preview-scroll-pane .scroll-bar > .increment-button,
+.preview-scroll-pane .scroll-bar > .decrement-button {
+    -fx-padding: 0;
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+}
+.preview-scroll-pane > .corner {
+    -fx-background-color: #1a1a1d;
+}
+
+/* ── ZOOM CONTROLS ────────────────────────────────────────────────────── */
+.zoom-box {
+    -fx-alignment: center;
+    -fx-background-color: #28292d;
+    -fx-background-radius: 7;
+    -fx-border-color: #44444a;
+    -fx-border-radius: 7;
+    -fx-border-width: 1;
+    -fx-padding: 0 4 0 4;
+}
+/* Icon-only zoom buttons inside the zoom box */
+.zoom-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 4 7 4 7;
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+}
+.zoom-btn:hover  { -fx-background-color: #34353a; }
+.zoom-btn:pressed { -fx-background-color: #202024; }
+.zoom-btn .toolbar-icon {
+    -fx-icon-color: #666670;
+    -fx-icon-size: 11;
+}
+.zoom-btn:hover .toolbar-icon { -fx-icon-color: #a0a0a8; }
+/* Zoom level label */
+.zoom-indicator {
+    -fx-text-fill: #666670;
+    -fx-font-size: 11px;
+    -fx-min-width: 52px;
+    -fx-alignment: center;
+    -fx-cursor: hand;
+    -fx-padding: 0 4 0 4;
+}
+.zoom-indicator:hover { -fx-text-fill: #a0a0a8; }
+
 /* ── BOTTOM STATUS BAR ────────────────────────────────────────────────── */
 .bottom-bar {
     -fx-background-color: #1a1a1d;
