@@ -15,7 +15,6 @@ import java.awt.image.BufferedImage;
 
 /**
  * Panel de previsualización central.
- *
  * Responsabilidades:
  *  - Muestra la imagen procesada (siempre) y la original (modo comparar).
  *  - Gestiona el modo comparar (50/50) con borde de foco en el panel activo.
@@ -55,7 +54,7 @@ public class EditorPreviewPane {
         configureImageView(processedView);
         configureImageView(originalView);
 
-        // LEFT content — imagen original (sólo en modo comparar)
+        // LEFT content — imagen original (solo en modo comparar)
         Label originalBadge = makeCompareBadge("ORIGINAL", Pos.TOP_LEFT);
         leftContent = new StackPane(originalView, originalBadge);
         leftContent.getStyleClass().addAll("preview-pane", "compare-pane");
@@ -111,7 +110,7 @@ public class EditorPreviewPane {
         processedView.setImage(image == null ? null : SwingFXUtils.toFXImage(image, null));
     }
 
-    /** Actualiza la imagen del panel original (sólo relevante en modo comparar). */
+    /** Actualiza la imagen del panel original (solo relevante en modo comparar). */
     public void showOriginal(BufferedImage image) {
         originalView.setImage(image == null ? null : SwingFXUtils.toFXImage(image, null));
     }
@@ -155,7 +154,7 @@ public class EditorPreviewPane {
         }
     }
 
-    // ── Zoom — API pública (delegada desde TopBar / teclado) ─────────────
+    // —— Zoom — API pública (delegada desde TopBar / teclado) ─────────────
 
     public void zoomIn() {
         if (leftPaneActive) setLeftZoom(leftZoomLevel  * (1.0 + ZOOM_STEP));
@@ -181,7 +180,7 @@ public class EditorPreviewPane {
         updateZoomIndicator();
     }
 
-    /** Aplica / retira el borde de acento. Sólo visible en modo comparar. */
+    /** Aplica / retira el borde de acento. Solo visible en modo comparar. */
     private void updateFocusRing() {
         leftScrollPane .getStyleClass().remove("preview-scroll-pane-focused");
         rightScrollPane.getStyleClass().remove("preview-scroll-pane-focused");
@@ -226,7 +225,7 @@ public class EditorPreviewPane {
 
     /**
      * Aplica el nivel de zoom a un panel concreto.
-     *
+     * <p>
      * zoom = 1,0 → modo fit: ScrollPane controla el tamaño del contenido
      *              (evita el bucle de retroalimentación viewport↔content).
      * zoom > 1,0 → modo explícito: el contenido supera el viewport

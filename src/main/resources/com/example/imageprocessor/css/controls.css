@@ -1,0 +1,133 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   CONTROLS — Generic reusable form controls
+   ComboBox · Spinner · Slider · ColorPicker · Button · Gradient panel
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Shared sizing ─────────────────────────────────────────────────── */
+.combo-box,
+.spinner,
+.color-picker {
+    -fx-pref-width: 265;
+}
+.slider {
+    -fx-pref-width: 265;
+}
+
+/* ── ComboBox ──────────────────────────────────────────────────────── */
+.combo-box {
+    -fx-background-color: #28292d;
+    -fx-border-color: #44444a;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 1;
+}
+.combo-box:hover   { -fx-border-color: #585860; }
+.combo-box:focused { -fx-border-color: #4a8fd6; }
+
+.combo-box > .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #d2d2d4;
+    -fx-padding: 4 8 4 8;
+}
+.combo-box .arrow-button { -fx-background-color: transparent; -fx-padding: 0 8 0 0; }
+.combo-box .arrow        { -fx-background-color: #666670; }
+
+/* Dropdown popup */
+.combo-box-popup .list-view {
+    -fx-background-color: #28292d;
+    -fx-border-color: #44444a;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(two-pass-box, rgba(0,0,0,0.6), 10, 0, 0, 4);
+}
+.combo-box-popup .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #b0b0b6;
+    -fx-padding: 5 12 5 12;
+}
+.combo-box-popup .list-cell:filled:hover {
+    -fx-background-color: #34353a;
+    -fx-text-fill: #d2d2d4;
+}
+.combo-box-popup .list-cell:filled:selected,
+.combo-box-popup .list-cell:filled:selected:hover {
+    -fx-background-color: #1f4a7a;
+    -fx-text-fill: #c8dff4;
+}
+
+/* ── Spinner ───────────────────────────────────────────────────────── */
+.spinner {
+    -fx-background-color: #28292d;
+    -fx-border-color: #44444a;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+.spinner:focused { -fx-border-color: #4a8fd6; }
+.spinner .text-field {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-text-fill: #d2d2d4;
+    -fx-padding: 4 6 4 8;
+}
+.spinner .increment-arrow-button,
+.spinner .decrement-arrow-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent transparent #44444a;
+    -fx-border-width: 0 0 0 1;
+}
+.spinner .increment-arrow-button:hover,
+.spinner .decrement-arrow-button:hover {
+    -fx-background-color: #34353a;
+}
+.spinner .increment-arrow-button .increment-arrow,
+.spinner .decrement-arrow-button .decrement-arrow {
+    -fx-background-color: #666670;
+}
+
+/* ── Slider ────────────────────────────────────────────────────────── */
+.slider .track {
+    -fx-background-color: #34353a;
+    -fx-background-radius: 3;
+    -fx-pref-height: 3px;
+}
+.slider .thumb {
+    -fx-background-color: #4a8fd6;
+    -fx-background-radius: 100%;
+    -fx-pref-width: 13px;
+    -fx-pref-height: 13px;
+    -fx-effect: dropshadow(two-pass-box, rgba(74,143,214,0.4), 4, 0.5, 0, 0);
+}
+.slider .thumb:hover   { -fx-background-color: #60a0e0; }
+.slider .thumb:pressed { -fx-background-color: #3878b4; }
+
+/* ── ColorPicker button ────────────────────────────────────────────── */
+.color-picker {
+    -fx-background-color: #28292d;
+    -fx-border-color: #44444a;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+.color-picker:hover { -fx-border-color: #585860; }
+.color-picker .label { -fx-text-fill: #b0b0b6; }
+.color-picker .picker-color-rect { -fx-border-color: #44444a; }
+
+/* ── Generic button (gradient pane, dialog buttons, etc.) ─────────── */
+.button {
+    -fx-background-color: #28292d;
+    -fx-text-fill: #b0b0b6;
+    -fx-background-radius: 7;
+    -fx-border-color: #44444a;
+    -fx-border-radius: 7;
+    -fx-border-width: 1;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+}
+.button:hover  { -fx-background-color: #34353a; -fx-text-fill: #d2d2d4; -fx-border-color: #585860; }
+.button:pressed { -fx-background-color: #202024; }
+
+/* ── Gradient generator controls panel ────────────────────────────── */
+.gradient-controls { -fx-background-color: transparent; }
+.gradient-controls .label {
+    -fx-text-fill: #888890;
+    -fx-font-size: 11.5px;
+}
+

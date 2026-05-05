@@ -1,0 +1,26 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   BASE — Design tokens & root styles
+   ─────────────────────────────────────────────────────────────────────
+   Layer 0 (canvas)  : #141416
+   Layer 1 (panels)  : #1e1e21
+   Layer 2 (controls): #28292d
+   Layer 3 (hover)   : #34353a
+   Text primary      : #d2d2d4
+   Text secondary    : #888890
+   Text muted        : #505056
+   Accent            : #4a8fd6  — used SPARINGLY
+   Border default    : #38383e
+   Border hover      : #505056
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.root-pane {
+    -fx-background-color: #141416;
+    -fx-font-family: "Segoe UI", "Helvetica Neue", "Arial", sans-serif;
+    -fx-font-size: 13px;
+    -fx-text-fill: #d2d2d4;
+}
+
+.label {
+    -fx-text-fill: #d2d2d4;
+}
+

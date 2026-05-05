@@ -1,0 +1,182 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   PANEL LEFT — Left tool panel, filter cards, parameter controls
+                & channel checkboxes (Retro 2)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Panel container ───────────────────────────────────────────────── */
+.left-panel {
+    /* Subtle inner border: two-layer background simulates a 1 px right edge
+       without a hard painted line — looks "cut" from the same material.     */
+    -fx-background-color: rgba(0,0,0,0.22), #1e1e21;
+    -fx-background-insets: 0, 0 1 0 0;
+    -fx-background-radius: 0;
+    -fx-border-width: 0;           /* remove old hard border */
+}
+.left-panel .label {
+    -fx-text-fill: #888890;
+    -fx-font-size: 12px;
+}
+
+/* ── Section header "HERRAMIENTAS" ─────────────────────────────────── */
+.section-title {
+    -fx-text-fill: #484850;           /* a hint brighter — more legible at small size */
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-letter-spacing: 0.04em;      /* micro tracking → gives the all-caps look depth */
+}
+
+/* ── Filter group containers ───────────────────────────────────────── */
+.filter-section {
+    -fx-padding: 6 0 6 0;
+}
+.filter-section-divider {
+    -fx-padding: 2 0 2 0;
+}
+
+/* ── Filter card ── elevated glass-surface style ──────────────────────
+   Industry pattern (Linear, Vercel, JetBrains New UI):
+     • No hard colour border — replaced by a 1 px "glass rim" (semi-transparent
+       white layer visible only at the card edge) that reads as material depth
+       rather than a drawn line.
+     • Inner surface is a single flat dark colour, slightly lifted from the
+       panel floor (#1e1e21 → #242428).
+     • Gaussian shadow is wider + softer than two-pass-box, giving genuine
+       perceived elevation instead of a clip-art drop-shadow.
+   ──────────────────────────────────────────────────────────────────── */
+.filter-card {
+    /* Layer 0 (bottom) — glass rim: shows through as a 1 px semi-transparent ring */
+    /* Layer 1 (top)    — card surface: inset 1 px so the rim peeks out all around */
+    -fx-background-color:
+        rgba(255,255,255,0.055),
+        #242428;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 9, 8;
+    -fx-border-width: 0;
+    -fx-padding: 10 12 10 12;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.52), 14, 0, 0, 3);
+}
+
+/* Hover: rim brightens, shadow lifts — card feels "responsive" */
+.filter-card:hover {
+    -fx-background-color:
+        rgba(255,255,255,0.085),
+        #272729;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 9, 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.56), 16, 0, 0, 4);
+}
+
+/* ── Dynamic "PARÁMETROS" title ────────────────────────────────────── */
+.params-section-title {
+    -fx-text-fill: #484850;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 0 0 2;
+    -fx-letter-spacing: 0.04em;
+}
+
+/* ── Live value label (right of each slider) ─────────────────────── */
+.param-value-label {
+    -fx-text-fill: #4a8fd6;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-min-width: 46px;
+    -fx-alignment: center-right;
+}
+
+/* ── Per-parameter reset button ↺ ──────────────────────────────────── */
+.param-reset-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #44444c;           /* starts very muted — appears on demand */
+    -fx-font-size: 14px;
+    -fx-padding: 2 5 2 5;
+    -fx-cursor: hand;
+    -fx-min-width: 24px;
+    -fx-pref-width: 24px;
+    -fx-background-radius: 5;
+}
+.param-reset-btn:hover {
+    -fx-text-fill: #a0a0a8;
+    -fx-background-color: rgba(255,255,255,0.07);   /* tinted surface on hover */
+}
+.param-reset-btn:pressed {
+    -fx-background-color: rgba(0,0,0,0.20);
+    -fx-text-fill: #d2d2d4;
+}
+
+/* ── Field / param labels ───────────────────────────────────────────── */
+.field-label {
+    -fx-text-fill: #7a7a84;           /* slightly lighter → more readable inside a card */
+    -fx-font-size: 11.5px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CHANNEL CHECKBOXES — Retro 2  (R / G / B)
+   ═══════════════════════════════════════════════════════════════════════ */
+.channel-check {
+    -fx-pref-width: 265px;
+    -fx-pref-height: 32px;
+    -fx-padding: 0 12 0 10;
+    -fx-background-color: #28292d;
+    -fx-background-radius: 7;
+    -fx-border-radius: 7;
+    -fx-border-color: #44444a;
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+    -fx-text-fill: #888890;
+    -fx-font-size: 12px;
+    -fx-font-weight: 500;
+    -fx-graphic-text-gap: 10;
+}
+.channel-check:hover {
+    -fx-background-color: #2e2f34;
+    -fx-border-color: #585860;
+    -fx-text-fill: #b0b0b8;
+}
+
+/* Shared checkbox square */
+.channel-check > .box {
+    -fx-background-color: #1e1e21;
+    -fx-border-color: #505056;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-border-width: 1.5;
+    -fx-min-width: 15px;
+    -fx-min-height: 15px;
+    -fx-pref-width: 15px;
+    -fx-pref-height: 15px;
+}
+.channel-check > .box > .mark {
+    -fx-background-color: transparent;
+    -fx-shape: "M 0 4 L 3 7 L 8 1";
+    -fx-scale-shape: false;
+}
+
+/* RED */
+.channel-check-r:selected {
+    -fx-background-color: linear-gradient(to right, rgba(180,40,50,0.22), rgba(40,41,45,0));
+    -fx-border-color: rgba(200,60,70,0.55);
+    -fx-text-fill: #e87880;
+}
+.channel-check-r:selected > .box         { -fx-background-color: #b42832; -fx-border-color: #d03840; }
+.channel-check-r:selected > .box > .mark { -fx-background-color: #fff0f1; }
+
+/* GREEN */
+.channel-check-g:selected {
+    -fx-background-color: linear-gradient(to right, rgba(40,160,80,0.20), rgba(40,41,45,0));
+    -fx-border-color: rgba(50,180,90,0.50);
+    -fx-text-fill: #6dcc8a;
+}
+.channel-check-g:selected > .box         { -fx-background-color: #237a42; -fx-border-color: #2ea055; }
+.channel-check-g:selected > .box > .mark { -fx-background-color: #f0fff4; }
+
+/* BLUE */
+.channel-check-b:selected {
+    -fx-background-color: linear-gradient(to right, rgba(40,100,200,0.22), rgba(40,41,45,0));
+    -fx-border-color: rgba(74,143,214,0.55);
+    -fx-text-fill: #6aaee0;
+}
+.channel-check-b:selected > .box         { -fx-background-color: #1f4a7a; -fx-border-color: #4a8fd6; }
+.channel-check-b:selected > .box > .mark { -fx-background-color: #eef5ff; }
+

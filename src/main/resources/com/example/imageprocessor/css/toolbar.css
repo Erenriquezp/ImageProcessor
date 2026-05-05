@@ -1,0 +1,182 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   TOOLBAR — Top bar, toolbar buttons, zoom cluster & status bar
+   IntelliJ 2026-inspired: frosted-glass gradient, micro-elevated buttons
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Top bar container ─────────────────────────────────────────────── */
+.top-bar {
+    /*
+     * Two-layer background trick:
+     *  Layer 1 (bottom): gradient border line that fades at the edges
+     *  Layer 2 (top)   : main frosted-glass gradient, inset 1 px from bottom
+     *                    so the border line bleeds through.
+     */
+    -fx-background-color:
+        linear-gradient(to right,
+            transparent     0%,
+            #3c3c4c        12%,
+            #4e4e62        50%,
+            #3c3c4c        88%,
+            transparent   100%),
+        linear-gradient(to bottom,
+            #2c2c36        0%,
+            #232330       55%,
+            #1e1e28      100%);
+    -fx-background-insets: 0 0 0 0, 0 0 1 0;
+    -fx-alignment: center-left;
+    /* Drop-shadow that anchors the toolbar visually */
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.60), 18, 0, 0, 5);
+}
+
+/* ── Secondary buttons: Abrir · Guardar · Reset ── */
+.top-bar .toolbar-button {
+    /*
+     * Micro-gradient + solid base — simulates a slight bevel (top highlight,
+     * bottom shadow) for a subtle 3-D lift consistent with IntelliJ's buttons.
+     */
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(255,255,255,0.05)  0%,
+            rgba(0,0,0,0.05)      100%),
+        #28292f;
+    -fx-background-insets: 0, 0;
+    -fx-text-fill: #aaabb5;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 500;
+    -fx-background-radius: 7;
+    -fx-border-color: #40404e;
+    -fx-border-radius: 7;
+    -fx-border-width: 1;
+    -fx-padding: 6 14 6 11;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 5, 0, 0, 1);
+}
+.top-bar .toolbar-button:hover {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(255,255,255,0.07)  0%,
+            rgba(0,0,0,0.03)      100%),
+        #35363e;
+    -fx-border-color: #585868;
+    -fx-text-fill: #d4d4da;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.45), 8, 0, 0, 2);
+}
+.top-bar .toolbar-button:pressed {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(0,0,0,0.08)       0%,
+            rgba(255,255,255,0.01) 100%),
+        #1e1e26;
+    -fx-border-color: #3a3a48;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 2, 0, 0, 0);
+    -fx-translate-y: 0.5;
+}
+
+/* ── Primary button: Aplicar filtro ── */
+.top-bar .toolbar-button.btn-primary {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(255,255,255,0.09)  0%,
+            rgba(0,0,0,0.09)      100%),
+        linear-gradient(to bottom, #266098 0%, #1c4e82 100%);
+    -fx-background-insets: 0, 0;
+    -fx-text-fill: #cde2f6;
+    -fx-border-color: #3070b8;
+    -fx-border-width: 1;
+    -fx-font-weight: 600;
+    -fx-effect: dropshadow(gaussian, rgba(38,96,152,0.55), 14, 0, 0, 2);
+}
+.top-bar .toolbar-button.btn-primary:hover {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(255,255,255,0.11)  0%,
+            rgba(0,0,0,0.07)      100%),
+        linear-gradient(to bottom, #3070b4 0%, #266098 100%);
+    -fx-border-color: #4484cc;
+    -fx-text-fill: #daeaf8;
+    -fx-effect: dropshadow(gaussian, rgba(38,96,152,0.75), 18, 0, 0, 3);
+}
+.top-bar .toolbar-button.btn-primary:pressed {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(0,0,0,0.12)       0%,
+            rgba(0,0,0,0.04)      100%),
+        linear-gradient(to bottom, #163668 0%, #1c3e74 100%);
+    -fx-effect: dropshadow(gaussian, rgba(38,96,152,0.25), 5, 0, 0, 0);
+    -fx-translate-y: 0.5;
+}
+
+/* ── Ikonli icons ── */
+.top-bar .toolbar-button .toolbar-icon {
+    -fx-icon-color: #606070;
+    -fx-icon-size: 13;
+}
+.top-bar .toolbar-button:hover .toolbar-icon             { -fx-icon-color: #9898aa; }
+.top-bar .toolbar-button.btn-primary .toolbar-icon       { -fx-icon-color: #7aaad4; }
+.top-bar .toolbar-button.btn-primary:hover .toolbar-icon { -fx-icon-color: #9abce2; }
+
+/* ── Compare checkbox ── */
+.top-bar .top-toggle          { -fx-text-fill: #606070; -fx-font-size: 12px; }
+.top-bar .top-toggle:selected { -fx-text-fill: #9898aa; }
+
+/* ── Zoom cluster ─────────────────────────────────────────────────── */
+.zoom-box {
+    -fx-alignment: center;
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(255,255,255,0.03)  0%,
+            rgba(0,0,0,0.06)      100%),
+        #26272d;
+    -fx-background-insets: 0, 0;
+    -fx-background-radius: 7;
+    -fx-border-color: #40404e;
+    -fx-border-radius: 7;
+    -fx-border-width: 1;
+    -fx-padding: 0 4 0 4;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.28), 5, 0, 0, 1);
+}
+
+.zoom-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 4 7 4 7;
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+}
+.zoom-btn:hover   { -fx-background-color: rgba(255,255,255,0.06); }
+.zoom-btn:pressed { -fx-background-color: rgba(0,0,0,0.14); }
+.zoom-btn .toolbar-icon       { -fx-icon-color: #606070; -fx-icon-size: 11; }
+.zoom-btn:hover .toolbar-icon { -fx-icon-color: #9898aa; }
+
+.zoom-indicator {
+    -fx-text-fill: #606070;
+    -fx-font-size: 11px;
+    -fx-min-width: 52px;
+    -fx-alignment: center;
+    -fx-cursor: hand;
+    -fx-padding: 0 4 0 4;
+}
+.zoom-indicator:hover { -fx-text-fill: #9898aa; }
+
+
+/* ── Bottom status bar ─────────────────────────────────────────────── */
+.bottom-bar {
+    /*
+     * Mirror the top-bar pattern but inverted — top border fades in from center.
+     * Main layer sits below the faded border line (inset 1 px from top).
+     */
+    -fx-background-color:
+        linear-gradient(to right,
+            transparent    0%,
+            #2e2e3a       10%,
+            #38384a       50%,
+            #2e2e3a       90%,
+            transparent  100%),
+        #18181e;
+    -fx-background-insets: 0 0 0 0, 1 0 0 0;
+    -fx-border-color: transparent;
+}
+.bottom-bar .label {
+    -fx-text-fill: #50505e;
+    -fx-font-size: 11px;
+}

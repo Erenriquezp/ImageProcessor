@@ -1,0 +1,511 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   COLOR PICKER — Palette popup & Custom Color dialog (premium)
+   Injected at runtime into sub-windows via ImageProcessorApp's
+   Window.getWindows() listener.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────
+   Palette popup  (swatch grid + "Custom Color…" hyperlink)
+   ───────────────────────────────────────────────────────────────────── */
+.color-palette {
+    -fx-background-color: #1a1a1e;
+    -fx-border-color: #3a3a44;
+    -fx-border-width: 1;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-padding: 12;
+    -fx-effect: dropshadow(two-pass-box, rgba(0,0,0,0.80), 22, 0, 0, 6);
+}
+
+.color-palette .color-picker-grid {
+    -fx-padding: 4;
+    -fx-hgap: 1;
+    -fx-vgap: 1;
+}
+
+/* Swatch cell — dark frame, slight rounding */
+.color-palette .color-square {
+    -fx-background-color: #252529;
+    -fx-padding: 1.5;
+    -fx-cursor: hand;
+    -fx-background-radius: 4;
+}
+.color-palette .color-square .color-dot { -fx-background-radius: 3; }
+
+/* Hover: accent ring + glow */
+.color-palette .color-square:hover {
+    -fx-background-color: #4a8fd6, #252529;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 5, 3.5;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(two-pass-box, rgba(74,143,214,0.55), 7, 0, 0, 0);
+}
+.color-palette .color-square:selected,
+.color-palette .color-square:focused {
+    -fx-background-color: #6aaee0, #252529;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 5, 3.5;
+}
+
+/* Separator */
+.color-palette .separator          { -fx-padding: 6 0 2 0; }
+.color-palette .separator > .line  { -fx-border-color: #38383e; -fx-border-width: 1 0 0 0; }
+
+/* "Custom Color…" link */
+.color-palette .hyperlink {
+    -fx-text-fill: #5aa0d8;
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 500;
+    -fx-underline: false;
+    -fx-padding: 6 0 4 0;
+    -fx-cursor: hand;
+}
+.color-palette .hyperlink:hover   { -fx-text-fill: #7ab8e8; }
+.color-palette .hyperlink:visited { -fx-text-fill: #5aa0d8; }
+.color-palette .hyperlink:focused { -fx-border-color: transparent; -fx-background-color: transparent; }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Custom Color Dialog  (Stage + Scene injected at runtime)
+   IntelliJ 2026-inspired: gradient root, glass cards, refined controls
+   ───────────────────────────────────────────────────────────────────── */
+
+/* Root — frosted-glass gradient background */
+.custom-color-dialog {
+    /*
+     * Three-layer background:
+     *  1. Very subtle top-edge highlight (simulates light hitting glass)
+     *  2. Main gradient — deep indigo-dark from top to bottom
+     * The scene fill is forced to #17171a in Java code, so only the node
+     * padding area is styled here.
+     */
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(255,255,255,0.025)  0%,
+            rgba(255,255,255,0.000) 12%),
+        linear-gradient(to bottom,
+            #1f1f26   0%,
+            #18181f  60%,
+            #141419 100%);
+    -fx-background-insets: 0, 0;
+    -fx-padding: 22;
+    /* Outer border to frame the whole dialog */
+    -fx-border-color: #34344040;
+    -fx-border-width: 1;
+    -fx-border-radius: 0;
+}
+
+/* Transparent inner containers */
+.custom-color-dialog .controls-pane,
+.custom-color-dialog .color-rect-pane,
+.custom-color-dialog .color-new-rect,
+.custom-color-dialog .current-new-color-grid,
+.custom-color-dialog .color-current-new-color-grid {
+    -fx-background-color: transparent;
+}
+
+/* Generic labels */
+.custom-color-dialog .label {
+    -fx-text-fill: #7c7c88;
+    -fx-font-size: 11px;
+}
+
+/* "Current Color" / "New Color" headings */
+.custom-color-dialog .current-new-color-grid .label {
+    -fx-text-fill: #4e4e5c;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-font-style: italic;
+}
+
+/* Color selection area — soft lift + inner glow */
+.custom-color-dialog .color-rect-pane {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.65), 16, 0, 0, 3);
+}
+
+/* Current vs new color preview strip — glassy card */
+.custom-color-dialog .color-display-pane {
+    -fx-border-color: #3a3a4a;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.50), 10, 0, 0, 2);
+}
+
+/* ── Tab pane (HSB / RGB / Web) — segmented-control style ── */
+.custom-color-dialog .color-input-field-tabs {
+    -fx-background-color: transparent;
+    -fx-tab-min-height: 27px;
+    -fx-tab-max-height: 27px;
+    -fx-padding: 0 0 10 0;
+}
+.custom-color-dialog .color-input-field-tabs .tab-header-area {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+/* Pill container — glass card */
+.custom-color-dialog .color-input-field-tabs .tab-header-area .tab-header-background {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(255,255,255,0.03)  0%,
+            rgba(0,0,0,0.06)      100%),
+        #20202a;
+    -fx-background-insets: 0, 0;
+    -fx-background-radius: 8;
+    -fx-border-color: #38384a;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 5, 0, 0, 1);
+}
+/* Unselected tab */
+.custom-color-dialog .color-input-field-tabs .tab-header-area .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-padding: 4 16 4 16;
+}
+.custom-color-dialog .color-input-field-tabs .tab-header-area .headers-region > .tab .tab-label {
+    -fx-text-fill: #58586a;
+    -fx-font-size: 11px;
+    -fx-font-weight: 500;
+}
+.custom-color-dialog .color-input-field-tabs .tab-header-area .headers-region > .tab:hover .tab-label {
+    -fx-text-fill: #9898aa;
+}
+.custom-color-dialog .color-input-field-tabs .tab-header-area .headers-region > .tab:focused {
+    -fx-background-color: transparent;
+}
+/* Selected tab — accent fill pill with glow */
+.custom-color-dialog .color-input-field-tabs .tab-header-area .headers-region > .tab:selected {
+    -fx-background-color:
+        linear-gradient(to bottom, #3a7ac8 0%, #2a62a8 100%);
+    -fx-border-color: #3a7ac8;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-effect: dropshadow(gaussian, rgba(42,98,168,0.55), 8, 0, 0, 1);
+}
+.custom-color-dialog .color-input-field-tabs .tab-header-area .headers-region > .tab:selected .tab-label {
+    -fx-text-fill: #e8f2ff;
+    -fx-font-weight: 600;
+}
+/* Tab content area */
+.custom-color-dialog .color-input-field-tabs .tab-content-area {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+/* ── Settings pane (channel sliders + spinners) — glass card elevated ── */
+.custom-color-dialog .controls-pane .settings-pane {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(255,255,255,0.025)  0%,
+            rgba(0,0,0,0.05)        100%),
+        #1e1e28;
+    -fx-background-insets: 0, 0;
+    -fx-background-radius: 10;
+    -fx-border-color: #36364a;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 14 16 14 16;
+    -fx-hgap: 10;
+    -fx-vgap: 9;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.45), 12, 0, 0, 3);
+}
+
+/* Labels inside (H:, S:, B:, etc.) */
+.custom-color-dialog .controls-pane .settings-pane .label {
+    -fx-text-fill: #8c8c9e;
+    -fx-font-size: 11.5px;
+}
+
+/* Channel value spinners */
+.custom-color-dialog .controls-pane .settings-pane .spinner {
+    -fx-background-color: #252530;
+    -fx-border-color: #3e3e50;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-pref-width: 70px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 3, 0, 0, 1);
+}
+.custom-color-dialog .controls-pane .settings-pane .spinner:focused {
+    -fx-border-color: #4a90e0;
+    -fx-effect: dropshadow(gaussian, rgba(74,144,224,0.30), 6, 0, 0, 0);
+}
+.custom-color-dialog .controls-pane .settings-pane .spinner .text-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: #d2d2d4;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-border-width: 0;
+    -fx-padding: 3 4 3 7;
+    -fx-highlight-fill: #1f4a7a;
+    -fx-highlight-text-fill: #d2d2d4;
+}
+.custom-color-dialog .controls-pane .settings-pane .spinner .increment-arrow-button,
+.custom-color-dialog .controls-pane .settings-pane .spinner .decrement-arrow-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent transparent #3a3a42;
+    -fx-border-width: 0 0 0 1;
+}
+.custom-color-dialog .controls-pane .settings-pane .spinner .increment-arrow-button:hover,
+.custom-color-dialog .controls-pane .settings-pane .spinner .decrement-arrow-button:hover {
+    -fx-background-color: #34353a;
+}
+.custom-color-dialog .controls-pane .settings-pane .spinner .increment-arrow-button .increment-arrow,
+.custom-color-dialog .controls-pane .settings-pane .spinner .decrement-arrow-button .decrement-arrow {
+    -fx-background-color: #666670;
+}
+
+/* ── Slider thumbs: crisp white — tracks keep runtime color gradients ── */
+.custom-color-dialog .slider .thumb {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 50%;
+    -fx-pref-width: 13px;
+    -fx-pref-height: 13px;
+    -fx-border-color: rgba(0,0,0,0.35);
+    -fx-border-width: 1;
+    -fx-border-radius: 50%;
+    -fx-effect: dropshadow(two-pass-box, rgba(0,0,0,0.55), 5, 0, 0, 1);
+}
+.custom-color-dialog .slider .thumb:hover  { -fx-scale-x: 1.15; -fx-scale-y: 1.15; }
+.custom-color-dialog .slider .thumb:pressed {
+    -fx-background-color: #dddddd;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* ── Web / hex text field ── */
+.custom-color-dialog .web-color-field {
+    -fx-background-color: #2d2e33;
+    -fx-text-fill: #d2d2d4;
+    -fx-prompt-text-fill: #505056;
+    -fx-border-color: #44444a;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 5 10;
+    -fx-font-size: 12.5px;
+    -fx-highlight-fill: #1f4a7a;
+    -fx-highlight-text-fill: #d2d2d4;
+}
+.custom-color-dialog .web-color-field:focused {
+    -fx-border-color: #4a8fd6;
+    -fx-background-color: #33343a;
+}
+
+/* Fallback for any remaining text-fields */
+.custom-color-dialog .text-field {
+    -fx-background-color: #2d2e33;
+    -fx-text-fill: #d2d2d4;
+    -fx-prompt-text-fill: #505056;
+    -fx-border-color: #44444a;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 5 10;
+    -fx-highlight-fill: #1f4a7a;
+    -fx-highlight-text-fill: #d2d2d4;
+}
+.custom-color-dialog .text-field:focused {
+    -fx-border-color: #4a8fd6;
+    -fx-background-color: #33343a;
+}
+
+/* ── Separator ── */
+.custom-color-dialog .separator > .line {
+    -fx-border-color: #2c2c30;
+    -fx-border-width: 1 0 0 0;
+}
+
+/* ── Buttons — refined dark glass ── */
+.custom-color-dialog .button-bar {
+    -fx-background-color: transparent;
+    -fx-padding: 16 0 0 0;
+}
+.custom-color-dialog .button {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(255,255,255,0.04)  0%,
+            rgba(0,0,0,0.04)      100%),
+        #28292f;
+    -fx-background-insets: 0, 0;
+    -fx-text-fill: #9898a8;
+    -fx-border-color: #3c3c4a;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 7 22 7 22;
+    -fx-cursor: hand;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 500;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 4, 0, 0, 1);
+}
+.custom-color-dialog .button:hover {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(255,255,255,0.06)  0%,
+            rgba(0,0,0,0.02)      100%),
+        #35363e;
+    -fx-text-fill: #d4d4da;
+    -fx-border-color: #565668;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.40), 7, 0, 0, 2);
+}
+.custom-color-dialog .button:pressed {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(0,0,0,0.08) 0%,
+            rgba(0,0,0,0.02) 100%),
+        #1e1e26;
+    -fx-effect: none;
+}
+
+/* Primary: Save / Use Custom Color — gradient + glow */
+.custom-color-dialog .button:default {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(255,255,255,0.09)  0%,
+            rgba(0,0,0,0.09)      100%),
+        linear-gradient(to bottom, #28629e 0%, #1e5088 100%);
+    -fx-background-insets: 0, 0;
+    -fx-text-fill: #cce2f6;
+    -fx-border-color: #3474b8;
+    -fx-font-weight: 600;
+    -fx-effect: dropshadow(gaussian, rgba(40,98,158,0.60), 14, 0, 0, 2);
+}
+.custom-color-dialog .button:default:hover {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(255,255,255,0.11)  0%,
+            rgba(0,0,0,0.07)      100%),
+        linear-gradient(to bottom, #3274b0 0%, #28629e 100%);
+    -fx-border-color: #4888cc;
+    -fx-text-fill: #daeaf8;
+    -fx-effect: dropshadow(gaussian, rgba(40,98,158,0.80), 18, 0, 0, 3);
+}
+.custom-color-dialog .button:default:pressed {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(0,0,0,0.12) 0%,
+            rgba(0,0,0,0.04) 100%),
+        linear-gradient(to bottom, #163870 0%, #1c4078 100%);
+    -fx-effect: dropshadow(gaussian, rgba(40,98,158,0.20), 4, 0, 0, 0);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DEEP COVERAGE SUPPLEMENT
+   Kills every remaining white / light-grey leak inside the Custom Color
+   dialog on JavaFX 21.  All rules use the same specificity pattern as
+   the block above so the load-order guarantee in styles.css is enough.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── The scene root that hosts the dialog (catches the VBox itself even   ──
+   ── when the .custom-color-dialog class resolves slightly late)          ── */
+.custom-color-dialog {
+    -fx-background-color:
+        linear-gradient(to bottom,
+            rgba(255,255,255,0.025)  0%,
+            rgba(255,255,255,0.000) 12%),
+        linear-gradient(to bottom,
+            #1f1f26   0%,
+            #18181f  60%,
+            #141419 100%);   /* re-declared — OS theming safety */
+}
+
+/* ── Hue bar: gradient is drawn on child nodes, not on the Pane bg ── */
+.custom-color-dialog .color-bar {
+    -fx-background-color: transparent;
+    -fx-border-color: #38384a;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.40), 6, 0, 0, 1);
+}
+
+/* ── Alpha / opacity bar ── */
+.custom-color-dialog .alpha-bar {
+    -fx-background-color: transparent;
+    -fx-border-color: #38384a;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+}
+
+/* ── 2-D saturation/brightness selector ring indicator ── */
+.custom-color-dialog .color-rect-indicator {
+    -fx-background-color: transparent;
+    -fx-border-color: rgba(255,255,255,0.92) rgba(0,0,0,0.50);
+    -fx-border-insets: 0, 1.5;
+    -fx-border-width: 1.5, 1.5;
+    -fx-border-radius: 50%, 50%;
+    -fx-padding: 3;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.70), 6, 0, 0, 0);
+}
+
+/* ── Hue-bar triangle + alpha-bar triangle indicators ── */
+.custom-color-dialog .color-bar-indicator,
+.custom-color-dialog .alpha-bar-indicator {
+    -fx-background-color: rgba(255,255,255,0.18);
+    -fx-border-color: rgba(255,255,255,0.82);
+    -fx-border-width: 1;
+    -fx-border-radius: 2;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.60), 5, 0, 0, 0);
+}
+
+/* ── Extra container class-name aliases ── */
+.custom-color-dialog .new-color-rect,
+.custom-color-dialog .color-new-color-rect,
+.custom-color-dialog .color-picker-color-rect {
+    -fx-background-color: transparent;
+}
+
+/* ── Scroll-pane shell (alpha transparency checkerboard lives here) ── */
+.custom-color-dialog .scroll-pane,
+.custom-color-dialog .scroll-pane > .viewport,
+.custom-color-dialog .scroll-pane > .corner {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+/* ── Tab strip — inner header row and overflow-navigation arrows ── */
+.custom-color-dialog .color-input-field-tabs .headers-region {
+    -fx-background-color: transparent;
+}
+.custom-color-dialog .color-input-field-tabs:focused {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+.custom-color-dialog .color-input-field-tabs .tab-header-area .control-buttons-tab {
+    -fx-background-color: transparent;
+}
+.custom-color-dialog .color-input-field-tabs .tab-header-area .control-buttons-tab .tab-down-button,
+.custom-color-dialog .color-input-field-tabs .tab-header-area .control-buttons-tab .tab-up-button {
+    -fx-background-color: transparent;
+    -fx-padding: 3 5 3 5;
+}
+.custom-color-dialog .color-input-field-tabs .tab-header-area .control-buttons-tab .tab-down-button .arrow,
+.custom-color-dialog .color-input-field-tabs .tab-header-area .control-buttons-tab .tab-up-button .arrow {
+    -fx-background-color: #606070;
+}
+
+/* ── Focused-state highlight on tab pane header background ── */
+.custom-color-dialog .color-input-field-tabs:focused > .tab-header-area > .tab-header-background {
+    -fx-background-color:
+        linear-gradient(to bottom, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.06) 100%),
+        #20202a;
+    -fx-border-color: #4a8fd6;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+/* ── Spinner inside tab content: caret / focus ring ── */
+.custom-color-dialog .color-input-field-tabs .tab-content-area .spinner:focused,
+.custom-color-dialog .color-input-field-tabs .tab-content-area .text-field:focused {
+    -fx-border-color: #4a8fd6;
+}
+
+/* ── Color-display pane (old colour / new colour strip) ──
+   JavaFX paints these dynamically; we only add consistency borders. ── */
+.custom-color-dialog .color-display-pane {
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+}
+

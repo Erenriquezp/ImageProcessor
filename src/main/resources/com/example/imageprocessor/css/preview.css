@@ -1,0 +1,111 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   PREVIEW — Editor canvas, compare mode, scroll panes & tabs
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Canvas backgrounds ────────────────────────────────────────────── */
+.preview-pane {
+    -fx-background-color: #0f0f11;
+}
+.editor-hbox {
+    -fx-background-color: #0f0f11;
+    -fx-fill-height: true;
+}
+.gradient-preview {
+    -fx-background-color: #0f0f11;
+    -fx-alignment: center;
+}
+
+/* ── Compare mode ──────────────────────────────────────────────────── */
+.compare-pane    { -fx-alignment: center; }
+.compare-divider { -fx-background-color: #4a8fd6; }
+
+.compare-badge {
+    -fx-background-color: rgba(0, 0, 0, 0.65);
+    -fx-text-fill: #888890;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 3 9 3 9;
+    -fx-background-radius: 4;
+    -fx-border-color: rgba(255,255,255,0.08);
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+}
+
+/* ── Preview scroll panes ──────────────────────────────────────────── */
+.preview-scroll-pane {
+    -fx-background-color: #0f0f11;
+    -fx-background: #0f0f11;
+    -fx-padding: 0;
+    -fx-border-width: 2;
+    -fx-border-color: transparent;
+    -fx-border-radius: 0;
+}
+/* Active panel in compare mode */
+.preview-scroll-pane-focused {
+    -fx-border-color: #4a8fd6;
+    -fx-effect: dropshadow(two-pass-box, rgba(74,143,214,0.25), 8, 0, 0, 0);
+}
+.preview-scroll-pane > .viewport { -fx-background-color: #0f0f11; }
+
+/* Scrollbar */
+.preview-scroll-pane .scroll-bar {
+    -fx-background-color: #1a1a1d;
+    -fx-pref-height: 9px;
+    -fx-pref-width:  9px;
+}
+.preview-scroll-pane .scroll-bar > .track {
+    -fx-background-color: #1e1e21;
+    -fx-background-radius: 0;
+}
+.preview-scroll-pane .scroll-bar > .thumb {
+    -fx-background-color: #44444a;
+    -fx-background-radius: 4;
+}
+.preview-scroll-pane .scroll-bar > .thumb:hover   { -fx-background-color: #585860; }
+.preview-scroll-pane .scroll-bar > .thumb:pressed { -fx-background-color: #4a8fd6; }
+
+/* Hide increment/decrement arrows */
+.preview-scroll-pane .scroll-bar > .increment-button,
+.preview-scroll-pane .scroll-bar > .decrement-button {
+    -fx-padding: 0;
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+}
+.preview-scroll-pane > .corner { -fx-background-color: #1a1a1d; }
+
+/* ── Tab pane (Editor / Generador) ────────────────────────────────── */
+.tab-pane {
+    -fx-background-color: #141416;
+    -fx-tab-min-height: 34px;
+}
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: #1e1e21;
+    -fx-border-color: transparent transparent #38383e transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+/* Individual tab — underline style */
+.tab {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent;
+    -fx-padding: 6 18 6 18;
+}
+.tab .tab-label {
+    -fx-text-fill: #666670;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 500;
+}
+.tab:hover .tab-label { -fx-text-fill: #a8a8b0; }
+.tab:selected {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #4a8fd6 transparent;
+    -fx-border-width: 0 0 2 0;
+}
+.tab:selected .tab-label {
+    -fx-text-fill: #d2d2d4;
+    -fx-font-weight: 600;
+}
+/* Remove default focus ring */
+.tab:focused { -fx-background-color: transparent; }
+
