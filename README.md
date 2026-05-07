@@ -34,7 +34,7 @@ Aplicación de escritorio en **Java 21 + JavaFX 21** para edición no destructiv
 ### 1. Clonar el repositorio
 
 ```bash
-git clone <url-del-repositorio>
+git clone <https://github.com/Erenriquezp/ImageProcessor.git>
 cd ImageProcessor
 ```
 
