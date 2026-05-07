@@ -2,6 +2,8 @@
 
 Aplicación de escritorio en **Java 21 + JavaFX 21** para edición no destructiva de imágenes, con interfaz oscura profesional inspirada en Adobe Lightroom / DaVinci Resolve.
 
+![Captura de pantalla de ImageProcessor](Captura.png)
+
 ---
 
 ## Características
