@@ -143,5 +143,104 @@ final class ColorFilters {
         }
         return out;
     }
+
+    // ── Color Matrix filters ──────────────────────────────────────────────────
+
+    /**
+     * Applies a 3×3 color matrix to every pixel, preserving the alpha channel.
+     * Each output channel is computed as the dot product of the matrix row with [R, G, B].
+     *
+     * @param original source image (never mutated)
+     * @param m        3×3 matrix: m[row][col] → row 0=R, 1=G, 2=B; col 0=R, 1=G, 2=B
+     * @return new {@link BufferedImage} with the matrix applied
+     */
+    private static BufferedImage colorMatrix(BufferedImage original, float[][] m) {
+        int w = original.getWidth();
+        int h = original.getHeight();
+        BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int p = original.getRGB(x, y);
+
+                int a = (p >> 24) & 0xFF;
+                int r = (p >> 16) & 0xFF;
+                int g = (p >>  8) & 0xFF;
+                int b =  p        & 0xFF;
+
+                int nr = PixelMath.clamp((int)(m[0][0] * r + m[0][1] * g + m[0][2] * b));
+                int ng = PixelMath.clamp((int)(m[1][0] * r + m[1][1] * g + m[1][2] * b));
+                int nb = PixelMath.clamp((int)(m[2][0] * r + m[2][1] * g + m[2][2] * b));
+
+                out.setRGB(x, y, (a << 24) | (nr << 16) | (ng << 8) | nb);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Sepia tone — classic warm brown look (W3C standard matrix).
+     * Each output channel mixes all three RGB inputs with fixed weights.
+     */
+    static BufferedImage sepia(BufferedImage original) {
+        float[][] matrix = {
+            { 0.393f,  0.769f,  0.189f },
+            { 0.349f,  0.686f,  0.168f },
+            { 0.272f,  0.534f,  0.131f }
+        };
+        return colorMatrix(original, matrix);
+    }
+
+    /**
+     * Cool Tone — shifts the palette towards cold blue/cyan tones by
+     * attenuating red and amplifying blue slightly.
+     */
+    static BufferedImage coolTone(BufferedImage original) {
+        float[][] matrix = {
+            { 0.80f,  0.10f,  0.10f },
+            { 0.05f,  0.92f,  0.03f },
+            { 0.00f,  0.15f,  1.10f }
+        };
+        return colorMatrix(original, matrix);
+    }
+
+    /**
+     * Warm Tone — shifts the palette towards warm yellow/amber tones by
+     * amplifying red, boosting green slightly and reducing blue.
+     */
+    static BufferedImage warmTone(BufferedImage original) {
+        float[][] matrix = {
+            { 1.10f,  0.10f,  0.00f },
+            { 0.00f,  1.00f,  0.05f },
+            { 0.00f,  0.00f,  0.80f }
+        };
+        return colorMatrix(original, matrix);
+    }
+
+    /**
+     * Polaroid — punchy, slightly cross-processed look inspired by
+     * instant-film photography (lifted blacks, shifted color balance).
+     */
+    static BufferedImage polaroid(BufferedImage original) {
+        float[][] matrix = {
+            {  1.438f, -0.062f, -0.062f },
+            { -0.122f,  1.378f, -0.122f },
+            { -0.016f,  0.016f,  0.984f }
+        };
+        return colorMatrix(original, matrix);
+    }
+
+    /**
+     * Kodachrome — emulates the rich, saturated look of Kodak Kodachrome
+     * film: warm highlights, deep shadows, and boosted blue-greens.
+     */
+    static BufferedImage kodachrome(BufferedImage original) {
+        float[][] matrix = {
+            {  1.128f, -0.397f, -0.040f },
+            { -0.164f,  1.084f, -0.055f },
+            { -0.168f, -0.560f,  1.601f }
+        };
+        return colorMatrix(original, matrix);
+    }
 }
 

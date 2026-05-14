@@ -8,7 +8,9 @@ Capacidades principales:
 
 - Carga de imágenes en formatos comunes (`png`, `jpg`, `jpeg`, `bmp`, `gif`).
 - Edición no destructiva: la imagen original nunca se modifica en memoria.
-- Aplicación parametrizable y apilable de todos los filtros implementados.
+- Aplicación parametrizable de todos los filtros implementados.
+- Análisis de distribución de color mediante histograma RGB.
+- Composición de imágenes mediante blending de dos o tres capas con pesos independientes.
 - Generación de imágenes sintéticas (degradados lineales y radial).
 - Exportación en formato detectado automáticamente por extensión.
 
@@ -32,12 +34,32 @@ Ver sección **6. Estado de implementación** para el detalle completo.
 - Control de dimensiones (ancho/alto), color inicial y color final.
 - Posibilidad de enviar la imagen generada directamente al editor.
 
-### 2.4 Experiencia de usuario
+### 2.4 Histograma RGB
+
+- Análisis de la distribución de frecuencias de los canales R, G y B.
+- Genera una imagen de 800×600 px con las tres curvas superpuestas sobre fondo negro.
+- El eje Y se normaliza al pico máximo global de los tres canales.
+- Botón **"Usar en editor"** para cargar el gráfico como imagen de trabajo y exportarlo.
+
+### 2.5 Blending (2 imágenes)
+
+- Mezcla el estado actual del editor (frente) con una imagen de fondo cargada por el usuario.
+- Factor alpha ajustable en tiempo real con slider: `0 → frente puro`, `1 → fondo puro`.
+- Preview automático al cargar el fondo; si falta alguna imagen, un overlay contextual indica exactamente qué cargar.
+
+### 2.6 Triple Blending (3 imágenes)
+
+- Combina tres imágenes (frente del editor + dos fondos) con pesos independientes por canal.
+- Fórmula: `canal = clamp(ch₁·α₁ + ch₂·α₂ + ch₃·α₃)` — pesos directos, no normalizados.
+- Los tres sliders actualizan el preview en tiempo real.
+- Preview progresivo: cubre las 8 combinaciones posibles de disponibilidad de imágenes con overlays informativos.
+
+### 2.7 Experiencia de usuario
 
 - Layout oscuro profesional:
   - **Top**: acciones globales (Abrir, Guardar, Reset, Comparar original, Zoom).
   - **Left**: panel de herramientas con controles dinámicos por filtro.
-  - **Center**: área de preview con pestañas (Editor / Generador).
+  - **Center**: área de preview con 5 pestañas (Editor · Generador · Histograma · Blending · Triple Blending).
   - **Bottom**: barra de estado.
 - Controles dinámicos: solo se muestran los parámetros del filtro seleccionado.
 - Comparador antes/después con zoom independiente por panel.
@@ -51,7 +73,7 @@ Ver sección **6. Estado de implementación** para el detalle completo.
 | Java | 21 (LTS) | Lenguaje base |
 | JavaFX | 21.0.6 | UI de escritorio |
 | javafx-swing | 21.0.6 | Puente `BufferedImage ↔ Image` via `SwingFXUtils` |
-| java.desktop (AWT) | JDK 21 | Procesamiento de imagen (`BufferedImage`, `Color`, `ConvolveOp`) |
+| java.desktop (AWT) | JDK 21 | Procesamiento de imagen (`BufferedImage`, `Color`, `ConvolveOp`, `Graphics2D`) |
 | Ikonli (FontAwesome 6) | 12.4.0 | Iconos vectoriales en la toolbar |
 | Maven | 3.x | Build y gestión de dependencias |
 | JUnit Jupiter | 5.12.1 | Tests unitarios |
@@ -64,27 +86,32 @@ Ver sección **6. Estado de implementación** para el detalle completo.
 
 ```
 com.example.imageprocessor
-├── app/                             ← Arranque y coordinación
-│   ├── ImageProcessorApp.java       ← Coordinador principal (Application)
-│   └── ui/                          ← Componentes de interfaz reutilizables
-│       ├── EditorPreviewPane.java   ← Panel de preview, compare mode y zoom
-│       ├── TopBar.java              ← Barra de herramientas y controles de zoom
-│       ├── EditorFilterPane.java    ← Panel izquierdo: filtros y parámetros
-│       ├── GradientGeneratorPane.java
+├── app/                               ← Arranque y coordinación
+│   ├── ImageProcessorApp.java         ← Coordinador principal (Application)
+│   └── ui/                            ← Componentes de interfaz reutilizables
+│       ├── EditorPreviewPane.java     ← Panel de preview, compare mode y zoom
+│       ├── TopBar.java                ← Barra de herramientas y controles de zoom
+│       ├── EditorFilterPane.java      ← Panel izquierdo: filtros y parámetros
+│       ├── GradientGeneratorPane.java ← Pestaña generador de degradados
+│       ├── HistogramPane.java         ← Pestaña análisis de histograma RGB
+│       ├── BlendingPane.java          ← Pestaña blending de 2 imágenes
+│       ├── TripleBlendingPane.java    ← Pestaña triple blending de 3 imágenes
 │       └── ImageFileChooserFactory.java
-├── domain/                          ← Tipos y enumeraciones del dominio
-│   ├── FilterType.java
+├── domain/                            ← Tipos y enumeraciones del dominio
+│   ├── FilterType.java                ← Enum con label + dot color por categoría
 │   ├── ConvolutionKernel.java
 │   ├── GradientType.java
 │   └── StretchMode.java
-└── service/                         ← Lógica de procesamiento puro
-    ├── ImageProcessor.java          ← Fachada pública (API estable)
-    ├── ColorFilters.java
-    ├── ArtisticFilters.java
-    ├── ConvolutionFilters.java
-    ├── GradientGenerator.java
-    ├── ImageIOService.java
-    └── PixelMath.java
+└── service/                           ← Lógica de procesamiento puro
+    ├── ImageProcessor.java            ← Fachada pública (API estable)
+    ├── ColorFilters.java              ← Filtros de color básicos + matrices de color
+    ├── ArtisticFilters.java           ← Efectos artísticos y cuantización
+    ├── ConvolutionFilters.java        ← Kernels de convolución 3×3
+    ├── HistogramService.java          ← Generación del gráfico histograma RGB
+    ├── BlendingService.java           ← Alpha blending de 2 y 3 imágenes
+    ├── GradientGenerator.java         ← Degradados sintéticos
+    ├── ImageIOService.java            ← Lectura y escritura de archivos
+    └── PixelMath.java                 ← Utilidades internas (clamp, lerp, quantize)
 ```
 
 ### 4.2 Capas y responsabilidades
@@ -99,18 +126,24 @@ com.example.imageprocessor
 
 `EditorFilterPane` encapsula los controles del panel izquierdo. Expone getters tipados para que la app lea los parámetros sin conocer los detalles de la UI.
 
-`GradientGeneratorPane` se comunica con la app a través de dos callbacks: entregar la imagen generada al editor, y reportar mensajes de estado.
+`GradientGeneratorPane`, `HistogramPane`, `BlendingPane` y `TripleBlendingPane` siguen el mismo patrón de cableado: reciben todos sus colaboradores externos como callbacks (`Supplier`, `Consumer`) en el constructor y no mantienen referencia a `ImageProcessorApp` ni a `Stage`.
 
 `ImageFileChooserFactory` centraliza la construcción de `FileChooser`.
 
 #### `domain` — Tipos del dominio
 
 Enumeraciones que tipan las opciones del sistema:
-- `FilterType`, `ConvolutionKernel`, `GradientType`, `StretchMode`.
+- `FilterType` (con dot color por categoría), `ConvolutionKernel`, `GradientType`, `StretchMode`.
 
 #### `service` — Procesamiento puro
 
 `ImageProcessor` es la **fachada pública**. Todos los métodos son estáticos y puros; delega a las clases internas de paquete.
+
+`BlendingService` expone dos métodos:
+- `blend()` — mezcla lineal α de dos imágenes usando `PixelMath.lerp()`.
+- `tripleBlend()` — suma ponderada directa de tres imágenes, reusando el helper privado `scaleToFit()`.
+
+`HistogramService` calcula las frecuencias de los 256 niveles por canal y renderiza el gráfico con `Graphics2D` con anti-aliasing y capas round.
 
 ### 4.3 Principios de diseño
 
@@ -130,19 +163,32 @@ Usuario selecciona archivo
        ↓
 ImageProcessorApp.openImage()
        ↓
-ImageIOService.read(file) → originalImage
+ImageIOService.read(file) → originalImage / processedImage
        ↓
 Usuario selecciona filtro + ajusta parámetros en EditorFilterPane
        ↓
-ImageProcessorApp.applySelectedFilter()        (o preview instantáneo para filtros simples)
+ImageProcessorApp.applySelectedFilter()
        ↓
-ImageProcessor.<filtro>(processedImage*, parámetros) → nuevo processedImage
-       ↓                                              (* o originalImage en modo no apilado)
+ImageProcessor.<filtro>(originalImage, parámetros) → nuevo processedImage
+       ↓
 EditorPreviewPane.showProcessed(processedImage) → ImageView
        ↓
-Usuario guarda
-       ↓
-ImageIOService.write(processedImage, file)
+Usuario guarda → ImageIOService.write(processedImage, file)
+
+── Histograma ────────────────────────────────────────────────────────────
+processedImage → HistogramPane → ImageProcessor.generateHistogram()
+              → gráfico 800×600 en pestaña Histograma
+              → (opc.) Usar en editor → setSessionImages(histograma)
+
+── Blending ──────────────────────────────────────────────────────────────
+processedImage + backgroundImage → BlendingPane (slider alpha en tiempo real)
+  → ImageProcessor.blend(fg, bg, alpha) → preview
+  → (opc.) Usar en editor → setSessionImages(blendResult)
+
+── Triple Blending ────────────────────────────────────────────────────────
+processedImage + bg1 + bg2 → TripleBlendingPane (3 sliders en tiempo real)
+  → ImageProcessor.tripleBlend(fg, bg1, bg2, α₁, α₂, α₃) → preview
+  → (opc.) Usar en editor → setSessionImages(tripleBlendResult)
 ```
 
 ---
@@ -185,7 +231,7 @@ ImageIOService.write(processedImage, file)
 | Retro 2 — canales parciales ("glitch") | `ArtisticFilters` | `FilterType.RETRO2` |
 | Grises cuantizados con bandas | `ColorFilters` | `FilterType.GRAYSCALE_QUANTIZED` |
 
-#### Filtros espaciales (convolución 3×3)
+#### Filtros espaciales (convolución 3×3)  `#9a6adc`
 | Funcionalidad | Clase | Enum |
 |---|---|---|
 | Blur (desenfoque por promedio) | `ConvolutionFilters` | `ConvolutionKernel.BLUR` |
@@ -193,26 +239,60 @@ ImageIOService.write(processedImage, file)
 | Detección de bordes | `ConvolutionFilters` | `ConvolutionKernel.EDGES` |
 | Emboss (relieve 3D) | `ConvolutionFilters` | `ConvolutionKernel.EMBOSS` |
 
+#### Matrices de color  `#e84a8f`
+| Filtro | Enum | Descripción |
+|---|---|---|
+| Sepia | `SEPIA` | Matriz W3C estándar — tonos cálidos marrones |
+| Tono Frío | `COOL_TONE` | Atenúa canal rojo, amplifica azul |
+| Tono Cálido | `WARM_TONE` | Amplifica rojo, recorta azul |
+| Polaroid | `POLAROID` | Alto contraste, leve cross-process |
+| Kodachrome | `KODACHROME` | Emulación película Kodak — altas luces cálidas, sombras profundas |
+
+> Todas usan el helper privado `colorMatrix(BufferedImage, float[][])` en `ColorFilters`. Sin parámetros adicionales — aparecen en el ComboBox con dot rosa `#e84a8f`.
+
+#### Análisis — Histograma RGB
+| Funcionalidad | Clase | Descripción |
+|---|---|---|
+| Histograma RGB | `HistogramService` | 256 niveles/canal; curvas anti-aliasing R/G/B sobre fondo negro 800×600 px; eje Y normalizado al pico global |
+
+**UI** — pestaña **"Histograma"** (`HistogramPane`): analiza `processedImage`, botón **"Generar histograma"** + botón **"Usar en editor"**.
+
+#### Composición — Blending de 2 imágenes
+| Funcionalidad | Clase | Fórmula |
+|---|---|---|
+| Alpha blending | `BlendingService.blend()` | `result = lerp(fg, bg, alpha)` vía `PixelMath.lerp()` |
+
+**UI** — pestaña **"Blending"** (`BlendingPane`): slider alpha `[0.0–1.0]` en tiempo real; preview automático al cargar fondo; 4 overlays contextuales según qué imagen(es) faltan; canal alpha del frente preservado.
+
+#### Composición — Triple Blending de 3 imágenes
+| Funcionalidad | Clase | Fórmula |
+|---|---|---|
+| Triple blending | `BlendingService.tripleBlend()` | `canal = clamp(ch₁·α₁ + ch₂·α₂ + ch₃·α₃)` |
+
+**UI** — pestaña **"Triple Blending"** (`TripleBlendingPane`): 3 sliders de peso independientes (α₁=0.5, α₂=0.3, α₃=0.2); re-blend en tiempo real; preview progresivo para las 8 combinaciones de disponibilidad de imágenes.
+
 #### UX / Interfaz
 | Funcionalidad | Descripción |
 |---|---|
-| Zoom independiente por panel | Scroll de rueda, botones −/+/fit en toolbar. Cada panel (original/resultado) mantiene su propio nivel de zoom (100 %–800 %). |
-| Click-to-focus en modo comparar | Clic en un panel lo marca como activo (borde azul `#4a8fd6`); los botones de zoom actúan sobre él. |
-| Modo comparar 50/50 | Divide el área central en dos `ScrollPane` enlazados al 50 % del ancho con borde de foco. |
-| Checkboxes de canal con estilos premium | Retro 2 muestra checkboxes coloreados (R rojo, G verde, B azul) con gradiente de fondo al activarse. |
-| Supresión de warnings JVM | `--enable-native-access=javafx.graphics` + `--sun-misc-unsafe-memory-access=allow` en `pom.xml` y `.mvn/jvm.config`. |
-| Refactorización en capas SRP | `ImageProcessorApp` (coordinador) · `EditorPreviewPane` (preview + zoom) · `TopBar` (barra de herramientas). |
+| Zoom independiente por panel | Scroll de rueda, botones −/+/fit en toolbar. Rango 100 %–800 %. |
+| Click-to-focus en modo comparar | Clic activa el panel (borde azul `#4a8fd6`); los botones de zoom actúan sobre él. |
+| Modo comparar 50/50 | `ScrollPane` doble con divisor y etiquetas ORIGINAL / RESULTADO. |
+| Checkboxes de canal coloreados | Retro 2: checkboxes con gradiente R/G/B al activarse. |
+| Dot color en ComboBox de filtros | Indicador de categoría coloreado junto a cada filtro. |
+| Overlay contextual en paneles de composición | Mensajes flotantes en `BlendingPane` y `TripleBlendingPane` mientras faltan imágenes. |
+| 5 pestañas en el área central | Editor · Generador · Histograma · Blending · Triple Blending. |
+| Dark-theme en sub-ventanas | Listener de `Window.getWindows()` inyecta CSS en cualquier `Stage` secundario. |
+| Supresión de warnings JVM | `--enable-native-access=javafx.graphics` + `--sun-misc-unsafe-memory-access=allow` en `pom.xml`. |
 
 ---
 
 ### ❌ Pendiente de implementar
 
 #### Filtros adicionales
-| Funcionalidad | Descripción y ubicación sugerida |
+| Funcionalidad | Descripción |
 |---|---|
-| Sepia | Preset de `recolor` con tonos fijos (R=112, G=66, B=20). Agregar `FilterType.SEPIA`, implementar en `ArtisticFilters`. No requiere controles adicionales. |
-| Temperatura (frío/cálido) | Suma al canal B (frío) o a R+G (cálido). Agregar `FilterType.TEMPERATURE` en `ColorFilters`, slider de temperatura (−100 frío / +100 cálido) en `EditorFilterPane`. |
-| Animación / secuencia de Hue | Genera N imágenes desplazando H en el espacio HSV y las guarda en carpeta. Diálogo de exportación + iteración en `ArtisticFilters`. |
+| Temperatura (frío/cálido) | Slider −100/+100: suma al canal B (frío) o a R+G (cálido). `FilterType.TEMPERATURE` en `ColorFilters`. |
+| Animación / secuencia de Hue | N imágenes desplazando H en HSV, exportadas a carpeta. Diálogo de exportación + iteración en `ArtisticFilters`. |
 
 ---
 
@@ -305,21 +385,23 @@ ImageIOService.write(processedImage, file)
 ## 7. Roadmap
 
 ### Fase 1 — Completada ✅
-- Arquitectura limpia en capas separadas (`app`, `domain`, `service`).
-- UI modular: `EditorPreviewPane`, `TopBar`, `EditorFilterPane`, `GradientGeneratorPane`.
-- **15 filtros** implementados: 6 ajustes básicos, 3 transparencia, 4 retro/cuantización, 4 kernels de convolución.
-- **5 degradados** sintéticos.
-- Zoom independiente por panel (100 %–800 %), compare mode 50/50 con borde de foco.
-- Checkboxes premium de canal para Retro 2.
-- Supresión de warnings JVM de JavaFX en `pom.xml` y `.mvn/jvm.config`.
-- Documentación completa: README.md y PLAN.md actualizados.
+- Arquitectura limpia en 3 capas (`app`, `domain`, `service`).
+- UI modular con 5 componentes de panel.
+- **15 filtros** clásicos (ajustes básicos, transparencia, retro/cuantización, convolución) + **5 degradados** sintéticos.
+- Zoom 100 %–800 %, compare mode 50/50, checkboxes premium de canal.
+- Supresión de warnings JVM en `pom.xml` y `.mvn/jvm.config`.
 
-### Fase 2 — Próxima iteración
-1. **Pipeline de filtros + historial** — pila de resultados + botón Revertir en `TopBar`.
-2. **Preview instantáneo** — campo `instantPreview` en `FilterType` + listeners en `EditorFilterPane`.
-3. **Mejoras de estilo del panel de herramientas** — labels de valor, tarjetas, indicador de categoría.
-4. **Sepia** — preset de recolor, sin parámetros.
-5. **Temperatura** — slider frío/cálido en `ColorFilters`.
+### Fase 2 — Completada ✅
+- **5 filtros de matrices de color** (Sepia, Tono Frío, Tono Cálido, Polaroid, Kodachrome) con helper genérico `colorMatrix()` y nueva categoría dot `#e84a8f`.
+- **Histograma RGB** (`HistogramService` + `HistogramPane`).
+- **Blending** (`BlendingService.blend()` + `BlendingPane`) con preview automático, overlay contextual en tiempo real y 4 mensajes de guía.
+- **Triple Blending** (`BlendingService.tripleBlend()` + `TripleBlendingPane`) con 3 sliders, preview progresivo y 8 estados de overlay.
+- Total: **20 filtros** en el editor · **3 herramientas** de análisis/composición · **5 pestañas** en el área central.
 
-### Fase 3 — Mejoras avanzadas
-6. **Animación / secuencia de Hue** — diálogo de exportación de secuencia de frames.
+### Fase 3 — Próxima iteración
+1. **Pipeline de filtros + historial** — pila LIFO `Deque<BufferedImage>` + botón **"↩ Revertir"** en `TopBar`.
+2. **Preview instantáneo** — campo `instantPreview` en `FilterType` + `setOnParamChanged(Runnable)` en `EditorFilterPane`.
+3. **Temperatura** — slider frío/cálido en `ColorFilters` + `FilterType.TEMPERATURE`.
+
+### Fase 4 — Mejoras avanzadas
+4. **Animación / secuencia de Hue** — exportación de N frames desplazando H en HSV.

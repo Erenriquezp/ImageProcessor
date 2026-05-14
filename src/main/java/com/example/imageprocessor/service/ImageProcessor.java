@@ -68,6 +68,58 @@ public final class ImageProcessor {
         return ConvolutionFilters.convolution(original, kernelType);
     }
 
+    // ── Color Matrix ──────────────────────────────────────────────────────────
+
+    public static BufferedImage sepia(BufferedImage original) {
+        return ColorFilters.sepia(original);
+    }
+
+    public static BufferedImage coolTone(BufferedImage original) {
+        return ColorFilters.coolTone(original);
+    }
+
+    public static BufferedImage warmTone(BufferedImage original) {
+        return ColorFilters.warmTone(original);
+    }
+
+    public static BufferedImage polaroid(BufferedImage original) {
+        return ColorFilters.polaroid(original);
+    }
+
+    public static BufferedImage kodachrome(BufferedImage original) {
+        return ColorFilters.kodachrome(original);
+    }
+
+    // ── Histogram ─────────────────────────────────────────────────────────────
+
+    public static BufferedImage generateHistogram(BufferedImage original) {
+        return HistogramService.generateHistogram(original);
+    }
+
+    // ── Blending ──────────────────────────────────────────────────────────────
+
+    /**
+     * Alpha-blends {@code original} (foreground) with {@code background}.
+     *
+     * @param alpha blend factor [0, 1]: 0 → pure foreground, 1 → pure background
+     */
+    public static BufferedImage blend(BufferedImage original, BufferedImage background, float alpha) {
+        return BlendingService.blend(original, background, alpha);
+    }
+
+    /**
+     * Blends three images with independent per-image weight factors.
+     * {@code result_channel = clamp(ch1·a1 + ch2·a2 + ch3·a3)}
+     *
+     * @param alpha1 weight for {@code img1} (foreground / editor image)
+     * @param alpha2 weight for {@code img2} (first background)
+     * @param alpha3 weight for {@code img3} (second background)
+     */
+    public static BufferedImage tripleBlend(BufferedImage img1, BufferedImage img2, BufferedImage img3,
+                                            float alpha1, float alpha2, float alpha3) {
+        return BlendingService.tripleBlend(img1, img2, img3, alpha1, alpha2, alpha3);
+    }
+
     public static BufferedImage generateGradient(GradientType type, int width, int height, int startRgb, int endRgb) {
         return GradientGenerator.generateGradient(type, width, height, startRgb, endRgb);
     }

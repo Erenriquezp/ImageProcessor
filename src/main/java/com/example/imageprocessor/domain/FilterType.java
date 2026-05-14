@@ -3,11 +3,12 @@ package com.example.imageprocessor.domain;
 /**
  * Categorías de filtro — determinan el color del indicador en el ComboBox.
  * <ul>
- *   <li>BASIC       → azul   #4a8fd6</li>
- *   <li>TRANSPARENCY → verde  #4acc88</li>
- *   <li>RETRO       → naranja #e8913a</li>
- *   <li>CONVOLUTION → púrpura #9a6adc</li>
- *   <li>NONE        → sin dot</li>
+ *   <li>BASIC        → azul    #4a8fd6</li>
+ *   <li>TRANSPARENCY → verde   #4acc88</li>
+ *   <li>RETRO        → naranja #e8913a</li>
+ *   <li>CONVOLUTION  → púrpura #9a6adc</li>
+ *   <li>COLOR_MATRIX → rosa    #e84a8f</li>
+ *   <li>NONE         → sin dot</li>
  * </ul>
  */
 public enum FilterType {
@@ -20,12 +21,18 @@ public enum FilterType {
     FROSTED             ("Esmerilado",                  "#4acc88"  ),
     CIRCULAR_FADE       ("Desvanecimiento circular",    "#4acc88"  ),
     ALPHA_GLOBAL        ("Transparencia global",        "#4acc88"  ),
-    RETRO1              ("Retro 1 (cuantización RGB)",   "#e8913a"  ),
+    RETRO1              ("Retro 1 (cuantización RGB)",  "#e8913a"  ),
     RETRO2              ("Retro 2 (glitch canales)",    "#e8913a"  ),
     GRAYSCALE_QUANTIZED ("Grises cuantizados",          "#e8913a"  ),
-    RECOLOR             ("Re-coloración",                "#e8913a"  ),
+    RECOLOR             ("Re-coloración",               "#e8913a"  ),
     STRETCH_4_BITS      ("Reducción y estiramiento",    "#e8913a"  ),
-    CONVOLUTION         ("Convolución",                 "#9a6adc"  );
+    CONVOLUTION         ("Convolución",                 "#9a6adc"  ),
+    // ── Color Matrix ──────────────────────────────────────────────────────────
+    SEPIA               ("Sepia",                       "#e84a8f"  ),
+    COOL_TONE           ("Tono Frío",                   "#e84a8f"  ),
+    WARM_TONE           ("Tono Cálido",                 "#e84a8f"  ),
+    POLAROID            ("Polaroid",                    "#e84a8f"  ),
+    KODACHROME          ("Kodachrome",                  "#e84a8f"  );
 
     private final String label;
     /** Hex color string for the category dot, or {@code null} for NONE. */

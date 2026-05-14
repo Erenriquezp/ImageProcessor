@@ -1,10 +1,13 @@
 package com.example.imageprocessor.app;
 
+import com.example.imageprocessor.app.ui.BlendingPane;
 import com.example.imageprocessor.app.ui.EditorFilterPane;
 import com.example.imageprocessor.app.ui.EditorPreviewPane;
 import com.example.imageprocessor.app.ui.GradientGeneratorPane;
+import com.example.imageprocessor.app.ui.HistogramPane;
 import com.example.imageprocessor.app.ui.ImageFileChooserFactory;
 import com.example.imageprocessor.app.ui.TopBar;
+import com.example.imageprocessor.app.ui.TripleBlendingPane;
 import com.example.imageprocessor.domain.FilterType;
 import com.example.imageprocessor.service.ImageIOService;
 import com.example.imageprocessor.service.ImageProcessor;
@@ -49,6 +52,9 @@ public class ImageProcessorApp extends Application {
     private final CheckBox          compareToggle    = new CheckBox("Mostrar original");
     private final Label             statusLabel      = new Label(DEFAULT_MSG);
     private GradientGeneratorPane   gradientPane;
+    private HistogramPane           histogramPane;
+    private BlendingPane            blendingPane;
+    private TripleBlendingPane      tripleBlendingPane;
 
     // ── Application lifecycle ─────────────────────────────────────────────
 
@@ -62,7 +68,21 @@ public class ImageProcessorApp extends Application {
             stage.getIcons().add(new Image(iconUrl));
         }
 
-        gradientPane = new GradientGeneratorPane(this::loadGeneratedImageInEditor, this::setStatus);
+        gradientPane  = new GradientGeneratorPane(this::loadGeneratedImageInEditor, this::setStatus);
+        histogramPane = new HistogramPane(() -> processedImage, this::loadGeneratedImageInEditor, this::setStatus);
+        blendingPane  = new BlendingPane(
+                () -> processedImage,
+                () -> ImageFileChooserFactory.createOpenImageChooser().showOpenDialog(stage),
+                this::loadGeneratedImageInEditor,
+                this::setStatus
+        );
+        tripleBlendingPane = new TripleBlendingPane(
+                () -> processedImage,
+                () -> ImageFileChooserFactory.createOpenImageChooser().showOpenDialog(stage),
+                () -> ImageFileChooserFactory.createOpenImageChooser().showOpenDialog(stage),
+                this::loadGeneratedImageInEditor,
+                this::setStatus
+        );
 
         TopBar topBar = new TopBar(
                 () -> openImage(stage),
@@ -164,12 +184,18 @@ public class ImageProcessorApp extends Application {
     }
 
     private TabPane buildCenterTabs() {
-        Tab editorTab   = new Tab("Editor",    previewPane.getView());
+        Tab editorTab    = new Tab("Editor",       previewPane.getView());
         editorTab.setClosable(false);
-        Tab gradientTab = new Tab("Generador", gradientPane.getView());
+        Tab gradientTab  = new Tab("Generador",    gradientPane.getView());
         gradientTab.setClosable(false);
+        Tab histogramTab = new Tab("Histograma",   histogramPane.getView());
+        histogramTab.setClosable(false);
+        Tab blendingTab      = new Tab("Blending",          blendingPane.getView());
+        blendingTab.setClosable(false);
+        Tab tripleBlendingTab = new Tab("Triple Blending",  tripleBlendingPane.getView());
+        tripleBlendingTab.setClosable(false);
 
-        TabPane tabs = new TabPane(editorTab, gradientTab);
+        TabPane tabs = new TabPane(editorTab, gradientTab, histogramTab, blendingTab, tripleBlendingTab);
         tabs.getStyleClass().add("center-tabs");
         return tabs;
     }
@@ -284,6 +310,12 @@ public class ImageProcessorApp extends Application {
             case RECOLOR             -> applyRecolorFilter();
             case STRETCH_4_BITS      -> ImageProcessor.stretch4Bits(originalImage, editorFilterPane.getStretchMode());
             case CONVOLUTION         -> ImageProcessor.convolution(originalImage, editorFilterPane.getKernel());
+            // ── Color Matrix ──────────────────────────────────────────────
+            case SEPIA               -> ImageProcessor.sepia(originalImage);
+            case COOL_TONE           -> ImageProcessor.coolTone(originalImage);
+            case WARM_TONE           -> ImageProcessor.warmTone(originalImage);
+            case POLAROID            -> ImageProcessor.polaroid(originalImage);
+            case KODACHROME          -> ImageProcessor.kodachrome(originalImage);
             case NONE                -> originalImage;
         };
     }
