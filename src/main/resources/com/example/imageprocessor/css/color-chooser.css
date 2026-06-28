@@ -1,0 +1,113 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   COLOR CHOOSER — custom swatch button + dark HSB popover
+   Replaces the native JavaFX ColorPicker (and its web-safe swatch grid).
+   The popover is a Popup; it inherits this stylesheet from the owner scene.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Trigger button (looks like a form field) ── */
+.cc-button {
+    -fx-background-color: -color-surface-2;
+    -fx-border-color: -color-border;
+    -fx-border-width: 1;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-padding: 6 10 6 8;
+    -fx-cursor: hand;
+}
+.cc-button:hover { -fx-border-color: -color-border-strong; }
+
+.cc-swatch {
+    -fx-background-radius: 4;
+    -fx-border-color: rgba(0,0,0,0.45);
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+}
+.cc-hex-label {
+    -fx-text-fill: -color-text;
+    -fx-font-size: 12.5px;
+    -fx-font-family: "Consolas", "SF Mono", monospace;
+}
+.cc-chevron { -fx-icon-color: -color-text-muted; }
+.cc-button:hover .cc-chevron { -fx-icon-color: -color-text-dim; }
+
+/* ── Popover container ── */
+.cc-popup {
+    -fx-background-color: #1a1a1e;
+    -fx-border-color: -color-border;
+    -fx-border-width: 1;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-effect: dropshadow(two-pass-box, rgba(0,0,0,0.80), 22, 0, 0, 6);
+}
+
+/* ── Saturation / Brightness square (background set inline per hue) ── */
+.cc-sb-area {
+    -fx-background-radius: 6;
+    -fx-border-color: rgba(0,0,0,0.45);
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-cursor: hand;
+}
+/* Draggable SB thumb — fill set inline to the current colour */
+.cc-thumb {
+    -fx-background-radius: 50%;
+    -fx-border-color: #ffffff;
+    -fx-border-width: 2;
+    -fx-border-radius: 50%;
+    -fx-effect: dropshadow(two-pass-box, rgba(0,0,0,0.65), 5, 0, 0, 1);
+}
+
+/* ── Hue bar — static rainbow gradient ── */
+.cc-hue-area {
+    -fx-background-color: linear-gradient(to right,
+        #ff0000   0%, #ffff00  17%, #00ff00 33%, #00ffff 50%,
+        #0000ff  67%, #ff00ff  83%, #ff0000 100%);
+    -fx-background-radius: 5;
+    -fx-border-color: rgba(0,0,0,0.45);
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+    -fx-cursor: hand;
+}
+.cc-hue-thumb {
+    -fx-background-color: rgba(255,255,255,0.25);
+    -fx-border-color: #ffffff;
+    -fx-border-width: 1.5;
+    -fx-background-radius: 3;
+    -fx-border-radius: 3;
+    -fx-effect: dropshadow(two-pass-box, rgba(0,0,0,0.55), 4, 0, 0, 0);
+}
+
+/* ── HEX field ── */
+.cc-field-caption {
+    -fx-text-fill: -color-text-faint;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-letter-spacing: 0.05em;
+}
+.cc-hex-field {
+    -fx-background-color: -color-surface-2;
+    -fx-text-fill: -color-text;
+    -fx-prompt-text-fill: -color-text-muted;
+    -fx-border-color: -color-border;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 5 8 5 8;
+    -fx-font-family: "Consolas", "SF Mono", monospace;
+    -fx-font-size: 12.5px;
+    -fx-highlight-fill: -color-accent-deep;
+}
+.cc-hex-field:focused { -fx-border-color: -color-accent; }
+
+/* ── Curated preset swatches ── */
+.cc-presets { -fx-padding: 2 0 0 0; }
+.cc-preset {
+    -fx-background-radius: 4;
+    -fx-border-color: rgba(255,255,255,0.10);
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-cursor: hand;
+}
+.cc-preset:hover {
+    -fx-border-color: -color-accent;
+    -fx-effect: dropshadow(two-pass-box, rgba(74,143,214,0.55), 6, 0, 0, 0);
+}

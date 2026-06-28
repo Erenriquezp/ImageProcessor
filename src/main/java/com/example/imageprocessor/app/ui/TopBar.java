@@ -1,6 +1,8 @@
 package com.example.imageprocessor.app.ui;
 
+import javafx.beans.property.BooleanProperty;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -34,11 +36,16 @@ public class TopBar {
             Runnable onSave,
             Runnable onReset,
             Runnable onApply,
+            Runnable onUndo,
+            Runnable onRedo,
+            BooleanProperty canUndo,
+            BooleanProperty canRedo,
             Runnable onZoomIn,
             Runnable onZoomOut,
             Runnable onZoomFit,
             Label    zoomIndicator,
-            CheckBox compareToggle) {
+            CheckBox compareToggle,
+            Label    fileNameLabel) {
 
         // ── Action buttons ────────────────────────────────────────────────
         Button openButton  = createToolbarButton("Abrir",          "fas-folder-open",         "Abrir imagen");
@@ -46,6 +53,14 @@ public class TopBar {
         Button resetButton = createToolbarButton("Reset",          "fas-power-off",            "Restablecer imagen");
         Button applyButton = createToolbarButton("Aplicar filtro", "fas-play",                 "Aplicar filtro seleccionado");
         applyButton.getStyleClass().add("btn-primary");
+
+        // ── Undo / Redo ───────────────────────────────────────────────────
+        Button undoButton = createActionIconButton("fas-undo", "Deshacer (Ctrl+Z)");
+        Button redoButton = createActionIconButton("fas-redo", "Rehacer (Ctrl+Y)");
+        undoButton.disableProperty().bind(canUndo.not());
+        redoButton.disableProperty().bind(canRedo.not());
+        undoButton.setOnAction(e -> onUndo.run());
+        redoButton.setOnAction(e -> onRedo.run());
 
         openButton .setOnAction(e -> onOpen.run());
         saveButton .setOnAction(e -> onSave.run());
@@ -71,12 +86,21 @@ public class TopBar {
         // ── Compare toggle ────────────────────────────────────────────────
         compareToggle.getStyleClass().add("top-toggle");
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+        // ── Centered file name ────────────────────────────────────────────
+        fileNameLabel.getStyleClass().add("toolbar-filename");
+        Region spacerL = new Region(); HBox.setHgrow(spacerL, Priority.ALWAYS);
+        Region spacerR = new Region(); HBox.setHgrow(spacerR, Priority.ALWAYS);
 
-        // ── Assemble ──────────────────────────────────────────────────────
-        view = new HBox(10, openButton, saveButton, resetButton, applyButton,
-                spacer, zoomBox, compareToggle);
+        // ── Assemble — grouped: File | History | Action ··· name ··· Zoom ──
+        view = new HBox(8,
+                openButton, saveButton,
+                groupSeparator(),
+                undoButton, redoButton, resetButton,
+                groupSeparator(),
+                applyButton,
+                spacerL, fileNameLabel, spacerR,
+                zoomBox, compareToggle);
+        view.setAlignment(Pos.CENTER_LEFT);
         view.setPadding(new Insets(12));
         view.getStyleClass().add("top-bar");
     }
@@ -84,6 +108,14 @@ public class TopBar {
     public HBox getView() { return view; }
 
     // ── Private helpers ───────────────────────────────────────────────────
+
+    /** Short vertical divider separating logical button groups. */
+    private static Separator groupSeparator() {
+        Separator s = new Separator(Orientation.VERTICAL);
+        s.setMaxHeight(22);
+        s.getStyleClass().add("toolbar-sep");
+        return s;
+    }
 
     private static Button createToolbarButton(String text, String iconLiteral, String tooltipText) {
         Button button = new Button(text);
@@ -95,6 +127,17 @@ public class TopBar {
         button.setTooltip(new Tooltip(tooltipText));
         button.getStyleClass().add("toolbar-button");
         return button;
+    }
+
+    /** Icon-only button that shares the standard toolbar-button chrome. */
+    private static Button createActionIconButton(String iconLiteral, String tooltipText) {
+        Button btn = new Button();
+        FontIcon icon = new FontIcon(iconLiteral);
+        icon.getStyleClass().add("toolbar-icon");
+        btn.setGraphic(icon);
+        btn.setTooltip(new Tooltip(tooltipText));
+        btn.getStyleClass().add("toolbar-button");
+        return btn;
     }
 
     private static Button createIconButton(String iconLiteral, String tooltipText) {

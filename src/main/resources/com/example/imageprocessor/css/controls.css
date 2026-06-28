@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════
    CONTROLS — Generic reusable form controls
    ComboBox · Spinner · Slider · ColorPicker · Button · Gradient panel
+   (All colors reference tokens declared in base.css)
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* ── Shared sizing ─────────────────────────────────────────────────── */
@@ -13,121 +14,128 @@
     -fx-pref-width: 265;
 }
 
+/* ── Visible keyboard-focus ring (accessibility) ───────────────────── */
+.button:focused,
+.combo-box:focused,
+.spinner:focused,
+.color-picker:focused {
+    -fx-border-color: -color-accent;
+}
+
 /* ── ComboBox ──────────────────────────────────────────────────────── */
 .combo-box {
-    -fx-background-color: #28292d;
-    -fx-border-color: #44444a;
+    -fx-background-color: -color-surface-2;
+    -fx-border-color: -color-border;
     -fx-border-radius: 6;
     -fx-background-radius: 6;
     -fx-padding: 1;
 }
-.combo-box:hover   { -fx-border-color: #585860; }
-.combo-box:focused { -fx-border-color: #4a8fd6; }
+.combo-box:hover   { -fx-border-color: -color-border-strong; }
+.combo-box:focused { -fx-border-color: -color-accent; }
 
 .combo-box > .list-cell {
     -fx-background-color: transparent;
-    -fx-text-fill: #d2d2d4;
+    -fx-text-fill: -color-text;
     -fx-padding: 4 8 4 8;
 }
 .combo-box .arrow-button { -fx-background-color: transparent; -fx-padding: 0 8 0 0; }
-.combo-box .arrow        { -fx-background-color: #666670; }
+.combo-box .arrow        { -fx-background-color: -color-text-muted; }
 
 /* Dropdown popup */
 .combo-box-popup .list-view {
-    -fx-background-color: #28292d;
-    -fx-border-color: #44444a;
+    -fx-background-color: -color-surface-2;
+    -fx-border-color: -color-border;
     -fx-border-width: 1;
     -fx-effect: dropshadow(two-pass-box, rgba(0,0,0,0.6), 10, 0, 0, 4);
 }
 .combo-box-popup .list-cell {
     -fx-background-color: transparent;
-    -fx-text-fill: #b0b0b6;
+    -fx-text-fill: -color-text-dim;
     -fx-padding: 5 12 5 12;
 }
 .combo-box-popup .list-cell:filled:hover {
-    -fx-background-color: #34353a;
-    -fx-text-fill: #d2d2d4;
+    -fx-background-color: -color-surface-3;
+    -fx-text-fill: -color-text;
 }
 .combo-box-popup .list-cell:filled:selected,
 .combo-box-popup .list-cell:filled:selected:hover {
-    -fx-background-color: #1f4a7a;
-    -fx-text-fill: #c8dff4;
+    -fx-background-color: -color-accent-deep;
+    -fx-text-fill: -color-on-accent;
 }
 
 /* ── Spinner ───────────────────────────────────────────────────────── */
 .spinner {
-    -fx-background-color: #28292d;
-    -fx-border-color: #44444a;
+    -fx-background-color: -color-surface-2;
+    -fx-border-color: -color-border;
     -fx-border-radius: 6;
     -fx-background-radius: 6;
 }
-.spinner:focused { -fx-border-color: #4a8fd6; }
+.spinner:focused { -fx-border-color: -color-accent; }
 .spinner .text-field {
     -fx-background-color: transparent;
     -fx-border-width: 0;
-    -fx-text-fill: #d2d2d4;
+    -fx-text-fill: -color-text;
     -fx-padding: 4 6 4 8;
 }
 .spinner .increment-arrow-button,
 .spinner .decrement-arrow-button {
     -fx-background-color: transparent;
-    -fx-border-color: transparent transparent transparent #44444a;
+    -fx-border-color: transparent transparent transparent -color-border;
     -fx-border-width: 0 0 0 1;
 }
 .spinner .increment-arrow-button:hover,
 .spinner .decrement-arrow-button:hover {
-    -fx-background-color: #34353a;
+    -fx-background-color: -color-surface-3;
 }
 .spinner .increment-arrow-button .increment-arrow,
 .spinner .decrement-arrow-button .decrement-arrow {
-    -fx-background-color: #666670;
+    -fx-background-color: -color-text-muted;
 }
 
 /* ── Slider ────────────────────────────────────────────────────────── */
 .slider .track {
-    -fx-background-color: #34353a;
+    -fx-background-color: -color-surface-3;
     -fx-background-radius: 3;
     -fx-pref-height: 3px;
 }
 .slider .thumb {
-    -fx-background-color: #4a8fd6;
+    -fx-background-color: -color-accent;
     -fx-background-radius: 100%;
     -fx-pref-width: 13px;
     -fx-pref-height: 13px;
     -fx-effect: dropshadow(two-pass-box, rgba(74,143,214,0.4), 4, 0.5, 0, 0);
 }
-.slider .thumb:hover   { -fx-background-color: #60a0e0; }
-.slider .thumb:pressed { -fx-background-color: #3878b4; }
+.slider .thumb:hover   { -fx-background-color: -color-accent-bright; }
+.slider .thumb:pressed { -fx-background-color: -color-accent-press; }
 
 /* ── ColorPicker button ────────────────────────────────────────────── */
 .color-picker {
-    -fx-background-color: #28292d;
-    -fx-border-color: #44444a;
+    -fx-background-color: -color-surface-2;
+    -fx-border-color: -color-border;
     -fx-border-radius: 6;
     -fx-background-radius: 6;
 }
-.color-picker:hover { -fx-border-color: #585860; }
-.color-picker .label { -fx-text-fill: #b0b0b6; }
-.color-picker .picker-color-rect { -fx-border-color: #44444a; }
+.color-picker:hover { -fx-border-color: -color-border-strong; }
+.color-picker .label { -fx-text-fill: -color-text-dim; }
+.color-picker .picker-color-rect { -fx-border-color: -color-border; }
 
 /* ── Generic button (gradient pane, dialog buttons, etc.) ─────────── */
 .button {
-    -fx-background-color: #28292d;
-    -fx-text-fill: #b0b0b6;
+    -fx-background-color: -color-surface-2;
+    -fx-text-fill: -color-text-dim;
     -fx-background-radius: 7;
-    -fx-border-color: #44444a;
+    -fx-border-color: -color-border;
     -fx-border-radius: 7;
     -fx-border-width: 1;
     -fx-padding: 6 14 6 14;
     -fx-cursor: hand;
 }
-.button:hover  { -fx-background-color: #34353a; -fx-text-fill: #d2d2d4; -fx-border-color: #585860; }
+.button:hover  { -fx-background-color: -color-surface-3; -fx-text-fill: -color-text; -fx-border-color: -color-border-strong; }
 .button:pressed { -fx-background-color: #202024; }
 
 /* ── Gradient generator controls panel ────────────────────────────── */
 .gradient-controls { -fx-background-color: transparent; }
 .gradient-controls .label {
-    -fx-text-fill: #888890;
+    -fx-text-fill: -color-text-dim;
     -fx-font-size: 11.5px;
 }
-

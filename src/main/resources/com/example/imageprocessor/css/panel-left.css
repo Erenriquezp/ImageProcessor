@@ -7,22 +7,130 @@
 .left-panel {
     /* Subtle inner border: two-layer background simulates a 1 px right edge
        without a hard painted line — looks "cut" from the same material.     */
-    -fx-background-color: rgba(0,0,0,0.22), #1e1e21;
+    -fx-background-color: rgba(0,0,0,0.22), -color-surface-1;
     -fx-background-insets: 0, 0 1 0 0;
     -fx-background-radius: 0;
     -fx-border-width: 0;           /* remove old hard border */
 }
 .left-panel .label {
-    -fx-text-fill: #888890;
+    -fx-text-fill: -color-text-dim;
     -fx-font-size: 12px;
 }
 
 /* ── Section header "HERRAMIENTAS" ─────────────────────────────────── */
 .section-title {
-    -fx-text-fill: #484850;           /* a hint brighter — more legible at small size */
+    -fx-text-fill: -color-text-caption;
     -fx-font-size: 10px;
     -fx-font-weight: bold;
     -fx-letter-spacing: 0.04em;      /* micro tracking → gives the all-caps look depth */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FILTER BROWSER — search field + categorized, selectable filter list
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Search box (icon + field share one bordered container) ── */
+.search-box {
+    -fx-background-color: -color-surface-2;
+    -fx-border-color: -color-border;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-padding: 0 10 0 11;
+}
+.search-box:focus-within { -fx-border-color: -color-accent; }
+.search-icon { -fx-icon-color: -color-text-muted; -fx-icon-size: 12; }
+.search-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: -color-text;
+    -fx-prompt-text-fill: -color-text-muted;
+    -fx-highlight-fill: -color-accent-deep;
+    -fx-padding: 7 0 7 0;
+    -fx-font-size: 12.5px;
+    -fx-border-width: 0;
+}
+.search-field:focused { -fx-background-color: transparent; }
+
+/* ── Scroll container ── */
+.filter-browser-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-padding: 0;
+}
+.filter-browser-scroll > .viewport { -fx-background-color: transparent; }
+.filter-browser-scroll .scroll-bar:vertical { -fx-background-color: transparent; -fx-pref-width: 8px; }
+.filter-browser-scroll .scroll-bar > .track  { -fx-background-color: transparent; }
+.filter-browser-scroll .scroll-bar > .thumb  { -fx-background-color: -color-border; -fx-background-radius: 4; }
+.filter-browser-scroll .scroll-bar > .thumb:hover { -fx-background-color: -color-border-strong; }
+.filter-browser-scroll .scroll-bar > .increment-button,
+.filter-browser-scroll .scroll-bar > .decrement-button { -fx-padding: 0; -fx-pref-height: 0; }
+.filter-list { -fx-padding: 2 2 2 0; }
+
+/* ── Collapsible category section ──
+   Header behaves like the toolbar: muted icons at rest that lift to a brighter
+   tone on hover, so the filter browser shares one icon language with the app. */
+.filter-category-group { -fx-padding: 3 0 1 0; }
+
+.filter-category-header {
+    -fx-padding: 7 8 7 6;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+}
+.filter-category-header:hover { -fx-background-color: -color-surface-hover; }
+
+.filter-category-title {
+    -fx-text-fill: -color-text-caption;
+    -fx-font-size: 9.5px;
+    -fx-font-weight: bold;
+    -fx-letter-spacing: 0.05em;
+}
+.filter-category-header:hover .filter-category-title { -fx-text-fill: -color-text; }
+
+/* Chevron + category glyph: unified muted tone (matches .toolbar-icon at rest) */
+.filter-category-chevron {
+    -fx-icon-color: -color-text-muted;
+    -fx-icon-size: 9;
+}
+.filter-category-icon { -fx-icon-color: -color-text-muted; }
+.filter-category-header:hover .filter-category-chevron,
+.filter-category-header:hover .filter-category-icon { -fx-icon-color: -color-text-dim; }
+
+/* Count badge on the right of each section header */
+.filter-category-count {
+    -fx-text-fill: -color-text-faint;
+    -fx-font-size: 10px;
+    -fx-font-weight: 600;
+}
+
+/* Indent the filter rows beneath their section header */
+.filter-category-content { -fx-padding: 1 0 2 6; }
+
+/* ── Filter row ── */
+.filter-row {
+    -fx-padding: 6 10 6 13;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+    -fx-border-width: 0 0 0 2;          /* left accent bar slot (transparent until selected) */
+    -fx-border-color: transparent;
+}
+.filter-row:hover { -fx-background-color: -color-surface-hover; }
+.filter-row .filter-row-name { -fx-text-fill: -color-text-dim; -fx-font-size: 12.5px; }
+.filter-row:hover .filter-row-name { -fx-text-fill: -color-text; }
+.filter-row-none .filter-row-name { -fx-text-fill: -color-text-muted; -fx-font-style: italic; }
+
+.filter-row-selected {
+    -fx-background-color: -color-select-bg;   /* darkest blue — stays under the action */
+    -fx-border-color: -color-accent-chrome;   /* lights up the left bar */
+}
+.filter-row-selected .filter-row-name {
+    -fx-text-fill: -color-on-accent;
+    -fx-font-weight: 600;
+    -fx-font-style: normal;
+}
+
+.filter-empty {
+    -fx-text-fill: -color-text-muted;
+    -fx-font-size: 12px;
+    -fx-padding: 14 4 4 6;
 }
 
 /* ── Filter group containers ───────────────────────────────────────── */
@@ -39,7 +147,7 @@
        white layer visible only at the card edge) that reads as material depth
        rather than a drawn line.
      • Inner surface is a single flat dark colour, slightly lifted from the
-       panel floor (#1e1e21 → #242428).
+       panel floor.
      • Gaussian shadow is wider + softer than two-pass-box, giving genuine
        perceived elevation instead of a clip-art drop-shadow.
    ──────────────────────────────────────────────────────────────────── */
@@ -48,7 +156,7 @@
     /* Layer 1 (top)    — card surface: inset 1 px so the rim peeks out all around */
     -fx-background-color:
         rgba(255,255,255,0.055),
-        #242428;
+        -color-surface-2;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 9, 8;
     -fx-border-width: 0;
@@ -60,24 +168,55 @@
 .filter-card:hover {
     -fx-background-color:
         rgba(255,255,255,0.085),
-        #272729;
+        -color-surface-hover;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 9, 8;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.56), 16, 0, 0, 4);
 }
 
-/* ── Dynamic "PARÁMETROS" title ────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   PARAMS PANEL — delimited "AJUSTES" container pinned below the browser
+   ═══════════════════════════════════════════════════════════════════════ */
+.params-panel {
+    -fx-background-color: rgba(255,255,255,0.025);
+    -fx-background-radius: 10;
+    -fx-border-color: -color-border;
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-padding: 12 12 14 12;
+    -fx-spacing: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.38), 14, 0, 0, 3);
+}
+.params-title-row { -fx-padding: 0 0 1 0; }
+.params-icon      { -fx-icon-color: -color-accent-chrome; }   /* category accent ≤ action */
+
+/* Caption "AJUSTES" */
 .params-section-title {
-    -fx-text-fill: #484850;
+    -fx-text-fill: -color-text-dim;
     -fx-font-size: 10px;
     -fx-font-weight: bold;
-    -fx-padding: 2 0 0 2;
-    -fx-letter-spacing: 0.04em;
+    -fx-letter-spacing: 0.06em;
+}
+
+/* Active filter name — the focal point of the panel (top of the hierarchy) */
+.params-filter-name {
+    -fx-text-fill: -color-text-strong;
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+    -fx-padding: 0 0 2 0;
+}
+
+/* Shown when the selected filter has no adjustable parameters.
+   No italic + brighter + slightly larger → readable on screen (≥4.5:1). */
+.params-empty-hint {
+    -fx-text-fill: -color-text-dim;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 500;
 }
 
 /* ── Live value label (right of each slider) ─────────────────────── */
 .param-value-label {
-    -fx-text-fill: #4a8fd6;
+    -fx-text-fill: -color-accent;
     -fx-font-size: 11px;
     -fx-font-weight: 600;
     -fx-min-width: 46px;
@@ -88,7 +227,7 @@
 .param-reset-btn {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
-    -fx-text-fill: #44444c;           /* starts very muted — appears on demand */
+    -fx-text-fill: -color-text-faint;     /* starts very muted — appears on demand */
     -fx-font-size: 14px;
     -fx-padding: 2 5 2 5;
     -fx-cursor: hand;
@@ -97,48 +236,49 @@
     -fx-background-radius: 5;
 }
 .param-reset-btn:hover {
-    -fx-text-fill: #a0a0a8;
+    -fx-text-fill: -color-text-dim;
     -fx-background-color: rgba(255,255,255,0.07);   /* tinted surface on hover */
 }
 .param-reset-btn:pressed {
     -fx-background-color: rgba(0,0,0,0.20);
-    -fx-text-fill: #d2d2d4;
+    -fx-text-fill: -color-text;
 }
 
 /* ── Field / param labels ───────────────────────────────────────────── */
 .field-label {
-    -fx-text-fill: #7a7a84;           /* slightly lighter → more readable inside a card */
+    -fx-text-fill: -color-text-dim;       /* readable inside a card */
     -fx-font-size: 11.5px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
    CHANNEL CHECKBOXES — Retro 2  (R / G / B)
+   Category colours stay literal: they carry semantic meaning, not theming.
    ═══════════════════════════════════════════════════════════════════════ */
 .channel-check {
     -fx-pref-width: 265px;
     -fx-pref-height: 32px;
     -fx-padding: 0 12 0 10;
-    -fx-background-color: #28292d;
+    -fx-background-color: -color-surface-2;
     -fx-background-radius: 7;
     -fx-border-radius: 7;
-    -fx-border-color: #44444a;
+    -fx-border-color: -color-border;
     -fx-border-width: 1;
     -fx-cursor: hand;
-    -fx-text-fill: #888890;
+    -fx-text-fill: -color-text-dim;
     -fx-font-size: 12px;
     -fx-font-weight: 500;
     -fx-graphic-text-gap: 10;
 }
 .channel-check:hover {
-    -fx-background-color: #2e2f34;
-    -fx-border-color: #585860;
-    -fx-text-fill: #b0b0b8;
+    -fx-background-color: -color-surface-hover;
+    -fx-border-color: -color-border-strong;
+    -fx-text-fill: -color-text;
 }
 
 /* Shared checkbox square */
 .channel-check > .box {
-    -fx-background-color: #1e1e21;
-    -fx-border-color: #505056;
+    -fx-background-color: -color-surface-1;
+    -fx-border-color: -color-border-strong;
     -fx-border-radius: 4;
     -fx-background-radius: 4;
     -fx-border-width: 1.5;
@@ -179,4 +319,3 @@
 }
 .channel-check-b:selected > .box         { -fx-background-color: #1f4a7a; -fx-border-color: #4a8fd6; }
 .channel-check-b:selected > .box > .mark { -fx-background-color: #eef5ff; }
-

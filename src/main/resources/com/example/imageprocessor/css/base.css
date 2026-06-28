@@ -1,26 +1,71 @@
 /* ═══════════════════════════════════════════════════════════════════════
    BASE — Design tokens & root styles
    ─────────────────────────────────────────────────────────────────────
-   Layer 0 (canvas)  : #141416
-   Layer 1 (panels)  : #1e1e21
-   Layer 2 (controls): #28292d
-   Layer 3 (hover)   : #34353a
-   Text primary      : #d2d2d4
-   Text secondary    : #888890
-   Text muted        : #505056
-   Accent            : #4a8fd6  — used SPARINGLY
-   Border default    : #38383e
-   Border hover      : #505056
+   Single source of truth for the dark theme. Every other file references
+   these JavaFX "looked-up colors" instead of hard-coding hex values, so
+   the whole palette can be retuned from one place.
+
+   Tokens are declared on `.root` (the style class JavaFX adds automatically
+   to every Scene root, including sub-windows such as the ColorPicker custom
+   dialog), so they resolve everywhere the stylesheet is loaded.
    ═══════════════════════════════════════════════════════════════════════ */
 
+.root {
+    /* ── Surfaces (dark → light elevation) ── */
+    -color-canvas:        #0e0e11;   /* deepest: editor / preview canvas   */
+    -color-bg:            #141416;   /* app background                     */
+    -color-surface-1:     #1e1e22;   /* panels                             */
+    -color-surface-2:     #27282d;   /* form controls                      */
+    -color-surface-3:     #323339;   /* control hover / popups             */
+    -color-surface-hover: #2d2e34;   /* subtle row / card hover            */
+
+    /* ── Borders ── */
+    -color-border:        #3b3c44;   /* default control / divider border   */
+    -color-border-strong: #56575f;   /* hover border                       */
+
+    /* ── Text (refined for higher contrast) ── */
+    -color-text-strong:   #f4f1f5;   /* max-priority: active filter name, key labels */
+    -color-text:          #e4e4e8;   /* primary                            */
+    -color-text-dim:      #9698a2;   /* secondary / labels                 */
+    -color-text-muted:    #6a6b75;   /* tertiary / icons at rest           */
+    -color-text-caption:  #83848f;   /* section captions — readable (≈4.5:1) */
+    -color-text-faint:    #4a4b53;   /* faintest accents (separators, etc.) */
+
+    /* ── Accent (blue) — use sparingly ──
+       Vividness order is intentional: the primary action (Aplicar filtro)
+       is the strongest blue on screen; chrome accents must stay below it. */
+    -color-accent:        #4a8fd6;
+    -color-accent-bright: #63a2e2;   /* hover                              */
+    -color-accent-press:  #3576b2;   /* pressed                            */
+    -color-accent-deep:   #1f4a7a;   /* selection fill                     */
+    -color-on-accent:     #cfe2f5;   /* text on an accent surface          */
+    -color-accent-chrome: #3a5f86;   /* desaturated blue for view divider + category icons — never out-vivid the action */
+    -color-select-bg:     #172e44;   /* sidebar selection fill — darkest blue, sits under the action */
+
+    /* ── Effects ── */
+    -color-shadow:        rgba(0,0,0,0.5);
+}
+
 .root-pane {
-    -fx-background-color: #141416;
+    -fx-background-color: -color-bg;
     -fx-font-family: "Segoe UI", "Helvetica Neue", "Arial", sans-serif;
     -fx-font-size: 13px;
-    -fx-text-fill: #d2d2d4;
+    -fx-text-fill: -color-text;
 }
 
 .label {
-    -fx-text-fill: #d2d2d4;
+    -fx-text-fill: -color-text;
 }
 
+/* ── Tooltips — dark, rounded (JavaFX default is a light box) ── */
+.tooltip {
+    -fx-background-color: -color-surface-3;
+    -fx-text-fill: -color-text;
+    -fx-font-size: 11.5px;
+    -fx-padding: 5 9 5 9;
+    -fx-background-radius: 6;
+    -fx-border-color: -color-border;
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.55), 12, 0, 0, 3);
+}

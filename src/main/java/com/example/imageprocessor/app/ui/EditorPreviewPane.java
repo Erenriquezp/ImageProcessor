@@ -1,5 +1,6 @@
 package com.example.imageprocessor.app.ui;
 
+import javafx.beans.binding.Bindings;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
@@ -7,11 +8,23 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelWriter;
+import javafx.scene.image.WritableImage;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.util.Locale;
+import java.util.function.Consumer;
+import java.util.function.DoubleConsumer;
 
 /**
  * Panel de previsualización central.
@@ -48,6 +61,17 @@ public class EditorPreviewPane {
 
     private final Label zoomIndicator = new Label("Ajustar");
 
+    // ── Status readouts (cursor pixel + zoom) ─────────────────────────────
+    /** Lectura de un píxel bajo el cursor: posición y color RGB. */
+    public record PixelReadout(int x, int y, int r, int g, int b) {}
+    private Consumer<PixelReadout> onCursorReadout;   // null cuando el cursor sale de la imagen
+    private DoubleConsumer         onZoomChanged;
+
+    // ── Empty state & drag-and-drop ───────────────────────────────────────
+    private static final String DRAGOVER_CLASS = "preview-scroll-pane-dragover";
+    private final VBox emptyState = buildEmptyState();
+    private Consumer<File> onImageDropped;
+
     // ── Constructor ───────────────────────────────────────────────────────
 
     public EditorPreviewPane() {
@@ -55,14 +79,17 @@ public class EditorPreviewPane {
         configureImageView(originalView);
 
         // LEFT content — imagen original (solo en modo comparar)
+        // El tablero (checker) va detrás de la imagen para revelar la
+        // transparencia (filtros alpha) en lugar de ocultarla sobre negro.
         Label originalBadge = makeCompareBadge("ORIGINAL", Pos.TOP_LEFT);
-        leftContent = new StackPane(originalView, originalBadge);
+        leftContent = new StackPane(makeCheckerBacking(originalView), originalView, originalBadge);
         leftContent.getStyleClass().addAll("preview-pane", "compare-pane");
 
-        // RIGHT content — imagen procesada (siempre visible)
+        // RIGHT content — imagen procesada (siempre visible) + placeholder vacío
         compareResultLabel = makeCompareBadge("RESULTADO", Pos.TOP_RIGHT);
         compareResultLabel.setVisible(false);
-        rightContent = new StackPane(processedView, compareResultLabel);
+        rightContent = new StackPane(makeCheckerBacking(processedView), processedView,
+                emptyState, compareResultLabel);
         rightContent.getStyleClass().addAll("preview-pane", "compare-pane");
 
         leftScrollPane  = buildScrollPane(leftContent);
@@ -79,6 +106,15 @@ public class EditorPreviewPane {
         // Click → activar panel para los botones de toolbar
         leftContent .setOnMouseClicked(e -> activatePane(true));
         rightContent.setOnMouseClicked(e -> activatePane(false));
+
+        // Lectura de píxel bajo el cursor (coordenadas + RGB) para la barra de estado
+        processedView.setOnMouseMoved(e -> fireReadout(e, processedView));
+        originalView .setOnMouseMoved(e -> fireReadout(e, originalView));
+        processedView.setOnMouseExited(e -> clearReadout());
+        originalView .setOnMouseExited(e -> clearReadout());
+
+        // Arrastrar y soltar una imagen sobre el panel de resultado
+        enableDragAndDrop(rightScrollPane);
 
         // Estado inicial: panel izquierdo colapsado, derecho crece
         leftScrollPane.setMinWidth(0);
@@ -105,9 +141,50 @@ public class EditorPreviewPane {
     /** Label de porcentaje de zoom — se embebe en la TopBar. */
     public Label getZoomIndicator() { return zoomIndicator; }
 
+    /** Callback con la lectura del píxel bajo el cursor (o {@code null} al salir). */
+    public void setOnCursorReadout(Consumer<PixelReadout> handler) { this.onCursorReadout = handler; }
+
+    /** Callback con el nivel de zoom del panel activo (1.0 = 100%). */
+    public void setOnZoomChanged(DoubleConsumer handler) {
+        this.onZoomChanged = handler;
+        if (handler != null) handler.accept(leftPaneActive ? leftZoomLevel : rightZoomLevel);
+    }
+
+    // ── Cursor pixel readout ──────────────────────────────────────────────
+
+    private void clearReadout() {
+        if (onCursorReadout != null) onCursorReadout.accept(null);
+    }
+
+    /** Mapea la posición del ratón al píxel de la imagen y reporta su color. */
+    private void fireReadout(MouseEvent e, ImageView view) {
+        if (onCursorReadout == null) return;
+        Image img = view.getImage();
+        double dispW = view.getBoundsInLocal().getWidth();
+        double dispH = view.getBoundsInLocal().getHeight();
+        if (img == null || dispW <= 0 || dispH <= 0) { onCursorReadout.accept(null); return; }
+
+        int iw = (int) img.getWidth(), ih = (int) img.getHeight();
+        int px = Math.max(0, Math.min(iw - 1, (int) (e.getX() / dispW * iw)));
+        int py = Math.max(0, Math.min(ih - 1, (int) (e.getY() / dispH * ih)));
+
+        Color c = img.getPixelReader().getColor(px, py);
+        onCursorReadout.accept(new PixelReadout(px, py,
+                (int) Math.round(c.getRed()   * 255),
+                (int) Math.round(c.getGreen() * 255),
+                (int) Math.round(c.getBlue()  * 255)));
+    }
+
+    /**
+     * Registra el callback invocado cuando el usuario suelta un archivo de
+     * imagen sobre el panel. Lo cablea {@code ImageProcessorApp}.
+     */
+    public void setOnImageDropped(Consumer<File> handler) { this.onImageDropped = handler; }
+
     /** Actualiza la imagen del panel de resultado. */
     public void showProcessed(BufferedImage image) {
         processedView.setImage(image == null ? null : SwingFXUtils.toFXImage(image, null));
+        emptyState.setVisible(image == null);
     }
 
     /** Actualiza la imagen del panel original (solo relevante en modo comparar). */
@@ -196,6 +273,7 @@ public class EditorPreviewPane {
         zoomIndicator.setText(Math.abs(level - 1.0) < 0.01
                 ? "Ajustar"
                 : String.format("%.0f%%", level * 100));
+        if (onZoomChanged != null) onZoomChanged.accept(level);
     }
 
     private void onScrollZoom(ScrollEvent e, boolean isLeft) {
@@ -268,6 +346,100 @@ public class EditorPreviewPane {
     private static void configureImageView(ImageView iv) {
         iv.setPreserveRatio(true);
         iv.setSmooth(true);
+    }
+
+    /** Tablero de transparencia (dos grises oscuros, casillas de 8 px). */
+    private static final Background CHECKER_BG = buildCheckerBackground();
+
+    private static Background buildCheckerBackground() {
+        final int s = 8, tile = s * 2;          // mosaico 16×16 = 2×2 casillas
+        WritableImage img = new WritableImage(tile, tile);
+        PixelWriter pw = img.getPixelWriter();
+        Color light = Color.web("#42424a");
+        Color dark  = Color.web("#34343b");
+        for (int y = 0; y < tile; y++) {
+            for (int x = 0; x < tile; x++) {
+                boolean even = ((x < s) ^ (y < s));
+                pw.setColor(x, y, even ? light : dark);
+            }
+        }
+        return new Background(new BackgroundImage(img,
+                BackgroundRepeat.REPEAT, BackgroundRepeat.REPEAT,
+                BackgroundPosition.DEFAULT, BackgroundSize.DEFAULT));
+    }
+
+    /**
+     * Region con el tablero, dimensionada exactamente al rectángulo renderizado
+     * de la imagen (no al panel), de modo que el letterbox queda en canvas
+     * oscuro y sólo la zona de la imagen muestra el checker. Visible sólo cuando
+     * hay imagen cargada.
+     */
+    private static Region makeCheckerBacking(ImageView view) {
+        Region r = new Region();
+        r.setBackground(CHECKER_BG);
+        r.setMouseTransparent(true);
+        var w = Bindings.createDoubleBinding(
+                () -> view.getBoundsInLocal().getWidth(),  view.boundsInLocalProperty());
+        var h = Bindings.createDoubleBinding(
+                () -> view.getBoundsInLocal().getHeight(), view.boundsInLocalProperty());
+        r.minWidthProperty().bind(w);  r.prefWidthProperty().bind(w);  r.maxWidthProperty().bind(w);
+        r.minHeightProperty().bind(h); r.prefHeightProperty().bind(h); r.maxHeightProperty().bind(h);
+        r.visibleProperty().bind(view.imageProperty().isNotNull());
+        return r;
+    }
+
+    /** Placeholder centrado mostrado cuando no hay imagen cargada. */
+    private static VBox buildEmptyState() {
+        FontIcon icon = new FontIcon("fas-image");
+        icon.getStyleClass().add("empty-icon");
+
+        Label title = new Label("Arrastra una imagen aquí");
+        title.getStyleClass().add("empty-state-title");
+
+        Label subtitle = new Label("o usa el botón Abrir de la barra superior");
+        subtitle.getStyleClass().add("empty-state-subtitle");
+
+        VBox box = new VBox(icon, title, subtitle);
+        box.getStyleClass().add("empty-state");
+        box.setAlignment(Pos.CENTER);
+        box.setMouseTransparent(true);  // deja pasar clicks y eventos de arrastre
+        return box;
+    }
+
+    /** Acepta archivos de imagen soltados sobre {@code target} y los reenvía al callback. */
+    private void enableDragAndDrop(ScrollPane target) {
+        target.setOnDragOver(e -> {
+            if (onImageDropped != null && isImageDrag(e.getDragboard())) {
+                e.acceptTransferModes(TransferMode.COPY);
+                if (!target.getStyleClass().contains(DRAGOVER_CLASS)) {
+                    target.getStyleClass().add(DRAGOVER_CLASS);
+                }
+            }
+            e.consume();
+        });
+        target.setOnDragExited(e -> {
+            target.getStyleClass().remove(DRAGOVER_CLASS);
+            e.consume();
+        });
+        target.setOnDragDropped(e -> {
+            Dragboard db = e.getDragboard();
+            boolean done = false;
+            if (onImageDropped != null && isImageDrag(db)) {
+                onImageDropped.accept(db.getFiles().get(0));
+                done = true;
+            }
+            target.getStyleClass().remove(DRAGOVER_CLASS);
+            e.setDropCompleted(done);
+            e.consume();
+        });
+    }
+
+    /** True si el dragboard contiene al menos un archivo con extensión de imagen. */
+    private static boolean isImageDrag(Dragboard db) {
+        if (!db.hasFiles() || db.getFiles().isEmpty()) return false;
+        String name = db.getFiles().get(0).getName().toLowerCase(Locale.ROOT);
+        return name.endsWith(".png")  || name.endsWith(".jpg") || name.endsWith(".jpeg")
+            || name.endsWith(".bmp")  || name.endsWith(".gif");
     }
 
     private static ScrollPane buildScrollPane(StackPane content) {

@@ -4,25 +4,45 @@ import com.example.imageprocessor.domain.ConvolutionKernel;
 import com.example.imageprocessor.domain.FilterType;
 import com.example.imageprocessor.domain.StretchMode;
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
+import org.kordamp.ikonli.javafx.FontIcon;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.function.Function;
 
 public class EditorFilterPane {
 
-    // ── Controls ────────────────────────────────────────────────────────────
-    private final ComboBox<FilterType>        filterCombo         = new ComboBox<>();
+    // ── Filter selection model (replaces the old flat ComboBox) ──────────────
+    private final ObjectProperty<FilterType> selectedFilter =
+            new SimpleObjectProperty<>(FilterType.NONE);
+
+    // ── Filter browser UI ────────────────────────────────────────────────────
+    private final TextField searchField        = new TextField();
+    private final VBox      filterListContainer = new VBox(2);
+    private final Map<FilterType, Node> filterRows = new EnumMap<>(FilterType.class);
+    /** Estado expandido/colapsado por categoría; persiste entre reconstrucciones. */
+    private final Map<Category, Boolean> categoryExpanded = new EnumMap<>(Category.class);
+    private Runnable onFilterActivated;   // doble clic en una fila → aplicar
+    private Runnable onParamChanged;      // cambio de filtro o de parámetro → preview en vivo
+
+    // ── Parameter controls ───────────────────────────────────────────────────
     private final Slider                      brightnessSlider    = new Slider(-100, 100, 40);
     private final Slider                      saturationSlider    = new Slider(0, 2, 1.3);
     private final Slider                      valueSlider         = new Slider(0, 2, 0.9);
     private final Spinner<Integer>            levelsSpinner       = new Spinner<>(2, 255, 4);
     private final Slider                      thresholdSlider     = new Slider(0, 255, 127);
     private final Slider                      alphaSlider         = new Slider(0, 255, 128);
-    private final ColorPicker                 tintPicker          = new ColorPicker(Color.web("#AA5AFF"));
+    private final ColorChooser                tintPicker          = new ColorChooser(Color.web("#AA5AFF"));
     private final ComboBox<StretchMode>       stretchModeCombo    = new ComboBox<>();
     private final ComboBox<ConvolutionKernel> kernelCombo         = new ComboBox<>();
 
@@ -47,9 +67,11 @@ public class EditorFilterPane {
     private final VBox stretchBox    = new VBox(6);
     private final VBox kernelBox     = new VBox(6);
 
-    // ── Dynamic params section header ────────────────────────────────────────
-    private final Separator paramsSep    = new Separator();
-    private final Label     paramsHeader = new Label("PARÁMETROS");
+    // ── Dynamic params panel ─────────────────────────────────────────────────
+    private final FontIcon paramsIcon       = new FontIcon("fas-sliders-h");
+    private final Label    paramsFilterName = new Label();
+    private final Label    noParamsHint     = new Label("Este filtro se aplica directamente, sin ajustes.");
+    private final VBox     paramsPanel      = new VBox(8);
 
     private final VBox view;
 
@@ -58,49 +80,77 @@ public class EditorFilterPane {
         configureFilterControls();
 
         // ── Static section header ───────────────────────────────────────────
-        Label sectionHeader = new Label("HERRAMIENTAS");
+        Label sectionHeader = new Label("FILTROS");
         sectionHeader.getStyleClass().add("section-title");
 
         Separator headerSep = new Separator();
         headerSep.setOpacity(0.4);
 
-        // ── Filter selector row ─────────────────────────────────────────────
-        Label filterLabel = new Label("Filtro");
-        filterLabel.getStyleClass().add("field-label");
+        // ── Search + categorized filter browser ─────────────────────────────
+        HBox       searchBox    = buildSearchBox();
+        ScrollPane filterScroll = buildFilterScroll();
 
-        // ── Dynamic params header ───────────────────────────────────────────
-        paramsHeader.getStyleClass().add("params-section-title");
-        paramsSep.setOpacity(0.2);
-        updateVisibility(paramsSep,    false);
-        updateVisibility(paramsHeader, false);
+        // ── Dynamic params panel ────────────────────────────────────────────
+        // Built once here, but injected into the list right below the active
+        // filter row (see positionParamsPanel) instead of pinned to the bottom.
+        buildParamsPanel();
 
         view = new VBox(10,
                 sectionHeader,
                 headerSep,
-                filterLabel,
-                filterCombo,
-                paramsSep,
-                paramsHeader,
-                brightnessBox,
-                hsvBox,
-                levelsBox,
-                retro2Box,
-                grayQuantBox,
-                thresholdBox,
-                alphaBox,
-                tintBox,
-                stretchBox,
-                kernelBox
+                searchBox,
+                filterScroll
         );
 
-        filterCombo.valueProperty().addListener((obs, o, n) -> updateDynamicControlVisibility());
+        // Selection & search wiring
+        selectedFilter.addListener((obs, o, n) -> {
+            updateDynamicControlVisibility();
+            updateRowSelectionStyles();
+            positionParamsPanel();
+            fireParamChanged();           // nueva selección → repreview
+        });
+        searchField.textProperty().addListener((obs, o, n) -> rebuildFilterList(n));
+
+        rebuildFilterList("");
         updateDynamicControlVisibility();
+        wireParamListeners();
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
     public VBox getView() { return view; }
 
-    public FilterType        getSelectedFilter()  { return filterCombo.getValue(); }
+    public FilterType        getSelectedFilter()  { return selectedFilter.get(); }
+
+    /** Callback ejecutado al hacer doble clic en un filtro (aplicar directo). */
+    public void setOnFilterActivated(Runnable handler) { this.onFilterActivated = handler; }
+
+    /** Callback ejecutado cuando cambia el filtro seleccionado o cualquier parámetro. */
+    public void setOnParamChanged(Runnable handler) { this.onParamChanged = handler; }
+
+    /** Deselecciona el filtro activo (vuelve a "Sin filtro"). */
+    public void clearSelection() { selectedFilter.set(FilterType.NONE); }
+
+    private void fireParamChanged() { if (onParamChanged != null) onParamChanged.run(); }
+
+    /** Conecta todos los controles de parámetros al callback de preview en vivo. */
+    private void wireParamListeners() {
+        Runnable f = this::fireParamChanged;
+        brightnessSlider   .valueProperty()   .addListener((o, a, b) -> f.run());
+        saturationSlider   .valueProperty()   .addListener((o, a, b) -> f.run());
+        valueSlider        .valueProperty()   .addListener((o, a, b) -> f.run());
+        thresholdSlider    .valueProperty()   .addListener((o, a, b) -> f.run());
+        alphaSlider        .valueProperty()   .addListener((o, a, b) -> f.run());
+        levelsSpinner      .valueProperty()   .addListener((o, a, b) -> f.run());
+        retro2LevelsSpinner.valueProperty()   .addListener((o, a, b) -> f.run());
+        grayQuantSpinner   .valueProperty()   .addListener((o, a, b) -> f.run());
+        retro2CheckR       .selectedProperty().addListener((o, a, b) -> f.run());
+        retro2CheckG       .selectedProperty().addListener((o, a, b) -> f.run());
+        retro2CheckB       .selectedProperty().addListener((o, a, b) -> f.run());
+        stretchModeCombo   .valueProperty()   .addListener((o, a, b) -> f.run());
+        kernelCombo        .valueProperty()   .addListener((o, a, b) -> f.run());
+        tintPicker         .valueProperty()   .addListener((o, a, b) -> f.run());
+    }
+
     public int               getBrightnessValue() { return (int) Math.round(brightnessSlider.getValue()); }
     public float             getSaturationValue() { return (float) saturationSlider.getValue(); }
     public float             getValueFactor()     { return (float) valueSlider.getValue(); }
@@ -116,13 +166,249 @@ public class EditorFilterPane {
     public StretchMode       getStretchMode()     { return stretchModeCombo.getValue(); }
     public ConvolutionKernel getKernel()          { return kernelCombo.getValue(); }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    //  FILTER BROWSER — search box + categorized, selectable list
+    //  Categories are derived from FilterType#getDotColor() so the domain
+    //  layer stays untouched.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** Visual grouping for the browser; mapped from each filter's dot color. */
+    private enum Category {
+        BASIC        ("Básicos",         "#4a8fd6", "fas-sliders-h"),
+        TRANSPARENCY ("Transparencia",   "#4acc88", "fas-tint"),
+        RETRO        ("Retro y color",   "#e8913a", "fas-th"),
+        CONVOLUTION  ("Convolución",     "#9a6adc", "fas-border-all"),
+        COLOR_MATRIX ("Matriz de color", "#e84a8f", "fas-palette");
+
+        final String display;
+        final String color;
+        final String icon;
+        Category(String display, String color, String icon) {
+            this.display = display;
+            this.color   = color;
+            this.icon    = icon;
+        }
+    }
+
+    private static Category categoryOf(FilterType ft) {
+        String c = ft.getDotColor();
+        if (c == null) return null;
+        return switch (c) {
+            case "#4a8fd6" -> Category.BASIC;
+            case "#4acc88" -> Category.TRANSPARENCY;
+            case "#e8913a" -> Category.RETRO;
+            case "#9a6adc" -> Category.CONVOLUTION;
+            case "#e84a8f" -> Category.COLOR_MATRIX;
+            default        -> null;
+        };
+    }
+
+    private HBox buildSearchBox() {
+        FontIcon icon = new FontIcon("fas-search");
+        icon.getStyleClass().add("search-icon");
+
+        searchField.setPromptText("Buscar filtro…");
+        searchField.getStyleClass().add("search-field");
+        HBox.setHgrow(searchField, Priority.ALWAYS);
+
+        HBox box = new HBox(8, icon, searchField);
+        box.setAlignment(Pos.CENTER_LEFT);
+        box.getStyleClass().add("search-box");
+        return box;
+    }
+
+    private ScrollPane buildFilterScroll() {
+        filterListContainer.getStyleClass().add("filter-list");
+
+        ScrollPane scroll = new ScrollPane(filterListContainer);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.setMinHeight(150);
+        scroll.getStyleClass().add("filter-browser-scroll");
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+        return scroll;
+    }
+
+    /** Rebuilds the list, honoring the current search query. */
+    private void rebuildFilterList(String query) {
+        filterListContainer.getChildren().clear();
+        filterRows.clear();
+
+        String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+
+        // "Sin filtro" (NONE) always sits at the top when it matches.
+        if (matches(FilterType.NONE, q)) {
+            filterListContainer.getChildren().add(filterRow(FilterType.NONE));
+        }
+
+        boolean searching = !q.isEmpty();
+        for (Category cat : Category.values()) {
+            List<Node> rows = new ArrayList<>();
+            for (FilterType ft : FilterType.values()) {
+                if (categoryOf(ft) == cat && matches(ft, q)) {
+                    rows.add(filterRow(ft));
+                }
+            }
+            if (rows.isEmpty()) continue;
+            // Al buscar, forzamos expandido para que los resultados sean visibles;
+            // si no, respetamos el estado guardado (expandido por defecto).
+            boolean expanded = searching || categoryExpanded.getOrDefault(cat, true);
+            filterListContainer.getChildren().add(categoryGroup(cat, rows, expanded, searching));
+        }
+
+        if (filterListContainer.getChildren().isEmpty()) {
+            Label empty = new Label("Sin resultados para \"" + query.trim() + "\"");
+            empty.getStyleClass().add("filter-empty");
+            filterListContainer.getChildren().add(empty);
+        }
+
+        updateRowSelectionStyles();
+        positionParamsPanel();   // re-attach AJUSTES under the active row after rebuild
+    }
+
+    private static boolean matches(FilterType ft, String q) {
+        return q.isEmpty() || ft.toString().toLowerCase(Locale.ROOT).contains(q);
+    }
+
+    /**
+     * Builds one collapsible category section: a clickable header
+     * (chevron + category icon + title + count) over a content box holding the
+     * filter rows. Icons follow the unified muted system style — only the tiny
+     * category dot keeps the literal semantic colour.
+     */
+    private VBox categoryGroup(Category cat, List<Node> rows,
+                               boolean expanded, boolean searching) {
+        FontIcon chevron = new FontIcon("fas-chevron-right");
+        chevron.setIconSize(9);
+        chevron.getStyleClass().add("filter-category-chevron");
+
+        FontIcon icon = new FontIcon(cat.icon);
+        icon.setIconSize(12);
+        icon.getStyleClass().add("filter-category-icon");
+
+        Label lbl = new Label(cat.display.toUpperCase(Locale.ROOT));
+        lbl.getStyleClass().add("filter-category-title");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label count = new Label(Integer.toString(rows.size()));
+        count.getStyleClass().add("filter-category-count");
+
+        HBox header = new HBox(8, chevron, icon, lbl, spacer, count);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setMaxWidth(Double.MAX_VALUE);
+        header.getStyleClass().add("filter-category-header");
+
+        VBox content = new VBox(2);
+        content.getStyleClass().add("filter-category-content");
+        content.getChildren().setAll(rows);
+
+        applyExpansion(content, chevron, expanded);
+
+        // While searching the sections stay open and locked (toggling would hide
+        // matches); without a query the header toggles and remembers its state.
+        if (!searching) {
+            header.setOnMouseClicked(e -> {
+                boolean now = !content.isVisible();
+                categoryExpanded.put(cat, now);
+                applyExpansion(content, chevron, now);
+            });
+        }
+
+        VBox group = new VBox(header, content);
+        group.getStyleClass().add("filter-category-group");
+        return group;
+    }
+
+    /**
+     * Moves the shared "AJUSTES" panel so it sits directly below the currently
+     * selected filter row, nested inside that filter's category section. When no
+     * real filter is active — or it's filtered out by the search — the panel
+     * detaches and stays hidden.
+     */
+    private void positionParamsPanel() {
+        if (paramsPanel.getParent() instanceof Pane prev) {
+            prev.getChildren().remove(paramsPanel);
+        }
+        FilterType sel = selectedFilter.get();
+        Node row = filterRows.get(sel);
+        boolean active = sel != null && sel != FilterType.NONE && row != null;
+        updateVisibility(paramsPanel, active);
+        if (active && row.getParent() instanceof VBox content) {
+            int idx = content.getChildren().indexOf(row);
+            content.getChildren().add(idx + 1, paramsPanel);
+        }
+    }
+
+    /** Toggles a section's content visibility and rotates its chevron. */
+    private static void applyExpansion(VBox content, FontIcon chevron, boolean expanded) {
+        content.setVisible(expanded);
+        content.setManaged(expanded);
+        chevron.setRotate(expanded ? 90 : 0);
+    }
+
+    private HBox filterRow(FilterType ft) {
+        Label name = new Label(ft.toString());
+        name.getStyleClass().add("filter-row-name");
+
+        HBox row = new HBox(name);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setMaxWidth(Double.MAX_VALUE);
+        row.getStyleClass().add("filter-row");
+        if (ft == FilterType.NONE) row.getStyleClass().add("filter-row-none");
+        row.setOnMouseClicked(e -> {
+            selectedFilter.set(ft);
+            if (e.getClickCount() == 2 && onFilterActivated != null) {
+                onFilterActivated.run();
+            }
+        });
+
+        filterRows.put(ft, row);
+        return row;
+    }
+
+    private void updateRowSelectionStyles() {
+        FilterType sel = selectedFilter.get();
+        filterRows.forEach((ft, node) -> {
+            node.getStyleClass().remove("filter-row-selected");
+            if (ft == sel) node.getStyleClass().add("filter-row-selected");
+        });
+    }
+
+    /**
+     * Builds the bottom "AJUSTES" panel: a delimited container with a header
+     * (category icon + active filter name) and the contextual parameter cards.
+     */
+    private VBox buildParamsPanel() {
+        paramsIcon.setIconSize(13);
+        paramsIcon.getStyleClass().add("params-icon");
+
+        Label caption = new Label("AJUSTES");
+        caption.getStyleClass().add("params-section-title");
+
+        HBox titleRow = new HBox(8, paramsIcon, caption);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+        titleRow.getStyleClass().add("params-title-row");
+
+        paramsFilterName.getStyleClass().add("params-filter-name");
+        noParamsHint.getStyleClass().add("params-empty-hint");
+        noParamsHint.setWrapText(true);
+
+        paramsPanel.getStyleClass().add("params-panel");
+        paramsPanel.getChildren().addAll(
+                titleRow,
+                paramsFilterName,
+                noParamsHint,
+                brightnessBox, hsvBox, levelsBox, retro2Box, grayQuantBox,
+                thresholdBox, alphaBox, tintBox, stretchBox, kernelBox
+        );
+        return paramsPanel;
+    }
+
     // ── Initialization ───────────────────────────────────────────────────────
     private void initializeToolSelectors() {
-        filterCombo.getItems().setAll(FilterType.values());
-        filterCombo.getSelectionModel().select(FilterType.NONE);
-        filterCombo.setCellFactory(lv  -> new FilterTypeCell());
-        filterCombo.setButtonCell(new FilterTypeCell());
-
         stretchModeCombo.getItems().setAll(StretchMode.values());
         stretchModeCombo.getSelectionModel().select(StretchMode.DECIMAL);
         kernelCombo.getItems().setAll(ConvolutionKernel.values());
@@ -130,11 +416,12 @@ public class EditorFilterPane {
     }
 
     private void configureFilterControls() {
-        // Apply card style to every parameter group
+        // Param groups live flush inside the shared "params-panel" container,
+        // so they only need section spacing — not their own card chrome.
         for (VBox box : new VBox[]{ brightnessBox, hsvBox, levelsBox, retro2Box,
                                     grayQuantBox, thresholdBox, alphaBox,
                                     tintBox, stretchBox, kernelBox }) {
-            box.getStyleClass().addAll("filter-section", "filter-card");
+            box.getStyleClass().add("filter-section");
         }
 
         // Slider groups — live value + reset button
@@ -248,12 +535,13 @@ public class EditorFilterPane {
         box.getChildren().setAll(fieldLabel(labelText), controlRow);
     }
 
-    /** Fills tintBox with a label + [colorPicker ↺] control. */
+    /** Fills tintBox with a label + [colorChooser ↺] control. */
     private void populateTintBox() {
-        tintPicker.setMaxWidth(Double.MAX_VALUE);
+        Region pickerView = tintPicker.getView();
+        pickerView.setMaxWidth(Double.MAX_VALUE);
         Button resetBtn = resetButton(() -> tintPicker.setValue(Color.web("#AA5AFF")));
-        HBox.setHgrow(tintPicker, Priority.ALWAYS);
-        HBox controlRow = new HBox(6, tintPicker, resetBtn);
+        HBox.setHgrow(pickerView, Priority.ALWAYS);
+        HBox controlRow = new HBox(6, pickerView, resetBtn);
         controlRow.setAlignment(Pos.CENTER_LEFT);
         tintBox.getChildren().setAll(fieldLabel("Tinte"), controlRow);
     }
@@ -275,7 +563,7 @@ public class EditorFilterPane {
 
     // ── Visibility ────────────────────────────────────────────────────────────
     private void updateDynamicControlVisibility() {
-        FilterType sel = filterCombo.getValue();
+        FilterType sel = selectedFilter.get();
         updateVisibility(brightnessBox, sel == FilterType.BRIGHTNESS);
         updateVisibility(hsvBox,        sel == FilterType.HSV);
         updateVisibility(levelsBox,     sel == FilterType.RETRO1);
@@ -293,44 +581,25 @@ public class EditorFilterPane {
                 || alphaBox.isManaged()     || tintBox.isManaged()
                 || stretchBox.isManaged()   || kernelBox.isManaged();
 
-        updateVisibility(paramsSep,    hasParams);
-        updateVisibility(paramsHeader, hasParams);
+        // The whole "AJUSTES" panel is shown for any real filter; the hint
+        // fills the gap when the filter has no adjustable parameters.
+        boolean active = sel != null && sel != FilterType.NONE;
+        updateVisibility(paramsPanel,  active);
+        updateVisibility(noParamsHint, active && !hasParams);
+
+        if (active) {
+            paramsFilterName.setText(sel.toString());
+            Category cat = categoryOf(sel);
+            if (cat != null) {
+                // Keep the per-filter glyph but let CSS drive the colour, so the
+                // params icon matches the rest of the system's icon styling.
+                paramsIcon.setIconLiteral(cat.icon);
+            }
+        }
     }
 
     private static void updateVisibility(Region region, boolean visible) {
         region.setVisible(visible);
         region.setManaged(visible);
-    }
-
-    // ── Inner cell for FilterType ComboBox ────────────────────────────────────
-    /**
-     * ListCell that shows a small colored circle before the filter name to
-     * indicate its category.  Used for both the dropdown list and the button cell.
-     */
-    private static final class FilterTypeCell extends ListCell<FilterType> {
-        @Override
-        protected void updateItem(FilterType item, boolean empty) {
-            super.updateItem(item, empty);
-            if (empty || item == null) {
-                setGraphic(null);
-                setText(null);
-                return;
-            }
-            Label lbl = new Label(item.toString());
-            lbl.setStyle("-fx-text-fill: #d2d2d4; -fx-font-size: 12.5px;");
-
-            String dotColor = item.getDotColor();
-            if (dotColor != null) {
-                Circle dot = new Circle(4, Color.web(dotColor));
-                HBox box = new HBox(8, dot, lbl);
-                box.setAlignment(Pos.CENTER_LEFT);
-                setGraphic(box);
-            } else {
-                // NONE — no colored dot, slightly dimmer text
-                lbl.setStyle("-fx-text-fill: #888890; -fx-font-size: 12.5px;");
-                setGraphic(lbl);
-            }
-            setText(null);
-        }
     }
 }

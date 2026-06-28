@@ -14,3 +14,4 @@
 @import "css/panel-left.css";   /* Left panel, filter cards, param controls, channel checkboxes */
 @import "css/preview.css";      /* Editor canvas, scroll panes, compare mode, tabs */
 @import "css/color-picker.css"; /* Palette popup + Custom Color dialog        */
+@import "css/color-chooser.css";/* Custom HSB color chooser (swatch button + popover) */
