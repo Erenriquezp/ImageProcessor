@@ -1,10 +1,10 @@
 package com.example.imageprocessor.service;
 
+import java.awt.image.BufferedImage;
+
 import com.example.imageprocessor.domain.ConvolutionKernel;
 import com.example.imageprocessor.domain.GradientType;
 import com.example.imageprocessor.domain.StretchMode;
-
-import java.awt.image.BufferedImage;
 
 public final class ImageProcessor {
 
@@ -40,7 +40,7 @@ public final class ImageProcessor {
     }
 
     public static BufferedImage retro2(BufferedImage original, int levels,
-                                       boolean quantR, boolean quantG, boolean quantB) {
+            boolean quantR, boolean quantG, boolean quantB) {
         return ArtisticFilters.retro2(original, levels, quantR, quantG, quantB);
     }
 
@@ -90,6 +90,10 @@ public final class ImageProcessor {
         return ColorFilters.kodachrome(original);
     }
 
+    public static BufferedImage bufferAccumulation(BufferedImage original, BufferAcumulacion_LOAD.Mode mode) {
+        return BufferAcumulacion_LOAD.applyAccumulation(original, mode, 25, 8);
+    }
+
     // ── Histogram ─────────────────────────────────────────────────────────────
 
     public static BufferedImage generateHistogram(BufferedImage original) {
@@ -116,7 +120,7 @@ public final class ImageProcessor {
      * @param alpha3 weight for {@code img3} (second background)
      */
     public static BufferedImage tripleBlend(BufferedImage img1, BufferedImage img2, BufferedImage img3,
-                                            float alpha1, float alpha2, float alpha3) {
+            float alpha1, float alpha2, float alpha3) {
         return BlendingService.tripleBlend(img1, img2, img3, alpha1, alpha2, alpha3);
     }
 
@@ -124,4 +128,3 @@ public final class ImageProcessor {
         return GradientGenerator.generateGradient(type, width, height, startRgb, endRgb);
     }
 }
-

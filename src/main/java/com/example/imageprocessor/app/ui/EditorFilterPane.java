@@ -1,18 +1,5 @@
 package com.example.imageprocessor.app.ui;
 
-import com.example.imageprocessor.domain.ConvolutionKernel;
-import com.example.imageprocessor.domain.FilterType;
-import com.example.imageprocessor.domain.StretchMode;
-import javafx.beans.binding.Bindings;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.geometry.Pos;
-import javafx.scene.Node;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import org.kordamp.ikonli.javafx.FontIcon;
-
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -20,58 +7,86 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.kordamp.ikonli.javafx.FontIcon;
+
+import com.example.imageprocessor.domain.ConvolutionKernel;
+import com.example.imageprocessor.domain.FilterType;
+import com.example.imageprocessor.domain.StretchMode;
+
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Separator;
+import javafx.scene.control.Slider;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+
 public class EditorFilterPane {
 
     // ── Filter selection model (replaces the old flat ComboBox) ──────────────
-    private final ObjectProperty<FilterType> selectedFilter =
-            new SimpleObjectProperty<>(FilterType.NONE);
+    private final ObjectProperty<FilterType> selectedFilter = new SimpleObjectProperty<>(FilterType.NONE);
 
     // ── Filter browser UI ────────────────────────────────────────────────────
-    private final TextField searchField        = new TextField();
-    private final VBox      filterListContainer = new VBox(2);
+    private final TextField searchField = new TextField();
+    private final VBox filterListContainer = new VBox(2);
     private final Map<FilterType, Node> filterRows = new EnumMap<>(FilterType.class);
-    /** Estado expandido/colapsado por categoría; persiste entre reconstrucciones. */
+    /**
+     * Estado expandido/colapsado por categoría; persiste entre reconstrucciones.
+     */
     private final Map<Category, Boolean> categoryExpanded = new EnumMap<>(Category.class);
-    private Runnable onFilterActivated;   // doble clic en una fila → aplicar
-    private Runnable onParamChanged;      // cambio de filtro o de parámetro → preview en vivo
+    private Runnable onFilterActivated; // doble clic en una fila → aplicar
+    private Runnable onParamChanged; // cambio de filtro o de parámetro → preview en vivo
 
     // ── Parameter controls ───────────────────────────────────────────────────
-    private final Slider                      brightnessSlider    = new Slider(-100, 100, 40);
-    private final Slider                      saturationSlider    = new Slider(0, 2, 1.3);
-    private final Slider                      valueSlider         = new Slider(0, 2, 0.9);
-    private final Spinner<Integer>            levelsSpinner       = new Spinner<>(2, 255, 4);
-    private final Slider                      thresholdSlider     = new Slider(0, 255, 127);
-    private final Slider                      alphaSlider         = new Slider(0, 255, 128);
-    private final ColorChooser                tintPicker          = new ColorChooser(Color.web("#AA5AFF"));
-    private final ComboBox<StretchMode>       stretchModeCombo    = new ComboBox<>();
-    private final ComboBox<ConvolutionKernel> kernelCombo         = new ComboBox<>();
+    private final Slider brightnessSlider = new Slider(-100, 100, 40);
+    private final Slider saturationSlider = new Slider(0, 2, 1.3);
+    private final Slider valueSlider = new Slider(0, 2, 0.9);
+    private final Spinner<Integer> levelsSpinner = new Spinner<>(2, 255, 4);
+    private final Slider thresholdSlider = new Slider(0, 255, 127);
+    private final Slider alphaSlider = new Slider(0, 255, 128);
+    private final ColorChooser tintPicker = new ColorChooser(Color.web("#AA5AFF"));
+    private final ComboBox<StretchMode> stretchModeCombo = new ComboBox<>();
+    private final ComboBox<ConvolutionKernel> kernelCombo = new ComboBox<>();
 
     // ── Retro 2 controls ────────────────────────────────────────────────────
     private final Spinner<Integer> retro2LevelsSpinner = new Spinner<>(2, 255, 4);
-    private final CheckBox         retro2CheckR        = new CheckBox("Canal R (rojo)");
-    private final CheckBox         retro2CheckG        = new CheckBox("Canal G (verde)");
-    private final CheckBox         retro2CheckB        = new CheckBox("Canal B (azul)");
+    private final CheckBox retro2CheckR = new CheckBox("Canal R (rojo)");
+    private final CheckBox retro2CheckG = new CheckBox("Canal G (verde)");
+    private final CheckBox retro2CheckB = new CheckBox("Canal B (azul)");
 
     // ── Grises cuantizados controls ─────────────────────────────────────────
     private final Spinner<Integer> grayQuantSpinner = new Spinner<>(2, 64, 8);
 
     // ── Parameter-group cards ────────────────────────────────────────────────
     private final VBox brightnessBox = new VBox(6);
-    private final VBox hsvBox        = new VBox(8);
-    private final VBox levelsBox     = new VBox(6);
-    private final VBox retro2Box     = new VBox(6);
-    private final VBox grayQuantBox  = new VBox(6);
-    private final VBox thresholdBox  = new VBox(6);
-    private final VBox alphaBox      = new VBox(6);
-    private final VBox tintBox       = new VBox(6);
-    private final VBox stretchBox    = new VBox(6);
-    private final VBox kernelBox     = new VBox(6);
+    private final VBox hsvBox = new VBox(8);
+    private final VBox levelsBox = new VBox(6);
+    private final VBox retro2Box = new VBox(6);
+    private final VBox grayQuantBox = new VBox(6);
+    private final VBox thresholdBox = new VBox(6);
+    private final VBox alphaBox = new VBox(6);
+    private final VBox tintBox = new VBox(6);
+    private final VBox stretchBox = new VBox(6);
+    private final VBox kernelBox = new VBox(6);
 
     // ── Dynamic params panel ─────────────────────────────────────────────────
-    private final FontIcon paramsIcon       = new FontIcon("fas-sliders-h");
-    private final Label    paramsFilterName = new Label();
-    private final Label    noParamsHint     = new Label("Este filtro se aplica directamente, sin ajustes.");
-    private final VBox     paramsPanel      = new VBox(8);
+    private final FontIcon paramsIcon = new FontIcon("fas-sliders-h");
+    private final Label paramsFilterName = new Label();
+    private final Label noParamsHint = new Label("Este filtro se aplica directamente, sin ajustes.");
+    private final VBox paramsPanel = new VBox(8);
 
     private final VBox view;
 
@@ -87,7 +102,7 @@ public class EditorFilterPane {
         headerSep.setOpacity(0.4);
 
         // ── Search + categorized filter browser ─────────────────────────────
-        HBox       searchBox    = buildSearchBox();
+        HBox searchBox = buildSearchBox();
         ScrollPane filterScroll = buildFilterScroll();
 
         // ── Dynamic params panel ────────────────────────────────────────────
@@ -99,15 +114,14 @@ public class EditorFilterPane {
                 sectionHeader,
                 headerSep,
                 searchBox,
-                filterScroll
-        );
+                filterScroll);
 
         // Selection & search wiring
         selectedFilter.addListener((obs, o, n) -> {
             updateDynamicControlVisibility();
             updateRowSelectionStyles();
             positionParamsPanel();
-            fireParamChanged();           // nueva selección → repreview
+            fireParamChanged(); // nueva selección → repreview
         });
         searchField.textProperty().addListener((obs, o, n) -> rebuildFilterList(n));
 
@@ -117,89 +131,150 @@ public class EditorFilterPane {
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
-    public VBox getView() { return view; }
+    public VBox getView() {
+        return view;
+    }
 
-    public FilterType        getSelectedFilter()  { return selectedFilter.get(); }
+    public FilterType getSelectedFilter() {
+        return selectedFilter.get();
+    }
 
     /** Callback ejecutado al hacer doble clic en un filtro (aplicar directo). */
-    public void setOnFilterActivated(Runnable handler) { this.onFilterActivated = handler; }
+    public void setOnFilterActivated(Runnable handler) {
+        this.onFilterActivated = handler;
+    }
 
-    /** Callback ejecutado cuando cambia el filtro seleccionado o cualquier parámetro. */
-    public void setOnParamChanged(Runnable handler) { this.onParamChanged = handler; }
+    /**
+     * Callback ejecutado cuando cambia el filtro seleccionado o cualquier
+     * parámetro.
+     */
+    public void setOnParamChanged(Runnable handler) {
+        this.onParamChanged = handler;
+    }
 
     /** Deselecciona el filtro activo (vuelve a "Sin filtro"). */
-    public void clearSelection() { selectedFilter.set(FilterType.NONE); }
+    public void clearSelection() {
+        selectedFilter.set(FilterType.NONE);
+    }
 
-    private void fireParamChanged() { if (onParamChanged != null) onParamChanged.run(); }
+    private void fireParamChanged() {
+        if (onParamChanged != null)
+            onParamChanged.run();
+    }
 
     /** Conecta todos los controles de parámetros al callback de preview en vivo. */
     private void wireParamListeners() {
         Runnable f = this::fireParamChanged;
-        brightnessSlider   .valueProperty()   .addListener((o, a, b) -> f.run());
-        saturationSlider   .valueProperty()   .addListener((o, a, b) -> f.run());
-        valueSlider        .valueProperty()   .addListener((o, a, b) -> f.run());
-        thresholdSlider    .valueProperty()   .addListener((o, a, b) -> f.run());
-        alphaSlider        .valueProperty()   .addListener((o, a, b) -> f.run());
-        levelsSpinner      .valueProperty()   .addListener((o, a, b) -> f.run());
-        retro2LevelsSpinner.valueProperty()   .addListener((o, a, b) -> f.run());
-        grayQuantSpinner   .valueProperty()   .addListener((o, a, b) -> f.run());
-        retro2CheckR       .selectedProperty().addListener((o, a, b) -> f.run());
-        retro2CheckG       .selectedProperty().addListener((o, a, b) -> f.run());
-        retro2CheckB       .selectedProperty().addListener((o, a, b) -> f.run());
-        stretchModeCombo   .valueProperty()   .addListener((o, a, b) -> f.run());
-        kernelCombo        .valueProperty()   .addListener((o, a, b) -> f.run());
-        tintPicker         .valueProperty()   .addListener((o, a, b) -> f.run());
+        brightnessSlider.valueProperty().addListener((o, a, b) -> f.run());
+        saturationSlider.valueProperty().addListener((o, a, b) -> f.run());
+        valueSlider.valueProperty().addListener((o, a, b) -> f.run());
+        thresholdSlider.valueProperty().addListener((o, a, b) -> f.run());
+        alphaSlider.valueProperty().addListener((o, a, b) -> f.run());
+        levelsSpinner.valueProperty().addListener((o, a, b) -> f.run());
+        retro2LevelsSpinner.valueProperty().addListener((o, a, b) -> f.run());
+        grayQuantSpinner.valueProperty().addListener((o, a, b) -> f.run());
+        retro2CheckR.selectedProperty().addListener((o, a, b) -> f.run());
+        retro2CheckG.selectedProperty().addListener((o, a, b) -> f.run());
+        retro2CheckB.selectedProperty().addListener((o, a, b) -> f.run());
+        stretchModeCombo.valueProperty().addListener((o, a, b) -> f.run());
+        kernelCombo.valueProperty().addListener((o, a, b) -> f.run());
+        tintPicker.valueProperty().addListener((o, a, b) -> f.run());
     }
 
-    public int               getBrightnessValue() { return (int) Math.round(brightnessSlider.getValue()); }
-    public float             getSaturationValue() { return (float) saturationSlider.getValue(); }
-    public float             getValueFactor()     { return (float) valueSlider.getValue(); }
-    public int               getRetroLevels()     { return levelsSpinner.getValue(); }
-    public int               getRetro2Levels()    { return retro2LevelsSpinner.getValue(); }
-    public boolean           isRetro2ChannelR()   { return retro2CheckR.isSelected(); }
-    public boolean           isRetro2ChannelG()   { return retro2CheckG.isSelected(); }
-    public boolean           isRetro2ChannelB()   { return retro2CheckB.isSelected(); }
-    public int               getGrayQuantLevels() { return grayQuantSpinner.getValue(); }
-    public int               getThresholdValue()  { return (int) Math.round(thresholdSlider.getValue()); }
-    public int               getAlphaValue()      { return (int) Math.round(alphaSlider.getValue()); }
-    public Color             getTintColor()       { return tintPicker.getValue(); }
-    public StretchMode       getStretchMode()     { return stretchModeCombo.getValue(); }
-    public ConvolutionKernel getKernel()          { return kernelCombo.getValue(); }
+    public int getBrightnessValue() {
+        return (int) Math.round(brightnessSlider.getValue());
+    }
+
+    public float getSaturationValue() {
+        return (float) saturationSlider.getValue();
+    }
+
+    public float getValueFactor() {
+        return (float) valueSlider.getValue();
+    }
+
+    public int getRetroLevels() {
+        return levelsSpinner.getValue();
+    }
+
+    public int getRetro2Levels() {
+        return retro2LevelsSpinner.getValue();
+    }
+
+    public boolean isRetro2ChannelR() {
+        return retro2CheckR.isSelected();
+    }
+
+    public boolean isRetro2ChannelG() {
+        return retro2CheckG.isSelected();
+    }
+
+    public boolean isRetro2ChannelB() {
+        return retro2CheckB.isSelected();
+    }
+
+    public int getGrayQuantLevels() {
+        return grayQuantSpinner.getValue();
+    }
+
+    public int getThresholdValue() {
+        return (int) Math.round(thresholdSlider.getValue());
+    }
+
+    public int getAlphaValue() {
+        return (int) Math.round(alphaSlider.getValue());
+    }
+
+    public Color getTintColor() {
+        return tintPicker.getValue();
+    }
+
+    public StretchMode getStretchMode() {
+        return stretchModeCombo.getValue();
+    }
+
+    public ConvolutionKernel getKernel() {
+        return kernelCombo.getValue();
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  FILTER BROWSER — search box + categorized, selectable list
-    //  Categories are derived from FilterType#getDotColor() so the domain
-    //  layer stays untouched.
+    // FILTER BROWSER — search box + categorized, selectable list
+    // Categories are derived from FilterType#getDotColor() so the domain
+    // layer stays untouched.
     // ═══════════════════════════════════════════════════════════════════════
 
     /** Visual grouping for the browser; mapped from each filter's dot color. */
     private enum Category {
-        BASIC        ("Básicos",         "#4a8fd6", "fas-sliders-h"),
-        TRANSPARENCY ("Transparencia",   "#4acc88", "fas-tint"),
-        RETRO        ("Retro y color",   "#e8913a", "fas-th"),
-        CONVOLUTION  ("Convolución",     "#9a6adc", "fas-border-all"),
-        COLOR_MATRIX ("Matriz de color", "#e84a8f", "fas-palette");
+        BASIC("Básicos", "#4a8fd6", "fas-sliders-h"),
+        TRANSPARENCY("Transparencia", "#4acc88", "fas-tint"),
+        RETRO("Retro y color", "#e8913a", "fas-th"),
+        CONVOLUTION("Convolución", "#9a6adc", "fas-border-all"),
+        COLOR_MATRIX("Matriz de color", "#e84a8f", "fas-palette"),
+        BUFFER("Buffer De Acumulación", "#ff6b6b", "fas-wave-square");
 
         final String display;
         final String color;
         final String icon;
+
         Category(String display, String color, String icon) {
             this.display = display;
-            this.color   = color;
-            this.icon    = icon;
+            this.color = color;
+            this.icon = icon;
         }
     }
 
     private static Category categoryOf(FilterType ft) {
         String c = ft.getDotColor();
-        if (c == null) return null;
+        if (c == null)
+            return null;
         return switch (c) {
             case "#4a8fd6" -> Category.BASIC;
             case "#4acc88" -> Category.TRANSPARENCY;
             case "#e8913a" -> Category.RETRO;
             case "#9a6adc" -> Category.CONVOLUTION;
             case "#e84a8f" -> Category.COLOR_MATRIX;
-            default        -> null;
+            case "#ff6b6b" -> Category.BUFFER;
+            default -> null;
         };
     }
 
@@ -250,7 +325,8 @@ public class EditorFilterPane {
                     rows.add(filterRow(ft));
                 }
             }
-            if (rows.isEmpty()) continue;
+            if (rows.isEmpty())
+                continue;
             // Al buscar, forzamos expandido para que los resultados sean visibles;
             // si no, respetamos el estado guardado (expandido por defecto).
             boolean expanded = searching || categoryExpanded.getOrDefault(cat, true);
@@ -264,7 +340,7 @@ public class EditorFilterPane {
         }
 
         updateRowSelectionStyles();
-        positionParamsPanel();   // re-attach AJUSTES under the active row after rebuild
+        positionParamsPanel(); // re-attach AJUSTES under the active row after rebuild
     }
 
     private static boolean matches(FilterType ft, String q) {
@@ -278,7 +354,7 @@ public class EditorFilterPane {
      * category dot keeps the literal semantic colour.
      */
     private VBox categoryGroup(Category cat, List<Node> rows,
-                               boolean expanded, boolean searching) {
+            boolean expanded, boolean searching) {
         FontIcon chevron = new FontIcon("fas-chevron-right");
         chevron.setIconSize(9);
         chevron.getStyleClass().add("filter-category-chevron");
@@ -357,7 +433,8 @@ public class EditorFilterPane {
         row.setAlignment(Pos.CENTER_LEFT);
         row.setMaxWidth(Double.MAX_VALUE);
         row.getStyleClass().add("filter-row");
-        if (ft == FilterType.NONE) row.getStyleClass().add("filter-row-none");
+        if (ft == FilterType.NONE)
+            row.getStyleClass().add("filter-row-none");
         row.setOnMouseClicked(e -> {
             selectedFilter.set(ft);
             if (e.getClickCount() == 2 && onFilterActivated != null) {
@@ -373,7 +450,8 @@ public class EditorFilterPane {
         FilterType sel = selectedFilter.get();
         filterRows.forEach((ft, node) -> {
             node.getStyleClass().remove("filter-row-selected");
-            if (ft == sel) node.getStyleClass().add("filter-row-selected");
+            if (ft == sel)
+                node.getStyleClass().add("filter-row-selected");
         });
     }
 
@@ -402,8 +480,7 @@ public class EditorFilterPane {
                 paramsFilterName,
                 noParamsHint,
                 brightnessBox, hsvBox, levelsBox, retro2Box, grayQuantBox,
-                thresholdBox, alphaBox, tintBox, stretchBox, kernelBox
-        );
+                thresholdBox, alphaBox, tintBox, stretchBox, kernelBox);
         return paramsPanel;
     }
 
@@ -418,9 +495,9 @@ public class EditorFilterPane {
     private void configureFilterControls() {
         // Param groups live flush inside the shared "params-panel" container,
         // so they only need section spacing — not their own card chrome.
-        for (VBox box : new VBox[]{ brightnessBox, hsvBox, levelsBox, retro2Box,
-                                    grayQuantBox, thresholdBox, alphaBox,
-                                    tintBox, stretchBox, kernelBox }) {
+        for (VBox box : new VBox[] { brightnessBox, hsvBox, levelsBox, retro2Box,
+                grayQuantBox, thresholdBox, alphaBox,
+                tintBox, stretchBox, kernelBox }) {
             box.getStyleClass().add("filter-section");
         }
 
@@ -446,8 +523,7 @@ public class EditorFilterPane {
         populateSpinnerBox(retro2Box, retro2LevelsSpinner, "Niveles (glitch)", 4);
         retro2Box.getChildren().addAll(
                 fieldLabel("Canales a cuantizar"),
-                retro2CheckR, retro2CheckG, retro2CheckB
-        );
+                retro2CheckR, retro2CheckG, retro2CheckB);
 
         populateSpinnerBox(grayQuantBox, grayQuantSpinner, "Niveles de gris", 8);
 
@@ -474,7 +550,7 @@ public class EditorFilterPane {
      * row [slider ···· ↺], replacing all existing children.
      */
     private void populateSliderBox(VBox box, Slider slider, String labelText,
-                                   Function<Double, String> fmt, double defaultVal) {
+            Function<Double, String> fmt, double defaultVal) {
         box.getChildren().clear();
         appendSliderRows(box, slider, labelText, fmt, defaultVal);
     }
@@ -484,13 +560,13 @@ public class EditorFilterPane {
      * two sliders inside the same card.
      */
     private void appendSliderRows(VBox box, Slider slider, String labelText,
-                                  Function<Double, String> fmt, double defaultVal) {
+            Function<Double, String> fmt, double defaultVal) {
         slider.setPrefWidth(Region.USE_COMPUTED_SIZE);
         slider.setMaxWidth(Double.MAX_VALUE);
 
         // Header: label + spacer + live value
-        Label nameLbl  = fieldLabel(labelText);
-        Region spacer  = new Region();
+        Label nameLbl = fieldLabel(labelText);
+        Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Label valueLbl = new Label(fmt.apply(slider.getValue()));
@@ -512,7 +588,7 @@ public class EditorFilterPane {
 
     /** Fills {@code box} with a label + [spinner ↺] control. */
     private <T> void populateSpinnerBox(VBox box, Spinner<T> spinner,
-                                        String labelText, T defaultVal) {
+            String labelText, T defaultVal) {
         spinner.setPrefWidth(Region.USE_COMPUTED_SIZE);
         spinner.setMaxWidth(Double.MAX_VALUE);
 
@@ -526,7 +602,7 @@ public class EditorFilterPane {
 
     /** Fills {@code box} with a label + [combo ↺] control. */
     private <T> void populateComboBox(VBox box, ComboBox<T> combo,
-                                      String labelText, T defaultVal) {
+            String labelText, T defaultVal) {
         combo.setMaxWidth(Double.MAX_VALUE);
         Button resetBtn = resetButton(() -> combo.getSelectionModel().select(defaultVal));
         HBox.setHgrow(combo, Priority.ALWAYS);
@@ -565,26 +641,26 @@ public class EditorFilterPane {
     private void updateDynamicControlVisibility() {
         FilterType sel = selectedFilter.get();
         updateVisibility(brightnessBox, sel == FilterType.BRIGHTNESS);
-        updateVisibility(hsvBox,        sel == FilterType.HSV);
-        updateVisibility(levelsBox,     sel == FilterType.RETRO1);
-        updateVisibility(retro2Box,     sel == FilterType.RETRO2);
-        updateVisibility(grayQuantBox,  sel == FilterType.GRAYSCALE_QUANTIZED);
-        updateVisibility(thresholdBox,  sel == FilterType.BW_THRESHOLD);
-        updateVisibility(alphaBox,      sel == FilterType.ALPHA_GLOBAL);
-        updateVisibility(tintBox,       sel == FilterType.RECOLOR);
-        updateVisibility(stretchBox,    sel == FilterType.STRETCH_4_BITS);
-        updateVisibility(kernelBox,     sel == FilterType.CONVOLUTION);
+        updateVisibility(hsvBox, sel == FilterType.HSV);
+        updateVisibility(levelsBox, sel == FilterType.RETRO1);
+        updateVisibility(retro2Box, sel == FilterType.RETRO2);
+        updateVisibility(grayQuantBox, sel == FilterType.GRAYSCALE_QUANTIZED);
+        updateVisibility(thresholdBox, sel == FilterType.BW_THRESHOLD);
+        updateVisibility(alphaBox, sel == FilterType.ALPHA_GLOBAL);
+        updateVisibility(tintBox, sel == FilterType.RECOLOR);
+        updateVisibility(stretchBox, sel == FilterType.STRETCH_4_BITS);
+        updateVisibility(kernelBox, sel == FilterType.CONVOLUTION);
 
         boolean hasParams = brightnessBox.isManaged() || hsvBox.isManaged()
-                || levelsBox.isManaged()    || retro2Box.isManaged()
+                || levelsBox.isManaged() || retro2Box.isManaged()
                 || grayQuantBox.isManaged() || thresholdBox.isManaged()
-                || alphaBox.isManaged()     || tintBox.isManaged()
-                || stretchBox.isManaged()   || kernelBox.isManaged();
+                || alphaBox.isManaged() || tintBox.isManaged()
+                || stretchBox.isManaged() || kernelBox.isManaged();
 
         // The whole "AJUSTES" panel is shown for any real filter; the hint
         // fills the gap when the filter has no adjustable parameters.
         boolean active = sel != null && sel != FilterType.NONE;
-        updateVisibility(paramsPanel,  active);
+        updateVisibility(paramsPanel, active);
         updateVisibility(noParamsHint, active && !hasParams);
 
         if (active) {
