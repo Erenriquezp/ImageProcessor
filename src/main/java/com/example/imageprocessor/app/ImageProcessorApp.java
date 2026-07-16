@@ -19,9 +19,16 @@ import com.example.imageprocessor.app.ui.TopBar;
 import com.example.imageprocessor.app.ui.TripleBlendingPane;
 import com.example.imageprocessor.app.ui.WindowBar;
 import com.example.imageprocessor.app.ui.WindowResizer;
+import com.example.imageprocessor.domain.ColorSpaceType;
 import com.example.imageprocessor.domain.ConvolutionKernel;
+import com.example.imageprocessor.domain.DepthSource;
+import com.example.imageprocessor.domain.EqualizeMode;
 import com.example.imageprocessor.domain.FilterType;
+import com.example.imageprocessor.domain.FragmentBlendMode;
+import com.example.imageprocessor.domain.LogicOpType;
+import com.example.imageprocessor.domain.StencilPattern;
 import com.example.imageprocessor.domain.StretchMode;
+import com.example.imageprocessor.domain.TextureFilterMode;
 import com.example.imageprocessor.service.BufferAcumulacion_LOAD;
 import com.example.imageprocessor.service.ImageIOService;
 import com.example.imageprocessor.service.ImageProcessor;
@@ -579,12 +586,25 @@ public class ImageProcessorApp extends Application {
             int retroLevels, int retro2Levels, boolean r2r, boolean r2g, boolean r2b,
             int grayQuantLevels, int threshold, int alpha,
             int tintR, int tintG, int tintB,
-            StretchMode stretchMode, ConvolutionKernel kernel) {
+            StretchMode stretchMode, ConvolutionKernel kernel,
+            DepthSource depthSource, int depthThreshold, int pixelBlockSize,
+            float textureScale, TextureFilterMode textureFilter,
+            int alphaTestThreshold, boolean alphaTestLuminance, int multisampleSize,
+            StencilPattern stencilPattern, FragmentBlendMode fragmentBlendMode,
+            float fragmentBlendAlpha, LogicOpType logicOp, int logicMask,
+            int planeR, int planeG, int planeB,
+            int fogR, int fogG, int fogB,
+            EqualizeMode equalizeMode, float gainR, float gainG, float gainB,
+            float lerpFactor, float extrapolateFactor, float scale, float bias,
+            int pointThreshold, int softThreshold, float pointSaturation, float hueDegrees,
+            ColorSpaceType colorSpace) {
     }
 
     /** Captura los parámetros actuales — debe llamarse en el hilo de JavaFX. */
     private FilterParams snapshotParams() {
         Color c = editorFilterPane.getTintColor();
+        Color plane = editorFilterPane.getPlaneColor();
+        Color fog = editorFilterPane.getFarFogColor();
         return new FilterParams(
                 editorFilterPane.getBrightnessValue(),
                 editorFilterPane.getSaturationValue(),
@@ -601,7 +621,39 @@ public class ImageProcessorApp extends Application {
                 (int) Math.round(c.getGreen() * 255),
                 (int) Math.round(c.getBlue() * 255),
                 editorFilterPane.getStretchMode(),
-                editorFilterPane.getKernel());
+                editorFilterPane.getKernel(),
+                editorFilterPane.getDepthSource(),
+                editorFilterPane.getDepthThreshold(),
+                editorFilterPane.getPixelBlockSize(),
+                editorFilterPane.getTextureScale(),
+                editorFilterPane.getTextureFilterMode(),
+                editorFilterPane.getAlphaTestThreshold(),
+                editorFilterPane.isAlphaTestUseLuminance(),
+                editorFilterPane.getMultisampleSize(),
+                editorFilterPane.getStencilPattern(),
+                editorFilterPane.getFragmentBlendMode(),
+                editorFilterPane.getFragmentBlendAlpha(),
+                editorFilterPane.getLogicOpType(),
+                editorFilterPane.getLogicMask(),
+                (int) Math.round(plane.getRed() * 255),
+                (int) Math.round(plane.getGreen() * 255),
+                (int) Math.round(plane.getBlue() * 255),
+                (int) Math.round(fog.getRed() * 255),
+                (int) Math.round(fog.getGreen() * 255),
+                (int) Math.round(fog.getBlue() * 255),
+                editorFilterPane.getEqualizeMode(),
+                editorFilterPane.getGainR(),
+                editorFilterPane.getGainG(),
+                editorFilterPane.getGainB(),
+                editorFilterPane.getLerpFactor(),
+                editorFilterPane.getExtrapolateFactor(),
+                editorFilterPane.getScaleValue(),
+                editorFilterPane.getBiasValue(),
+                editorFilterPane.getPointThreshold(),
+                editorFilterPane.getSoftThresholdWidth(),
+                editorFilterPane.getPointSaturation(),
+                editorFilterPane.getHueRotation(),
+                editorFilterPane.getColorSpaceType());
     }
 
     /**
@@ -634,6 +686,39 @@ public class ImageProcessorApp extends Application {
             case WARM_TONE -> ImageProcessor.warmTone(base);
             case POLAROID -> ImageProcessor.polaroid(base);
             case KODACHROME -> ImageProcessor.kodachrome(base);
+            // ── Raster / Depth ────────────────────────────────────────────
+            case DEPTH_MAP -> ImageProcessor.depthMap(base, p.depthSource());
+            case Z_BUFFER -> ImageProcessor.zBuffer(base, p.depthSource(), p.depthThreshold(),
+                    p.planeR(), p.planeG(), p.planeB());
+            case BITMAP_PIXELATE -> ImageProcessor.bitmapPixelate(base, p.pixelBlockSize());
+            case RASTER_GRID -> ImageProcessor.rasterGrid(base, p.pixelBlockSize());
+            // ── Texturas / W-Buffer ───────────────────────────────────────
+            case TEXTURE_SAMPLE -> ImageProcessor.textureSample(base, p.textureScale(), p.textureFilter());
+            case DEPTH_INTERPOLATE -> ImageProcessor.depthInterpolate(base, p.depthSource(),
+                    p.planeR(), p.planeG(), p.planeB(), p.fogR(), p.fogG(), p.fogB());
+            case W_BUFFER -> ImageProcessor.wBuffer(base, p.depthSource(), p.depthThreshold(),
+                    p.planeR(), p.planeG(), p.planeB());
+            // ── Fragmentos ────────────────────────────────────────────────
+            case MULTISAMPLE -> ImageProcessor.multisample(base, p.multisampleSize());
+            case ALPHA_TEST -> ImageProcessor.alphaTest(base, p.alphaTestThreshold(), p.alphaTestLuminance());
+            case STENCIL_TEST -> ImageProcessor.stencilTest(base, p.stencilPattern(),
+                    p.depthThreshold(), p.pixelBlockSize());
+            case FRAGMENT_BLEND -> ImageProcessor.fragmentBlend(base, p.fragmentBlendMode(),
+                    p.planeR(), p.planeG(), p.planeB(), p.fragmentBlendAlpha());
+            case LOGIC_OP -> ImageProcessor.logicOp(base, p.logicOp(), p.logicMask());
+            // ── Histograma / point ops ────────────────────────────────────
+            case HISTOGRAM_EQUALIZE -> ImageProcessor.histogramEqualize(base, p.equalizeMode());
+            case COLOR_ADJUST -> ImageProcessor.colorAdjust(base, p.gainR(), p.gainG(), p.gainB());
+            case POINT_INTERPOLATE -> ImageProcessor.pointInterpolate(base, p.lerpFactor(),
+                    p.planeR(), p.planeG(), p.planeB());
+            case POINT_EXTRAPOLATE -> ImageProcessor.pointExtrapolate(base, p.extrapolateFactor(),
+                    p.planeR(), p.planeG(), p.planeB());
+            case SCALE_BIAS -> ImageProcessor.scaleBias(base, p.scale(), p.bias());
+            case POINT_THRESHOLD -> ImageProcessor.pointThreshold(base, p.pointThreshold(), p.softThreshold());
+            case TO_LUMINANCE -> ImageProcessor.toLuminance(base);
+            case POINT_SATURATION -> ImageProcessor.pointSaturation(base, p.pointSaturation());
+            case HUE_ROTATE -> ImageProcessor.hueRotate(base, p.hueDegrees());
+            case COLOR_SPACE -> ImageProcessor.colorSpaceConvert(base, p.colorSpace());
             case NONE -> base;
         };
     }

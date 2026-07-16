@@ -35,7 +35,41 @@ public enum FilterType {
     COOL_TONE("Tono Frío", "#e84a8f"),
     WARM_TONE("Tono Cálido", "#e84a8f"),
     POLAROID("Polaroid", "#e84a8f"),
-    KODACHROME("Kodachrome", "#e84a8f");
+    KODACHROME("Kodachrome", "#e84a8f"),
+
+    // ── Raster / Depth (#00bfa5) ─────────────────────────────────────────────
+    DEPTH_MAP("Mapa de profundidad", "#00bfa5"),
+    Z_BUFFER("Z-Buffer (oclusión)", "#00bfa5"),
+    BITMAP_PIXELATE("Bitmap / pixelación", "#00bfa5"),
+    RASTER_GRID("Rasterizar píxeles", "#00bfa5"),
+
+    // ── Texturas / W-Buffer (#26c6da) ────────────────────────────────────────
+    TEXTURE_SAMPLE("Muestreo de textura", "#26c6da"),
+    DEPTH_INTERPOLATE("Interpolación en profundidad", "#26c6da"),
+    W_BUFFER("W-Buffer", "#26c6da"),
+
+    // ── Fragmentos MSAA / Alpha (#ab47bc) ───────────────────────────────────
+    MULTISAMPLE("Multisample (MSAA)", "#ab47bc"),
+    ALPHA_TEST("Alpha Test", "#ab47bc"),
+
+    // ── Stencil / Blend / Logic (#5c6bc0) ───────────────────────────────────
+    STENCIL_TEST("Stencil Test", "#5c6bc0"),
+    FRAGMENT_BLEND("Blending de fragmentos", "#5c6bc0"),
+    LOGIC_OP("Logic Op", "#5c6bc0"),
+
+    // ── Histograma (#ffb300) ────────────────────────────────────────────────
+    HISTOGRAM_EQUALIZE("Ecualización de histograma", "#ffb300"),
+
+    // ── Operaciones por punto (#ff7043) ─────────────────────────────────────
+    COLOR_ADJUST("Ajuste de color", "#ff7043"),
+    POINT_INTERPOLATE("Interpolación", "#ff7043"),
+    POINT_EXTRAPOLATE("Extrapolación", "#ff7043"),
+    SCALE_BIAS("Escala y bias", "#ff7043"),
+    POINT_THRESHOLD("Umbralización", "#ff7043"),
+    TO_LUMINANCE("Conversión a luminancia", "#ff7043"),
+    POINT_SATURATION("Saturación", "#ff7043"),
+    HUE_ROTATE("Rotación Hue", "#ff7043"),
+    COLOR_SPACE("Espacio de color", "#ff7043");
 
     private final String label;
     /** Hex color string for the category dot, or {@code null} for NONE. */

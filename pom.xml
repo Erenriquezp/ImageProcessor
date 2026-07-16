@@ -89,8 +89,6 @@
                             <options>
                                 <!-- Silencia: java.lang.System::load (NativeLibLoader en javafx.graphics) -->
                                 <option>--enable-native-access=javafx.graphics</option>
-                                <!-- Silencia: sun.misc.Unsafe::allocateMemory (Marlin renderer) -->
-                                <option>--sun-misc-unsafe-memory-access=allow</option>
                             </options>
                         </configuration>
                     </execution>
