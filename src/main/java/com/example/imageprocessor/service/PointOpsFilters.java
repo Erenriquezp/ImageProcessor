@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 
 import com.example.imageprocessor.domain.ColorSpaceType;
 import com.example.imageprocessor.domain.EqualizeMode;
+import com.example.imageprocessor.domain.ExposureDiagnostic;
 
 /**
  * Operaciones por punto (point operations) y ecualización de histograma.
@@ -18,16 +19,119 @@ final class PointOpsFilters {
     // ── Ecualización del histograma ──────────────────────────────────────────
 
     /**
-     * Ecualiza el histograma para expandir el contraste.
+     * Ecualiza el histograma para expandir el contraste, mezclando con la imagen
+     * original y opcionalmente marcando zonas quemadas u oscuras.
      * <ul>
      * <li>{@link EqualizeMode#RGB} — CDF independiente por canal</li>
      * <li>{@link EqualizeMode#LUMINANCE} — ecualiza Y (BT.709) y reescala RGB</li>
      * </ul>
      */
-    static BufferedImage histogramEqualize(BufferedImage original, EqualizeMode mode) {
-        return mode == EqualizeMode.LUMINANCE
+    static BufferedImage histogramEqualize(BufferedImage original, EqualizeMode mode, float factor, boolean markBurned, boolean markDark) {
+        BufferedImage equalized = mode == EqualizeMode.LUMINANCE
                 ? equalizeLuminance(original)
                 : equalizeRgb(original);
+
+        BufferedImage blended = mix(original, equalized, factor);
+
+        if (markBurned || markDark) {
+            return markZones(blended, markBurned, markDark);
+        }
+        return blended;
+    }
+
+    private static BufferedImage mix(BufferedImage original, BufferedImage equalized, float factor) {
+        if (factor <= 0f) return original;
+        if (factor >= 1f) return equalized;
+
+        int w = original.getWidth();
+        int h = original.getHeight();
+        BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int pOrig = original.getRGB(x, y);
+                int pEq = equalized.getRGB(x, y);
+
+                int a = (pOrig >> 24) & 0xFF;
+                int rOrig = (pOrig >> 16) & 0xFF;
+                int gOrig = (pOrig >> 8) & 0xFF;
+                int bOrig = pOrig & 0xFF;
+
+                int rEq = (pEq >> 16) & 0xFF;
+                int gEq = (pEq >> 8) & 0xFF;
+                int bEq = pEq & 0xFF;
+
+                int r = PixelMath.clamp(Math.round(rOrig * (1f - factor) + rEq * factor));
+                int g = PixelMath.clamp(Math.round(gOrig * (1f - factor) + gEq * factor));
+                int b = PixelMath.clamp(Math.round(bOrig * (1f - factor) + bEq * factor));
+
+                out.setRGB(x, y, (a << 24) | (r << 16) | (g << 8) | b);
+            }
+        }
+        return out;
+    }
+
+    private static BufferedImage markZones(BufferedImage image, boolean markBurned, boolean markDark) {
+        int w = image.getWidth();
+        int h = image.getHeight();
+        BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int pixel = image.getRGB(x, y);
+                int a = (pixel >> 24) & 0xFF;
+                int r = (pixel >> 16) & 0xFF;
+                int g = (pixel >> 8) & 0xFF;
+                int b = pixel & 0xFF;
+
+                if (markBurned && r >= 240 && g >= 240 && b >= 240) {
+                    out.setRGB(x, y, (a << 24) | (255 << 16) | (0 << 8) | 0);
+                } else if (markDark && r <= 15 && g <= 15 && b <= 15) {
+                    out.setRGB(x, y, (a << 24) | (0 << 16) | (0 << 8) | 255);
+                } else {
+                    out.setRGB(x, y, pixel);
+                }
+            }
+        }
+        return out;
+    }
+
+    static ExposureDiagnostic diagnoseExposure(BufferedImage image) {
+        int w = image.getWidth();
+        int h = image.getHeight();
+        int total = w * h;
+
+        int burned = 0;
+        int dark = 0;
+
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int p = image.getRGB(x, y);
+                int r = (p >> 16) & 0xFF;
+                int g = (p >> 8) & 0xFF;
+                int b = p & 0xFF;
+
+                if (r >= 240 && g >= 240 && b >= 240) burned++;
+                if (r <= 15 && g <= 15 && b <= 15) dark++;
+            }
+        }
+
+        double pctBurned = (burned * 100.0) / total;
+        double pctDark = (dark * 100.0) / total;
+
+        StringBuilder sb = new StringBuilder();
+        if (pctBurned > 5) {
+            sb.append(String.format("Imagen quemada (%.1f%% sobreexpuesto)", pctBurned));
+        }
+        if (pctDark > 5) {
+            if (sb.length() > 0) sb.append(" | ");
+            sb.append(String.format("Imagen oscura (%.1f%% subexpuesto)", pctDark));
+        }
+        if (sb.length() == 0) {
+            sb.append("Exposición adecuada");
+        }
+
+        return new ExposureDiagnostic(pctBurned, pctDark, sb.toString());
     }
 
     private static BufferedImage equalizeRgb(BufferedImage original) {

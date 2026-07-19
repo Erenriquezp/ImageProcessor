@@ -13,6 +13,7 @@ import com.example.imageprocessor.domain.ColorSpaceType;
 import com.example.imageprocessor.domain.ConvolutionKernel;
 import com.example.imageprocessor.domain.DepthSource;
 import com.example.imageprocessor.domain.EqualizeMode;
+import com.example.imageprocessor.domain.ExposureDiagnostic;
 import com.example.imageprocessor.domain.FilterType;
 import com.example.imageprocessor.domain.FragmentBlendMode;
 import com.example.imageprocessor.domain.LogicOpType;
@@ -87,6 +88,10 @@ public class EditorFilterPane {
 
     // ── Point ops / histograma controls ─────────────────────────────────────
     private final ComboBox<EqualizeMode> equalizeModeCombo = new ComboBox<>();
+    private final Slider equalizeIntensitySlider = new Slider(0, 100, 100);
+    private final CheckBox equalizeShowBurnedCheck = new CheckBox("Marcar zonas quemadas");
+    private final CheckBox equalizeShowDarkCheck = new CheckBox("Marcar zonas oscuras");
+    private final Label equalizeDiagnosticLabel = new Label("Cargando diagnóstico...");
     private final ComboBox<ColorSpaceType> colorSpaceCombo = new ComboBox<>();
     private final Slider gainRSlider = new Slider(0, 2, 1.0);
     private final Slider gainGSlider = new Slider(0, 2, 1.0);
@@ -254,6 +259,9 @@ public class EditorFilterPane {
         planeColorPicker.valueProperty().addListener((o, a, b) -> f.run());
         farFogPicker.valueProperty().addListener((o, a, b) -> f.run());
         equalizeModeCombo.valueProperty().addListener((o, a, b) -> f.run());
+        equalizeIntensitySlider.valueProperty().addListener((o, a, b) -> f.run());
+        equalizeShowBurnedCheck.selectedProperty().addListener((o, a, b) -> f.run());
+        equalizeShowDarkCheck.selectedProperty().addListener((o, a, b) -> f.run());
         colorSpaceCombo.valueProperty().addListener((o, a, b) -> f.run());
         gainRSlider.valueProperty().addListener((o, a, b) -> f.run());
         gainGSlider.valueProperty().addListener((o, a, b) -> f.run());
@@ -386,6 +394,29 @@ public class EditorFilterPane {
 
     public EqualizeMode getEqualizeMode() {
         return equalizeModeCombo.getValue();
+    }
+
+    public float getEqualizeIntensity() {
+        return (float) (equalizeIntensitySlider.getValue() / 100.0);
+    }
+
+    public boolean isEqualizeMarkBurned() {
+        return equalizeShowBurnedCheck.isSelected();
+    }
+
+    public boolean isEqualizeMarkDark() {
+        return equalizeShowDarkCheck.isSelected();
+    }
+
+    public void updateEqualizeDiagnostic(ExposureDiagnostic diag) {
+        if (diag == null) {
+            equalizeDiagnosticLabel.setText("");
+        } else {
+            equalizeDiagnosticLabel.setText(String.format(
+                "Quemados: %.1f%%  |  Oscuros: %.1f%%\nDiagnóstico: %s",
+                diag.pctBurned(), diag.pctDark(), diag.text()
+            ));
+        }
     }
 
     public float getGainR() {
@@ -814,6 +845,22 @@ public class EditorFilterPane {
 
         // ── Histograma / point ops ──────────────────────────────────────────
         populateComboBox(equalizeBox, equalizeModeCombo, "Modo de ecualización", EqualizeMode.RGB);
+        appendSliderRows(equalizeBox, equalizeIntensitySlider, "Intensidad de ecualización", v -> String.format("%.0f%%", v), 100.0);
+
+        equalizeShowBurnedCheck.setSelected(false);
+        equalizeShowDarkCheck.setSelected(false);
+
+        equalizeDiagnosticLabel.getStyleClass().add("field-label");
+        equalizeDiagnosticLabel.setWrapText(true);
+        equalizeDiagnosticLabel.setStyle("-fx-text-fill: #ffb300; -fx-padding: 4 0 0 0;");
+        equalizeDiagnosticLabel.setText("Cargando diagnóstico...");
+
+        equalizeBox.getChildren().addAll(
+                equalizeShowBurnedCheck,
+                equalizeShowDarkCheck,
+                new Separator(),
+                equalizeDiagnosticLabel
+        );
 
         populateSliderBox(colorAdjustBox, gainRSlider,
                 "Ganancia R", v -> String.format("%.2f", v), 1.0);

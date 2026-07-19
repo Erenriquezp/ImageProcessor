@@ -6,6 +6,7 @@ import com.example.imageprocessor.domain.ColorSpaceType;
 import com.example.imageprocessor.domain.ConvolutionKernel;
 import com.example.imageprocessor.domain.DepthSource;
 import com.example.imageprocessor.domain.EqualizeMode;
+import com.example.imageprocessor.domain.ExposureDiagnostic;
 import com.example.imageprocessor.domain.FragmentBlendMode;
 import com.example.imageprocessor.domain.GradientType;
 import com.example.imageprocessor.domain.LogicOpType;
@@ -194,8 +195,12 @@ public final class ImageProcessor {
 
     // ── Histograma / operaciones por punto ────────────────────────────────────
 
-    public static BufferedImage histogramEqualize(BufferedImage original, EqualizeMode mode) {
-        return PointOpsFilters.histogramEqualize(original, mode);
+    public static BufferedImage histogramEqualize(BufferedImage original, EqualizeMode mode, float factor, boolean markBurned, boolean markDark) {
+        return PointOpsFilters.histogramEqualize(original, mode, factor, markBurned, markDark);
+    }
+
+    public static ExposureDiagnostic diagnoseExposure(BufferedImage original) {
+        return PointOpsFilters.diagnoseExposure(original);
     }
 
     public static BufferedImage colorAdjust(BufferedImage original, float gainR, float gainG, float gainB) {

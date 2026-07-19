@@ -23,6 +23,7 @@ import com.example.imageprocessor.domain.ColorSpaceType;
 import com.example.imageprocessor.domain.ConvolutionKernel;
 import com.example.imageprocessor.domain.DepthSource;
 import com.example.imageprocessor.domain.EqualizeMode;
+import com.example.imageprocessor.domain.ExposureDiagnostic;
 import com.example.imageprocessor.domain.FilterType;
 import com.example.imageprocessor.domain.FragmentBlendMode;
 import com.example.imageprocessor.domain.LogicOpType;
@@ -433,7 +434,8 @@ public class ImageProcessorApp extends Application {
             return;
         }
         try {
-            BufferedImage result = processFilter(filter, committedImage, snapshotParams());
+            FilterParams commitParams = snapshotParams().withNoHighlights();
+            BufferedImage result = processFilter(filter, committedImage, commitParams);
             pushHistory(committedImage);
             committedImage = result;
             redoStack.clear();
@@ -520,8 +522,15 @@ public class ImageProcessorApp extends Application {
             if (gen != previewGen.get())
                 return; // ya superado en cola → no computar
             final BufferedImage result;
+            final ExposureDiagnostic diag;
             try {
                 result = processFilter(filter, base, params);
+                if (filter == FilterType.HISTOGRAM_EQUALIZE) {
+                    BufferedImage cleanImg = processFilter(filter, base, params.withNoHighlights());
+                    diag = ImageProcessor.diagnoseExposure(cleanImg);
+                } else {
+                    diag = null;
+                }
             } catch (Exception ex) {
                 return; // entrada inválida transitoria → ignorar
             }
@@ -532,6 +541,9 @@ public class ImageProcessorApp extends Application {
                     return;
                 processedImage = result;
                 refreshView(compareToggle.isSelected());
+                if (filter == FilterType.HISTOGRAM_EQUALIZE) {
+                    editorFilterPane.updateEqualizeDiagnostic(diag);
+                }
             });
         });
     }
@@ -597,7 +609,30 @@ public class ImageProcessorApp extends Application {
             EqualizeMode equalizeMode, float gainR, float gainG, float gainB,
             float lerpFactor, float extrapolateFactor, float scale, float bias,
             int pointThreshold, int softThreshold, float pointSaturation, float hueDegrees,
-            ColorSpaceType colorSpace) {
+            ColorSpaceType colorSpace,
+            float equalizeIntensity, boolean equalizeMarkBurned, boolean equalizeMarkDark) {
+
+        public FilterParams withNoHighlights() {
+            return new FilterParams(
+                    brightness, saturation, valueFactor,
+                    retroLevels, retro2Levels, r2r, r2g, r2b,
+                    grayQuantLevels, threshold, alpha,
+                    tintR, tintG, tintB,
+                    stretchMode, kernel,
+                    depthSource, depthThreshold, pixelBlockSize,
+                    textureScale, textureFilter,
+                    alphaTestThreshold, alphaTestLuminance, multisampleSize,
+                    stencilPattern, fragmentBlendMode,
+                    fragmentBlendAlpha, logicOp, logicMask,
+                    planeR, planeG, planeB,
+                    fogR, fogG, fogB,
+                    equalizeMode, gainR, gainG, gainB,
+                    lerpFactor, extrapolateFactor, scale, bias,
+                    pointThreshold, softThreshold, pointSaturation, hueDegrees,
+                    colorSpace,
+                    equalizeIntensity, false, false
+            );
+        }
     }
 
     /** Captura los parámetros actuales — debe llamarse en el hilo de JavaFX. */
@@ -653,7 +688,10 @@ public class ImageProcessorApp extends Application {
                 editorFilterPane.getSoftThresholdWidth(),
                 editorFilterPane.getPointSaturation(),
                 editorFilterPane.getHueRotation(),
-                editorFilterPane.getColorSpaceType());
+                editorFilterPane.getColorSpaceType(),
+                editorFilterPane.getEqualizeIntensity(),
+                editorFilterPane.isEqualizeMarkBurned(),
+                editorFilterPane.isEqualizeMarkDark());
     }
 
     /**
@@ -707,7 +745,7 @@ public class ImageProcessorApp extends Application {
                     p.planeR(), p.planeG(), p.planeB(), p.fragmentBlendAlpha());
             case LOGIC_OP -> ImageProcessor.logicOp(base, p.logicOp(), p.logicMask());
             // ── Histograma / point ops ────────────────────────────────────
-            case HISTOGRAM_EQUALIZE -> ImageProcessor.histogramEqualize(base, p.equalizeMode());
+            case HISTOGRAM_EQUALIZE -> ImageProcessor.histogramEqualize(base, p.equalizeMode(), p.equalizeIntensity(), p.equalizeMarkBurned(), p.equalizeMarkDark());
             case COLOR_ADJUST -> ImageProcessor.colorAdjust(base, p.gainR(), p.gainG(), p.gainB());
             case POINT_INTERPOLATE -> ImageProcessor.pointInterpolate(base, p.lerpFactor(),
                     p.planeR(), p.planeG(), p.planeB());
