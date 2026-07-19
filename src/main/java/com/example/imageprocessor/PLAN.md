@@ -101,12 +101,20 @@ com.example.imageprocessor
 │   ├── FilterType.java                ← Enum con label + dot color por categoría
 │   ├── ConvolutionKernel.java
 │   ├── GradientType.java
-│   └── StretchMode.java
+│   ├── StretchMode.java
+│   ├── DepthSource.java               ← Origen Z (luminancia, radial, …)
+│   ├── TextureFilterMode.java         ← Nearest / Bilinear
+│   ├── StencilPattern.java
+│   ├── LogicOpType.java
+│   └── FragmentBlendMode.java
 └── service/                           ← Lógica de procesamiento puro
     ├── ImageProcessor.java            ← Fachada pública (API estable)
     ├── ColorFilters.java              ← Filtros de color básicos + matrices de color
     ├── ArtisticFilters.java           ← Efectos artísticos y cuantización
     ├── ConvolutionFilters.java        ← Kernels de convolución 3×3
+    ├── RasterPipelineFilters.java     ← Depth, Z/W-buffer, bitmap, texturas
+    ├── FragmentOpsFilters.java        ← MSAA, alpha/stencil test, blend, logic op
+    ├── PointOpsFilters.java           ← Ecualización + operaciones por punto
     ├── HistogramService.java          ← Generación del gráfico histograma RGB
     ├── BlendingService.java           ← Alpha blending de 2 y 3 imágenes
     ├── GradientGenerator.java         ← Degradados sintéticos
@@ -282,7 +290,55 @@ processedImage + bg1 + bg2 → TripleBlendingPane (3 sliders en tiempo real)
 | Overlay contextual en paneles de composición | Mensajes flotantes en `BlendingPane` y `TripleBlendingPane` mientras faltan imágenes. |
 | 5 pestañas en el área central | Editor · Generador · Histograma · Blending · Triple Blending. |
 | Dark-theme en sub-ventanas | Listener de `Window.getWindows()` inyecta CSS en cualquier `Stage` secundario. |
-| Supresión de warnings JVM | `--enable-native-access=javafx.graphics` + `--sun-misc-unsafe-memory-access=allow` en `pom.xml`. |
+| Supresión de warnings JVM | `--enable-native-access=javafx.graphics` en `pom.xml` / `.mvn/jvm.config`. |
+
+#### Pipeline gráfico — Raster / Depth `#00bfa5`
+| Funcionalidad | Clase | Enum | Descripción |
+|---|---|---|---|
+| Mapa de profundidad | `RasterPipelineFilters.depthMap` | `DEPTH_MAP` | Visualiza Z como gris (luminancia / radial / horizontal / diagonal). |
+| Z-Buffer | `RasterPipelineFilters.zBuffer` | `Z_BUFFER` | Oclusión: plano frontal solo escribe si `zFg < zBg`. |
+| Bitmap / pixelación | `RasterPipelineFilters.bitmapPixelate` | `BITMAP_PIXELATE` | Rasteriza en bloques NxN (framebuffer discreto). |
+| Rasterizar píxeles | `RasterPipelineFilters.rasterGrid` | `RASTER_GRID` | Rejilla que remarca píxeles discretos. |
+
+#### Pipeline gráfico — Texturas / W-Buffer `#26c6da`
+| Funcionalidad | Clase | Enum | Descripción |
+|---|---|---|---|
+| Muestreo de textura | `RasterPipelineFilters.textureSample` | `TEXTURE_SAMPLE` | Remuestrea UV con Nearest o Bilinear. |
+| Interpolación en profundidad | `RasterPipelineFilters.depthInterpolate` | `DEPTH_INTERPOLATE` | Fog: lerp color cercano↔lejano según Z. |
+| W-Buffer | `RasterPipelineFilters.wBuffer` | `W_BUFFER` | Test de oclusión con `w = 1/(z+ε)` (gana mayor w). |
+
+#### Operaciones con fragmentos — MSAA / Alpha `#ab47bc`
+| Funcionalidad | Clase | Enum | Descripción |
+|---|---|---|---|
+| Multisample | `FragmentOpsFilters.multisample` | `MULTISAMPLE` | Promedia vecindario NxN (MSAA simplificado). |
+| Alpha Test | `FragmentOpsFilters.alphaTest` | `ALPHA_TEST` | Descarta fragmentos con alpha/luminancia &lt; umbral. |
+
+#### Operaciones con fragmentos — Stencil / Blend / Logic `#5c6bc0`
+| Funcionalidad | Clase | Enum | Descripción |
+|---|---|---|---|
+| Stencil Test | `FragmentOpsFilters.stencilTest` | `STENCIL_TEST` | Máscara (círculo, tablero, franjas, …); falla → transparente. |
+| Blending de fragmentos | `FragmentOpsFilters.fragmentBlend` | `FRAGMENT_BLEND` | SrcOver / Multiply / Add / Screen / Subtract con color dst. |
+| Logic Op | `FragmentOpsFilters.logicOp` | `LOGIC_OP` | AND / OR / XOR / NAND / NOR / INVERT bit a bit con máscara. |
+
+> Todas las operaciones anteriores recorren la imagen **píxel a píxel** (`getRGB` / `setRGB`).
+
+#### Histograma `#ffb300`
+| Funcionalidad | Clase | Enum | Descripción |
+|---|---|---|---|
+| Ecualización de histograma | `PointOpsFilters.histogramEqualize` | `HISTOGRAM_EQUALIZE` | CDF por canal RGB o sobre luminancia BT.709. |
+
+#### Operaciones por punto `#ff7043`
+| Funcionalidad | Clase | Enum | Descripción |
+|---|---|---|---|
+| Ajuste de color | `PointOpsFilters.colorAdjust` | `COLOR_ADJUST` | Ganancia independiente R/G/B. |
+| Interpolación | `PointOpsFilters.pointLerp` | `POINT_INTERPOLATE` | `lerp(src, target, t)` con `t ∈ [0,1]`. |
+| Extrapolación | `PointOpsFilters.pointLerp` | `POINT_EXTRAPOLATE` | Mismo lerp con `t` fuera de `[0,1]`. |
+| Escala y bias | `PointOpsFilters.scaleBias` | `SCALE_BIAS` | `out = clamp(scale·ch + bias)`. |
+| Umbralización | `PointOpsFilters.pointThreshold` | `POINT_THRESHOLD` | Hard/soft threshold por luminancia. |
+| Conversión a luminancia | `PointOpsFilters.toLuminance` | `TO_LUMINANCE` | BT.709. |
+| Saturación | `PointOpsFilters.pointSaturation` | `POINT_SATURATION` | Factor de saturación HSV. |
+| Rotación Hue | `PointOpsFilters.hueRotate` | `HUE_ROTATE` | Desplazamiento de tono en grados. |
+| Espacio de color | `PointOpsFilters.colorSpaceConvert` | `COLOR_SPACE` | RGB↔YCbCr, RGB↔HSV, RGB↔HSL. |
 
 ---
 
@@ -403,5 +459,14 @@ processedImage + bg1 + bg2 → TripleBlendingPane (3 sliders en tiempo real)
 2. **Preview instantáneo** — campo `instantPreview` en `FilterType` + `setOnParamChanged(Runnable)` en `EditorFilterPane`.
 3. **Temperatura** — slider frío/cálido en `ColorFilters` + `FilterType.TEMPERATURE`.
 
-### Fase 4 — Mejoras avanzadas
-4. **Animación / secuencia de Hue** — exportación de N frames desplazando H en HSV.
+### Fase 4 — Pipeline gráfico (raster + fragmentos) ✅
+5. **Raster / Depth** — mapa Z, z-buffer, bitmap, rejilla de píxeles.
+6. **Texturas / W-Buffer** — muestreo Nearest/Bilinear, fog por profundidad, w-buffer.
+7. **Fragmentos** — Multisample, Alpha Test, Stencil Test, Blending, Logic Op.
+
+### Fase 5 — Histograma y operaciones por punto ✅
+8. **Ecualización de histograma** — CDF RGB o luminancia.
+9. **Point ops** — ajuste de color, interp/extrap, scale/bias, umbral, luminancia, saturación, hue, espacios de color.
+
+### Fase 6 — Mejoras avanzadas
+10. **Animación / secuencia de Hue** — exportación de N frames desplazando H en HSV.

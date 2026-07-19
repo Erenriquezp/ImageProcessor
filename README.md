@@ -87,6 +87,12 @@ Herramientas adicionales en pestañas: **Generador** de degradados (lineales y r
 
 **Matrices de color:** Sepia · Tono Frío · Tono Cálido · Polaroid · Kodachrome.
 
+**Histograma:** Ecualización (RGB por canal o luminancia BT.709).
+
+**Operaciones por punto:** Ajuste de color (ganancia R/G/B) · Interpolación · Extrapolación · Escala y bias · Umbralización (hard/soft) · Conversión a luminancia · Saturación · Rotación Hue · Espacio de color (RGB↔YCbCr / HSV / HSL).
+
+**Pipeline gráfico:** Raster/Depth · Texturas/W-Buffer · Multisample/Alpha Test · Stencil/Blend/Logic Op.
+
 ## Arquitectura
 
 Separación estricta en tres capas, con `service/ImageProcessor` como única fachada entre la UI y la lógica de procesamiento.
