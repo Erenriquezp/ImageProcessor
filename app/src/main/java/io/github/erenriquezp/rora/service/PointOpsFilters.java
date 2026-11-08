@@ -235,6 +235,8 @@ final class PointOpsFilters {
     // ── Ajuste de color (ganancia por canal) ──────────────────────────────────
 
     /** {@code out = clamp(channel · gain)} con gain por canal. */
+    // Portado al nucleo (point.color-gain): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage colorAdjust(BufferedImage original, float gainR, float gainG, float gainB) {
         int w = original.getWidth();
         int h = original.getHeight();
@@ -281,6 +283,8 @@ final class PointOpsFilters {
     // ── Escala + bias ────────────────────────────────────────────────────────
 
     /** {@code out = clamp(scale · channel + bias)} en cada canal RGB. */
+    // Portado al nucleo (point.scale-bias): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage scaleBias(BufferedImage original, float scale, float bias) {
         int w = original.getWidth();
         int h = original.getHeight();
@@ -305,6 +309,8 @@ final class PointOpsFilters {
      * Umbralización por luminancia: por encima → blanco, por debajo → negro.
      * Si {@code softWidth > 0}, transición suave (soft threshold).
      */
+    // Portado al nucleo (point.soft-threshold): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage pointThreshold(BufferedImage original, int threshold, int softWidth) {
         int w = original.getWidth();
         int h = original.getHeight();
@@ -333,6 +339,8 @@ final class PointOpsFilters {
     // ── Conversión a luminancia ──────────────────────────────────────────────
 
     /** Escala de grises BT.709: {@code Y = 0.2126 R + 0.7152 G + 0.0722 B}. */
+    // Portado al nucleo (point.luminance): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage toLuminance(BufferedImage original) {
         int w = original.getWidth();
         int h = original.getHeight();
@@ -376,6 +384,8 @@ final class PointOpsFilters {
     // ── Rotación de Hue ──────────────────────────────────────────────────────
 
     /** Desplaza el tono HSV en grados (−180…+180). */
+    // Portado al nucleo (point.hue-rotate): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage hueRotate(BufferedImage original, float degrees) {
         int w = original.getWidth();
         int h = original.getHeight();

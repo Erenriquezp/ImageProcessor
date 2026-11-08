@@ -22,4 +22,24 @@ public final class PixelOps {
   public static float luminance709(int r, int g, int b) {
     return 0.2126f * r + 0.7152f * g + 0.0722f * b;
   }
+
+  /**
+   * Cuantiza {@code value} a {@code n} niveles repartidos en {@code [0, 255]} (en {@code double}).
+   */
+  public static int quantize(int value, int n) {
+    if (n <= 1) {
+      return 0;
+    }
+    if (n >= 256) {
+      return value;
+    }
+    double step = 255.0 / (n - 1);
+    int level = (int) Math.round(value / step);
+    return (int) Math.round(level * step);
+  }
+
+  /** {@code clamp(round(start + t · (end − start)))} en {@code double}. */
+  public static int lerp(int start, int end, double t) {
+    return clamp((int) Math.round(start + t * (end - start)));
+  }
 }

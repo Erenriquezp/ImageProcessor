@@ -8,6 +8,8 @@ final class ColorFilters {
     private ColorFilters() {
     }
 
+    // Portado al nucleo (color.grayscale-average): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage grayscale(BufferedImage original) {
         int w = original.getWidth();
         int h = original.getHeight();
@@ -27,6 +29,8 @@ final class ColorFilters {
         return out;
     }
 
+    // Portado al nucleo (color.negative): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage negative(BufferedImage original) {
         int w = original.getWidth();
         int h = original.getHeight();
@@ -45,6 +49,8 @@ final class ColorFilters {
         return out;
     }
 
+    // Portado al nucleo (color.brightness): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage brightness(BufferedImage original, int value) {
         int w = original.getWidth();
         int h = original.getHeight();
@@ -63,6 +69,8 @@ final class ColorFilters {
         return out;
     }
 
+    // Portado al nucleo (color.hsv): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage hsv(BufferedImage original, float factorS, float factorV) {
         int w = original.getWidth();
         int h = original.getHeight();
@@ -88,6 +96,8 @@ final class ColorFilters {
         return out;
     }
 
+    // Portado al nucleo (color.grayscale-quantized): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage grayscaleQuantized(BufferedImage original, int levels) {
         int w = original.getWidth();
         int h = original.getHeight();
@@ -124,6 +134,8 @@ final class ColorFilters {
         return out;
     }
 
+    // Portado al nucleo (color.threshold-bw): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage bwThreshold(BufferedImage original, int threshold) {
         int w = original.getWidth();
         int h = original.getHeight();
@@ -182,6 +194,8 @@ final class ColorFilters {
      * Sepia tone — classic warm brown look (W3C standard matrix).
      * Each output channel mixes all three RGB inputs with fixed weights.
      */
+    // Portado al nucleo (color.matrix-preset): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage sepia(BufferedImage original) {
         float[][] matrix = {
             { 0.393f,  0.769f,  0.189f },
@@ -195,6 +209,8 @@ final class ColorFilters {
      * Cool Tone — shifts the palette towards cold blue/cyan tones by
      * attenuating red and amplifying blue slightly.
      */
+    // Portado al nucleo (color.matrix-preset): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage coolTone(BufferedImage original) {
         float[][] matrix = {
             { 0.80f,  0.10f,  0.10f },
@@ -208,6 +224,8 @@ final class ColorFilters {
      * Warm Tone — shifts the palette towards warm yellow/amber tones by
      * amplifying red, boosting green slightly and reducing blue.
      */
+    // Portado al nucleo (color.matrix-preset): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage warmTone(BufferedImage original) {
         float[][] matrix = {
             { 1.10f,  0.10f,  0.00f },
@@ -221,6 +239,8 @@ final class ColorFilters {
      * Polaroid — punchy, slightly cross-processed look inspired by
      * instant-film photography (lifted blacks, shifted color balance).
      */
+    // Portado al nucleo (color.matrix-preset): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage polaroid(BufferedImage original) {
         float[][] matrix = {
             {  1.438f, -0.062f, -0.062f },
@@ -234,6 +254,8 @@ final class ColorFilters {
      * Kodachrome — emulates the rich, saturated look of Kodak Kodachrome
      * film: warm highlights, deep shadows, and boosted blue-greens.
      */
+    // Portado al nucleo (color.matrix-preset): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage kodachrome(BufferedImage original) {
         float[][] matrix = {
             {  1.128f, -0.397f, -0.040f },

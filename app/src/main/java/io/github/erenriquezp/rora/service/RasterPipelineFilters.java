@@ -17,6 +17,8 @@ final class RasterPipelineFilters {
     // ── 1. Mapa de profundidad ───────────────────────────────────────────────
 
     /** Visualiza el buffer de profundidad como escala de grises (0=cerca, 255=lejos). */
+    // Portado al nucleo (raster.depth-map): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage depthMap(BufferedImage original, DepthSource source) {
         int w = original.getWidth();
         int h = original.getHeight();

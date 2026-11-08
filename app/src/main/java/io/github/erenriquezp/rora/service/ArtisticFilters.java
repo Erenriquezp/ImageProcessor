@@ -28,6 +28,8 @@ final class ArtisticFilters {
         return out;
     }
 
+    // Portado al nucleo (artistic.circular-fade): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage circularFade(BufferedImage original) {
         int w = original.getWidth();
         int h = original.getHeight();
@@ -55,6 +57,8 @@ final class ArtisticFilters {
         return out;
     }
 
+    // Portado al nucleo (tone.posterize): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage retro1(BufferedImage original, int levels) {
         int w = original.getWidth();
         int h = original.getHeight();
@@ -73,6 +77,8 @@ final class ArtisticFilters {
         return out;
     }
 
+    // Portado al nucleo (tone.posterize-channels): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage retro2(BufferedImage original, int levels,
                                 boolean quantR, boolean quantG, boolean quantB) {
         int w = original.getWidth();
@@ -97,6 +103,8 @@ final class ArtisticFilters {
         return out;
     }
 
+    // Portado al nucleo (color.recolor): solo lo usan los tests diferenciales y el respaldo fuera de rango; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage recolor(BufferedImage original, int toneR, int toneG, int toneB) {
         int w = original.getWidth();
         int h = original.getHeight();

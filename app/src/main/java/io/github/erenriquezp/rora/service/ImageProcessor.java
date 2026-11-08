@@ -20,19 +20,19 @@ public final class ImageProcessor {
     }
 
     public static BufferedImage grayscale(BufferedImage original) {
-        return ColorFilters.grayscale(original);
+        return CoreBridge.apply("color.grayscale-average", original, p -> p);
     }
 
     public static BufferedImage negative(BufferedImage original) {
-        return ColorFilters.negative(original);
+        return CoreBridge.apply("color.negative", original, p -> p);
     }
 
     public static BufferedImage brightness(BufferedImage original, int value) {
-        return ColorFilters.brightness(original, value);
+        return CoreBridge.apply("color.brightness", original, p -> p.set("value", value));
     }
 
     public static BufferedImage hsv(BufferedImage original, float factorS, float factorV) {
-        return ColorFilters.hsv(original, factorS, factorV);
+        return CoreBridge.apply("color.hsv", original, p -> p.set("saturation", factorS).set("value", factorV));
     }
 
     public static BufferedImage frosted(BufferedImage original) {
@@ -40,20 +40,25 @@ public final class ImageProcessor {
     }
 
     public static BufferedImage circularFade(BufferedImage original) {
-        return ArtisticFilters.circularFade(original);
+        return CoreBridge.apply("artistic.circular-fade", original, p -> p);
     }
 
     public static BufferedImage retro1(BufferedImage original, int levels) {
-        return ArtisticFilters.retro1(original, levels);
+        return CoreBridge.apply("tone.posterize", original, p -> p.set("levels", levels));
     }
 
     public static BufferedImage retro2(BufferedImage original, int levels,
             boolean quantR, boolean quantG, boolean quantB) {
-        return ArtisticFilters.retro2(original, levels, quantR, quantG, quantB);
+        java.util.List<String> channels = new java.util.ArrayList<>(3);
+        if (quantR) channels.add("r");
+        if (quantG) channels.add("g");
+        if (quantB) channels.add("b");
+        return CoreBridge.apply("tone.posterize-channels", original,
+                p -> p.set("levels", levels).set("channels", channels));
     }
 
     public static BufferedImage grayscaleQuantized(BufferedImage original, int levels) {
-        return ColorFilters.grayscaleQuantized(original, levels);
+        return CoreBridge.apply("color.grayscale-quantized", original, p -> p.set("levels", levels));
     }
 
     public static BufferedImage alphaGlobal(BufferedImage original, int alpha) {
@@ -61,11 +66,17 @@ public final class ImageProcessor {
     }
 
     public static BufferedImage bwThreshold(BufferedImage original, int threshold) {
-        return ColorFilters.bwThreshold(original, threshold);
+        return CoreBridge.apply("color.threshold-bw", original, p -> p.set("threshold", threshold));
     }
 
     public static BufferedImage recolor(BufferedImage original, int toneR, int toneG, int toneB) {
-        return ArtisticFilters.recolor(original, toneR, toneG, toneB);
+        // Un ColorParam solo representa canales 0-255; fuera de ese rango (la UI nunca lo envia) se
+        // mantiene el legacy para no cambiar el resultado.
+        if (!CoreBridge.isRgb8(toneR, toneG, toneB)) {
+            return ArtisticFilters.recolor(original, toneR, toneG, toneB);
+        }
+        return CoreBridge.apply("color.recolor", original,
+                p -> p.set("tone", CoreBridge.rgb(toneR, toneG, toneB)));
     }
 
     public static BufferedImage stretch4Bits(BufferedImage original, StretchMode mode) {
@@ -79,23 +90,23 @@ public final class ImageProcessor {
     // ── Color Matrix ──────────────────────────────────────────────────────────
 
     public static BufferedImage sepia(BufferedImage original) {
-        return ColorFilters.sepia(original);
+        return CoreBridge.apply("color.matrix-preset", original, p -> p.set("preset", "sepia"));
     }
 
     public static BufferedImage coolTone(BufferedImage original) {
-        return ColorFilters.coolTone(original);
+        return CoreBridge.apply("color.matrix-preset", original, p -> p.set("preset", "cool"));
     }
 
     public static BufferedImage warmTone(BufferedImage original) {
-        return ColorFilters.warmTone(original);
+        return CoreBridge.apply("color.matrix-preset", original, p -> p.set("preset", "warm"));
     }
 
     public static BufferedImage polaroid(BufferedImage original) {
-        return ColorFilters.polaroid(original);
+        return CoreBridge.apply("color.matrix-preset", original, p -> p.set("preset", "polaroid"));
     }
 
     public static BufferedImage kodachrome(BufferedImage original) {
-        return ColorFilters.kodachrome(original);
+        return CoreBridge.apply("color.matrix-preset", original, p -> p.set("preset", "kodachrome"));
     }
 
     public static BufferedImage bufferAccumulation(BufferedImage original, BufferAcumulacion_LOAD.Mode mode) {
@@ -139,7 +150,7 @@ public final class ImageProcessor {
     // ── Raster / Depth / Texturas ─────────────────────────────────────────────
 
     public static BufferedImage depthMap(BufferedImage original, DepthSource source) {
-        return RasterPipelineFilters.depthMap(original, source);
+        return CoreBridge.apply("raster.depth-map", original, p -> p.set("source", CoreBridge.enumId(source)));
     }
 
     public static BufferedImage zBuffer(BufferedImage original, DepthSource source,
@@ -186,7 +197,14 @@ public final class ImageProcessor {
 
     public static BufferedImage fragmentBlend(BufferedImage original, FragmentBlendMode mode,
             int dstR, int dstG, int dstB, float alpha) {
-        return FragmentOpsFilters.fragmentBlend(original, mode, dstR, dstG, dstB, alpha);
+        // Ver recolor: canales fuera de 0-255 siguen en el legacy.
+        if (!CoreBridge.isRgb8(dstR, dstG, dstB)) {
+            return FragmentOpsFilters.fragmentBlend(original, mode, dstR, dstG, dstB, alpha);
+        }
+        return CoreBridge.apply("fragment.blend-color", original, p -> p
+                .set("mode", CoreBridge.enumId(mode))
+                .set("color", CoreBridge.rgb(dstR, dstG, dstB))
+                .set("alpha", alpha));
     }
 
     public static BufferedImage logicOp(BufferedImage original, LogicOpType op, int mask) {
@@ -210,7 +228,7 @@ public final class ImageProcessor {
     }
 
     public static BufferedImage colorAdjust(BufferedImage original, float gainR, float gainG, float gainB) {
-        return PointOpsFilters.colorAdjust(original, gainR, gainG, gainB);
+        return CoreBridge.apply("point.color-gain", original, p -> p.set("gainR", gainR).set("gainG", gainG).set("gainB", gainB));
     }
 
     public static BufferedImage pointInterpolate(BufferedImage original, float t,
@@ -224,15 +242,15 @@ public final class ImageProcessor {
     }
 
     public static BufferedImage scaleBias(BufferedImage original, float scale, float bias) {
-        return PointOpsFilters.scaleBias(original, scale, bias);
+        return CoreBridge.apply("point.scale-bias", original, p -> p.set("scale", scale).set("bias", bias));
     }
 
     public static BufferedImage pointThreshold(BufferedImage original, int threshold, int softWidth) {
-        return PointOpsFilters.pointThreshold(original, threshold, softWidth);
+        return CoreBridge.apply("point.soft-threshold", original, p -> p.set("threshold", threshold).set("softWidth", softWidth));
     }
 
     public static BufferedImage toLuminance(BufferedImage original) {
-        return PointOpsFilters.toLuminance(original);
+        return CoreBridge.apply("point.luminance", original, p -> p);
     }
 
     public static BufferedImage pointSaturation(BufferedImage original, float factor) {
@@ -240,7 +258,7 @@ public final class ImageProcessor {
     }
 
     public static BufferedImage hueRotate(BufferedImage original, float degrees) {
-        return PointOpsFilters.hueRotate(original, degrees);
+        return CoreBridge.apply("point.hue-rotate", original, p -> p.set("degrees", degrees));
     }
 
     public static BufferedImage colorSpaceConvert(BufferedImage original, ColorSpaceType type) {

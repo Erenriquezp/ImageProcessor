@@ -124,6 +124,8 @@ final class FragmentOpsFilters {
      * Mezcla cada fragmento de la imagen (src) con un color destino (dst)
      * según la ecuación de blending elegida.
      */
+    // Portado al nucleo (fragment.blend-color): solo lo usan los tests diferenciales y el respaldo fuera de rango; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage fragmentBlend(BufferedImage original, FragmentBlendMode mode,
             int dstR, int dstG, int dstB, float alpha) {
         int w = original.getWidth();

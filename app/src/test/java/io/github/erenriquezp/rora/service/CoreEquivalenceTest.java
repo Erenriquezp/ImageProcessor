@@ -2,6 +2,7 @@ package io.github.erenriquezp.rora.service;
 
 import io.github.erenriquezp.rora.core.exec.TileExecutor;
 import io.github.erenriquezp.rora.core.op.OpContext;
+import io.github.erenriquezp.rora.core.op.Params;
 import io.github.erenriquezp.rora.testsupport.EquivalenceImages;
 import io.github.erenriquezp.rora.testsupport.EquivalenceImages.Sample;
 import java.awt.image.BufferedImage;
@@ -55,13 +56,40 @@ class CoreEquivalenceTest {
   @MethodSource("casesAndTypes")
   void coreMatchesLegacyExactly(PortedCases.Case c, String typeName, int type) {
     List<Sample> samples = SAMPLES.computeIfAbsent(type, EquivalenceImages::samples);
+    // Parámetros no representables en el núcleo (canales fuera de 0-255): la fachada usa el
+    // legacy y solo se compara ese camino.
+    boolean coreApplicable = coreApplicable(c);
     for (Sample s : samples) {
       BufferedImage expected = c.legacy().apply(s.image());
       check(c, s, "fachada", expected, c.facade());
-      check(c, s, "1 hilo", expected, core(c, OpContext.sequential()));
-      check(c, s, "7 hilos", expected, core(c, OpContext.of(SEVEN)));
-      check(c, s, "bandas de 1 fila", expected, core(c, OpContext.of(TINY_BANDS)));
+      if (coreApplicable) {
+        check(c, s, "1 hilo", expected, core(c, OpContext.sequential()));
+        check(c, s, "7 hilos", expected, core(c, OpContext.of(SEVEN)));
+        check(c, s, "bandas de 1 fila", expected, core(c, OpContext.of(TINY_BANDS)));
+      }
     }
+  }
+
+  /** Con un enum {@code null} el legacy lanza NPE en su {@code switch}; la fachada también. */
+  @org.junit.jupiter.api.Test
+  @SuppressWarnings("removal")
+  void nullEnumsThrowNullPointerExceptionLikeTheLegacy() {
+    BufferedImage img = EquivalenceImages.samples(BufferedImage.TYPE_INT_ARGB).get(3).image();
+    java.util.List<Runnable> legacyAndFacade =
+        java.util.List.of(
+            () -> RasterPipelineFilters.depthMap(img, null),
+            () -> ImageProcessor.depthMap(img, null),
+            () -> FragmentOpsFilters.fragmentBlend(img, null, 1, 2, 3, 0.5f),
+            () -> ImageProcessor.fragmentBlend(img, null, 1, 2, 3, 0.5f),
+            () -> ImageProcessor.fragmentBlend(img, null, 300, 2, 3, 0.5f));
+    for (Runnable r : legacyAndFacade) {
+      org.assertj.core.api.Assertions.assertThatThrownBy(r::run)
+          .isInstanceOf(NullPointerException.class);
+    }
+  }
+
+  static boolean coreApplicable(PortedCases.Case c) {
+    return c.params().apply(Params.builder(CoreBridge.op(c.coreId()).schema())) != null;
   }
 
   private static UnaryOperator<BufferedImage> core(PortedCases.Case c, OpContext ctx) {

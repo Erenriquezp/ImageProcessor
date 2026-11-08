@@ -31,6 +31,25 @@ final class CoreBridge {
     return OpContext.of(Shared.EXECUTOR);
   }
 
+  /** Los tres valores caben en un canal de 8 bits (y por tanto en un {@code ColorParam}). */
+  static boolean isRgb8(int r, int g, int b) {
+    return (r & ~0xFF) == 0 && (g & ~0xFF) == 0 && (b & ~0xFF) == 0;
+  }
+
+  /** {@code 0xFFRRGGBB}; requiere {@link #isRgb8}. */
+  static int rgb(int r, int g, int b) {
+    return 0xFF000000 | (r << 16) | (g << 8) | b;
+  }
+
+  /**
+   * Id de valor del núcleo para una constante de enum de {@code domain}: {@code SRC_OVER →
+   * "src-over"}. Con {@code null} lanza {@link NullPointerException}, igual que el {@code switch}
+   * del legacy.
+   */
+  static String enumId(Enum<?> e) {
+    return e.name().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
+  }
+
   static Operation op(String id) {
     return REGISTRY.require(id);
   }

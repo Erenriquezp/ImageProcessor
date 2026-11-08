@@ -4,7 +4,6 @@ import io.github.erenriquezp.rora.core.exec.TileExecutor;
 import io.github.erenriquezp.rora.core.op.OpContext;
 import io.github.erenriquezp.rora.testsupport.EquivalenceImages;
 import java.awt.image.BufferedImage;
-import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -19,19 +18,6 @@ import org.junit.jupiter.params.provider.MethodSource;
  */
 @Tag("exhaustive")
 class AllColorsEquivalenceTest {
-
-  /** Casos que se ejecutan aquí (los de la lista de cada operación con más riesgo numérico). */
-  private static final Set<String> CASES =
-      Set.of(
-          "pointSaturation/factor=0.0",
-          "pointSaturation/factor=0.5",
-          "pointSaturation/factor=1.0",
-          "pointSaturation/factor=1.3",
-          "pointSaturation/factor=2.0",
-          "bitmapPixelate/block=8",
-          "histogramEqualize/RGB,factor=0.35,burned=true,dark=true",
-          "histogramEqualize/LUMINANCE,factor=0.35,burned=true,dark=true",
-          "histogramEqualize/LUMINANCE,factor=1.0,burned=false,dark=false");
 
   private static final long ALPHA_SEED = 0xA11C0105L;
   private static BufferedImage allColors;
@@ -50,7 +36,8 @@ class AllColorsEquivalenceTest {
   }
 
   static Stream<PortedCases.Case> cases() {
-    return PortedCases.all().stream().filter(c -> CASES.contains(c.toString()));
+    // Los casos marcados en PortedCases: combinación típica de cada operación (y 3 en las de HSB).
+    return PortedCases.all().stream().filter(PortedCases.Case::exhaustive);
   }
 
   @ParameterizedTest(name = "{0} sobre 2^24 colores")

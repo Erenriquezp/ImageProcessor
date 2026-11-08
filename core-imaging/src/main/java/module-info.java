@@ -13,7 +13,25 @@ module io.github.erenriquezp.rora.core {
 
   // Añadir una operación = 1 clase + 1 línea aquí.
   provides io.github.erenriquezp.rora.core.op.Operation with
+      io.github.erenriquezp.rora.core.ops.artistic.CircularFadeOp,
+      io.github.erenriquezp.rora.core.ops.color.BrightnessOp,
+      io.github.erenriquezp.rora.core.ops.color.GrayscaleAverageOp,
+      io.github.erenriquezp.rora.core.ops.color.GrayscaleQuantizedOp,
+      io.github.erenriquezp.rora.core.ops.color.HsvOp,
+      io.github.erenriquezp.rora.core.ops.color.MatrixPresetOp,
+      io.github.erenriquezp.rora.core.ops.color.NegativeOp,
+      io.github.erenriquezp.rora.core.ops.color.RecolorOp,
+      io.github.erenriquezp.rora.core.ops.color.ThresholdBwOp,
+      io.github.erenriquezp.rora.core.ops.fragment.BlendColorOp,
+      io.github.erenriquezp.rora.core.ops.point.ColorGainOp,
+      io.github.erenriquezp.rora.core.ops.point.HueRotateOp,
+      io.github.erenriquezp.rora.core.ops.point.LuminanceOp,
       io.github.erenriquezp.rora.core.ops.point.SaturationOp,
+      io.github.erenriquezp.rora.core.ops.point.ScaleBiasOp,
+      io.github.erenriquezp.rora.core.ops.point.SoftThresholdOp,
+      io.github.erenriquezp.rora.core.ops.raster.DepthMapOp,
       io.github.erenriquezp.rora.core.ops.raster.PixelateOp,
-      io.github.erenriquezp.rora.core.ops.tone.EqualizeOp;
+      io.github.erenriquezp.rora.core.ops.tone.EqualizeOp,
+      io.github.erenriquezp.rora.core.ops.tone.PosterizeChannelsOp,
+      io.github.erenriquezp.rora.core.ops.tone.PosterizeOp;
 }
