@@ -1,9 +1,13 @@
 package io.github.erenriquezp.rora.app.shell;
 
 import io.github.erenriquezp.rora.app.catalog.Catalog;
+import io.github.erenriquezp.rora.app.session.ExportTarget;
 import io.github.erenriquezp.rora.app.viewmodel.ControlState;
+import io.github.erenriquezp.rora.app.viewmodel.ExportDialogViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.ViewerViewModel.CompareMode;
+import io.github.erenriquezp.rora.core.io.ExportSettings;
+import io.github.erenriquezp.rora.core.io.FormatId;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayDeque;
@@ -83,10 +87,7 @@ public class SnapshotTool extends StudioApp {
             }));
     shots.add(
         new Shot(
-            "04-cortina",
-            w,
-            h,
-            () -> vm.viewer().compareModeProperty().set(CompareMode.CURTAIN)));
+            "04-cortina", w, h, () -> vm.viewer().compareModeProperty().set(CompareMode.CURTAIN)));
     shots.add(
         new Shot(
             "05-lado-a-lado",
@@ -156,6 +157,79 @@ public class SnapshotTool extends StudioApp {
             () -> {
               vm.toolProperty().set(StudioViewModel.Tool.FILTERS);
               set(adjust(vm, "contrast"), 20);
+            }));
+    shots.add(
+        new Shot(
+            "14-exportar-jpeg",
+            w,
+            h,
+            () -> {
+              vm.toolProperty().set(StudioViewModel.Tool.ADJUST);
+              vm.notifications().notices().clear();
+              vm.showExport();
+            }));
+    shots.add(
+        new Shot(
+            "15-exportar-png", w, h, () -> vm.exportDialog().formatProperty().set(FormatId.PNG)));
+    shots.add(
+        new Shot(
+            "16-exportar-web-estrecha",
+            1100,
+            700,
+            () -> vm.exportDialog().applyPreset(ExportDialogViewModel.Preset.WEB)));
+    shots.add(
+        new Shot(
+            "17-progreso",
+            w,
+            h,
+            () -> {
+              vm.exportDialog().close();
+              vm.ioProgress().begin("Abriendo paisaje_24mp.jpg\u2026", () -> {});
+              vm.ioProgress().update(0.42);
+            }));
+    shots.add(
+        new Shot(
+            "18-sin-exportar",
+            w,
+            h,
+            () -> {
+              vm.ioProgress().end();
+              vm.requestOpen(image);
+            }));
+    shots.add(
+        new Shot(
+            "19-archivo-existe",
+            w,
+            h,
+            () -> {
+              vm.promptProperty().get().choices().get(2).action().run();
+              try {
+                java.nio.file.Files.writeString(output.toPath().resolve("existe.jpg"), "x");
+              } catch (java.io.IOException ex) {
+                throw new java.io.UncheckedIOException(ex);
+              }
+              vm.startExport(
+                  ExportSettings.defaults(FormatId.JPEG),
+                  output.toPath(),
+                  "existe.jpg",
+                  ExportTarget.Collision.ASK);
+            }));
+    shots.add(
+        new Shot(
+            "20-aviso-16bits",
+            w,
+            h,
+            () -> {
+              vm.promptProperty().get().choices().get(2).action().run();
+              vm.reset();
+              File g16 = new File(output, "g16.png");
+              try {
+                ImageIO.write(
+                    new BufferedImage(600, 400, BufferedImage.TYPE_USHORT_GRAY), "png", g16);
+              } catch (java.io.IOException ex) {
+                throw new java.io.UncheckedIOException(ex);
+              }
+              vm.open(g16);
             }));
     if (args.contains("--lab")) {
       shots.add(
