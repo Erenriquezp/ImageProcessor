@@ -70,6 +70,7 @@ class RegistryPropertiesTest {
             "analysis.exposure",
             "analysis.histogram",
             "artistic.circular-fade",
+            "blur.gaussian",
             "color.brightness",
             "color.grayscale-average",
             "color.grayscale-quantized",
