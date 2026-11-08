@@ -1,0 +1,31 @@
+#!/bin/sh
+# Verifica que el mensaje siga Conventional Commits.
+# Para saltarlo de forma excepcional: git commit --no-verify
+
+msg_file="$1"
+first_line=$(head -n 1 "$msg_file")
+
+# Permitir merges, reverts y fixup/squash generados por git
+case "$first_line" in
+  Merge\ *|Revert\ *|fixup!\ *|squash!\ *) exit 0 ;;
+esac
+
+pattern='^(feat|fix|docs|chore|refactor|test|ci|build|perf|style|revert)(\([a-z0-9._/-]+\))?!?: .+'
+
+if ! printf '%s' "$first_line" | grep -Eq "$pattern"; then
+  echo "" >&2
+  echo "ERROR: el mensaje de commit no sigue Conventional Commits." >&2
+  echo "  Recibido : $first_line" >&2
+  echo "  Esperado : tipo(ámbito opcional): descripción" >&2
+  echo "  Tipos    : feat fix docs chore refactor test ci build perf style revert" >&2
+  echo "  Ejemplo  : feat: add exposure operation" >&2
+  echo "  (Saltar solo si es imprescindible: git commit --no-verify)" >&2
+  echo "" >&2
+  exit 1
+fi
+
+if [ ${#first_line} -gt 100 ]; then
+  echo "ERROR: la primera línea tiene ${#first_line} caracteres (máximo 100)." >&2
+  exit 1
+fi
+exit 0

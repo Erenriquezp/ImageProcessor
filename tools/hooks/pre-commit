@@ -1,0 +1,27 @@
+#!/bin/sh
+# Bloquea archivos que no deben versionarse y marcadores de conflicto.
+# Para saltarlo de forma excepcional: git commit --no-verify
+
+fail=0
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+bad=$(printf '%s\n' "$staged" | grep -E '(^|/)(\.idea|target|\.planning|\.claude)/|\.iml$|(^|/)CLAUDE(\.local)?\.md$|\.local\.md$|\.onnx$|\.pt$|\.pth$|\.pem$|\.key$|(^|/)\.env(\.|$)')
+if [ -n "$bad" ]; then
+  echo "" >&2
+  echo "ERROR: hay archivos en el commit que no deben versionarse:" >&2
+  printf '  - %s\n' $bad >&2
+  echo "  Quítalos del índice con: git restore --staged <archivo>" >&2
+  echo "  (o saltar el hook con --no-verify si es intencional)" >&2
+  fail=1
+fi
+
+conflicts=$(git diff --cached -U0 | grep -E '^\+(<<<<<<< |>>>>>>> )' )
+if [ -n "$conflicts" ]; then
+  echo "" >&2
+  echo "ERROR: hay marcadores de conflicto sin resolver en los cambios." >&2
+  fail=1
+fi
+
+exit $fail
