@@ -62,6 +62,11 @@ final class CoreBridge {
     return op(id).apply(src, params, ctx);
   }
 
+  /** Ejecuta una operación de análisis sin parámetros con el pool compartido. */
+  static OpResult analyze(String id, BufferedImage in) {
+    return run(id, AwtImg.toImg(in), op(id).schema().defaults(), defaultContext());
+  }
+
   /** Aplica {@code id} con el pool compartido. */
   static BufferedImage apply(String id, BufferedImage in, UnaryOperator<Params.Builder> values) {
     return apply(id, in, values, defaultContext());

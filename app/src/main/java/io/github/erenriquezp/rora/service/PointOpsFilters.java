@@ -98,6 +98,8 @@ final class PointOpsFilters {
         return out;
     }
 
+    // Portado al nucleo (analysis.exposure): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static ExposureDiagnostic diagnoseExposure(BufferedImage image) {
         int w = image.getWidth();
         int h = image.getHeight();

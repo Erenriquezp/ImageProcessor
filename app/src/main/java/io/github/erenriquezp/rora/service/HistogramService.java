@@ -26,6 +26,8 @@ final class HistogramService {
      * @param original source image (never mutated)
      * @return new {@link BufferedImage} (800×600, TYPE_INT_RGB) containing the chart
      */
+    // Portado al nucleo (analysis.histogram): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage generateHistogram(BufferedImage original) {
         // ── 1. Count pixel frequencies per channel ────────────────────────────
         int[] histoR = new int[256];

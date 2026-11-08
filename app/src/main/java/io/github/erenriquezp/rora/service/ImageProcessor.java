@@ -2,6 +2,9 @@ package io.github.erenriquezp.rora.service;
 
 import java.awt.image.BufferedImage;
 
+import io.github.erenriquezp.rora.core.op.ChannelHistogram;
+import io.github.erenriquezp.rora.core.op.ExposureStats;
+
 import io.github.erenriquezp.rora.domain.ColorSpaceType;
 import io.github.erenriquezp.rora.domain.ConvolutionKernel;
 import io.github.erenriquezp.rora.domain.DepthSource;
@@ -123,7 +126,9 @@ public final class ImageProcessor {
     // ── Histogram ─────────────────────────────────────────────────────────────
 
     public static BufferedImage generateHistogram(BufferedImage original) {
-        return HistogramService.generateHistogram(original);
+        // El nucleo cuenta; el grafico se dibuja con el mismo codigo Java2D que el legacy.
+        return HistogramChart.draw(CoreBridge.analyze("analysis.histogram", original)
+                .aux(ChannelHistogram.class).orElseThrow());
     }
 
     // ── Blending ──────────────────────────────────────────────────────────────
@@ -234,7 +239,24 @@ public final class ImageProcessor {
     }
 
     public static ExposureDiagnostic diagnoseExposure(BufferedImage original) {
-        return PointOpsFilters.diagnoseExposure(original);
+        ExposureStats s = CoreBridge.analyze("analysis.exposure", original)
+                .aux(ExposureStats.class).orElseThrow();
+        // Mismas expresiones y mismo texto (con el locale por defecto) que el legacy.
+        double pctBurned = (s.burned() * 100.0) / s.total();
+        double pctDark = (s.dark() * 100.0) / s.total();
+
+        StringBuilder sb = new StringBuilder();
+        if (pctBurned > 5) {
+            sb.append(String.format("Imagen quemada (%.1f%% sobreexpuesto)", pctBurned));
+        }
+        if (pctDark > 5) {
+            if (sb.length() > 0) sb.append(" | ");
+            sb.append(String.format("Imagen oscura (%.1f%% subexpuesto)", pctDark));
+        }
+        if (sb.length() == 0) {
+            sb.append("Exposición adecuada");
+        }
+        return new ExposureDiagnostic(pctBurned, pctDark, sb.toString());
     }
 
     public static BufferedImage colorAdjust(BufferedImage original, float gainR, float gainG, float gainB) {
