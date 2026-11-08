@@ -59,6 +59,11 @@ public class StudioApp extends Application {
     return LayoutStore.preferences();
   }
 
+  /** Argumentos de la línea de órdenes; el humo arranca la aplicación sin {@code launch}. */
+  protected List<String> arguments() {
+    return getParameters().getRaw();
+  }
+
   /** ViewModel raíz, para la herramienta de capturas. */
   protected final StudioViewModel<WritableImage> viewModel() {
     return viewModel;
@@ -67,7 +72,7 @@ public class StudioApp extends Application {
   @Override
   public void start(Stage stage) {
     Theme.install();
-    boolean labRequested = labRequested(getParameters().getRaw());
+    boolean labRequested = labRequested(arguments());
     List<LabBundle> labs = labRequested ? LabBundles.discover() : List.of();
     List<ResourceBundle> labLabels = new ArrayList<>();
     List<Catalog.Entry> labEntries = new ArrayList<>();

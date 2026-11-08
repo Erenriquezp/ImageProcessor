@@ -35,6 +35,11 @@ class StudioUiSmoke {
       return LayoutStore.inMemory();
     }
 
+    @Override
+    protected java.util.List<String> arguments() {
+      return java.util.List.of();
+    }
+
     StudioViewModel<WritableImage> vm() {
       return viewModel();
     }
