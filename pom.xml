@@ -15,6 +15,15 @@
         <javafx.version>21.0.6</javafx.version>
         <ikonli.version>12.4.0</ikonli.version>
         <junit.version>5.12.1</junit.version>
+        <!-- Versiones de plugins de calidad (todos de codigo abierto) -->
+        <enforcer.version>3.5.0</enforcer.version>
+        <surefire.version>3.5.3</surefire.version>
+        <spotless.version>2.44.5</spotless.version>
+        <google-java-format.version>1.28.0</google-java-format.version>
+        <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
+        <checkstyle.version>10.21.4</checkstyle.version>
+        <spotbugs-plugin.version>4.9.3.0</spotbugs-plugin.version>
+        <jacoco.version>0.8.14</jacoco.version>
     </properties>
 
     <dependencies>
@@ -68,6 +77,109 @@
                 <configuration>
                     <release>${maven.compiler.release}</release>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${enforcer.version}</version>
+                <executions>
+                    <execution>
+                        <id>enforce-versions</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[21,)</version>
+                                </requireJavaVersion>
+                                <requireMavenVersion>
+                                    <version>[3.9.0,)</version>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire.version}</version>
+            </plugin>
+            <!-- Formato: no se ejecuta en el build; usar "mvn spotless:check" (CI en modo informe) -->
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${spotless.version}</version>
+                <configuration>
+                    <java>
+                        <includes>
+                            <include>src/main/java/**/*.java</include>
+                            <include>src/test/java/**/*.java</include>
+                        </includes>
+                        <googleJavaFormat>
+                            <version>${google-java-format.version}</version>
+                        </googleJavaFormat>
+                    </java>
+                </configuration>
+            </plugin>
+            <!-- Estilo: solo informe, no bloquea el build -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${checkstyle-plugin.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyle.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <configLocation>google_checks.xml</configLocation>
+                    <failOnViolation>false</failOnViolation>
+                    <failsOnError>false</failsOnError>
+                    <consoleOutput>false</consoleOutput>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>checkstyle-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Analisis de bugs: solo informe. Manual: "mvn compile spotbugs:check" (usar JDK 21;
+                 SpotBugs 4.9.3 no lee las clases del JDK 25) -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs-plugin.version}</version>
+                <configuration>
+                    <failOnError>false</failOnError>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>jacoco-prepare</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.openjfx</groupId>

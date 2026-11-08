@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, "fase/**"]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build y tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # verify: compila, ejecuta tests (si existen), Checkstyle (informe) y JaCoCo
+      - name: Build y tests
+        run: ./mvnw -B -ntp verify
+        shell: bash
+
+      - name: Subir informes de calidad
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ matrix.os }}
+          path: |
+            target/site/jacoco/
+            target/checkstyle-result.xml
+          if-no-files-found: ignore
+
+  quality-report:
+    name: Informes de calidad (no bloquean)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Spotless (formato)
+        run: ./mvnw -B -ntp spotless:check
+        continue-on-error: true
+
+      - name: SpotBugs
+        run: ./mvnw -B -ntp compile spotbugs:check
+        continue-on-error: true
