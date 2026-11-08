@@ -1,0 +1,248 @@
+/* Estilos de la interfaz. Los colores vienen siempre de tokens.css. */
+
+.studio-root { -fx-background-color: -token-bg; }
+
+/* Ventana propia (Windows) */
+.window-bar {
+    -fx-background-color: -token-bg;
+    -fx-border-color: transparent transparent -token-border transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.window-brand-icon { -fx-icon-color: -token-accent; }
+.window-brand { -fx-text-fill: -token-text; -fx-font-size: 12px; -fx-font-weight: bold; }
+.window-control {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4;
+    -fx-border-color: transparent;
+    -fx-padding: 6 12 6 12;
+}
+.window-control:hover { -fx-background-color: -token-surface-3; }
+.window-control-icon { -fx-icon-color: -token-text-2; }
+.window-close:hover { -fx-background-color: #b3261e; }
+
+/* Barra superior */
+.top-bar {
+    -fx-background-color: -token-surface-1;
+    -fx-border-color: transparent transparent -token-border transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 8 12 8 12;
+    -fx-spacing: 8;
+    -fx-alignment: center-left;
+}
+.file-name { -fx-text-fill: -token-text-2; -fx-font-size: 12px; }
+.zoom-text { -fx-text-fill: -token-text-2; -fx-font-size: 12px; -fx-min-width: 48px; -fx-alignment: center; }
+
+/* Riel de herramientas */
+.tool-rail {
+    -fx-background-color: -token-surface-1;
+    -fx-border-color: transparent -token-border transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-padding: 8 0 8 0;
+    -fx-spacing: 4;
+    -fx-alignment: top-center;
+    -fx-pref-width: 68px;
+    -fx-min-width: 68px;
+    -fx-max-width: 68px;
+}
+.tool-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4;
+    -fx-border-color: transparent;
+    -fx-content-display: top;
+    -fx-graphic-text-gap: 3;
+    -fx-font-size: 12px;
+    -fx-padding: 8 2 6 2;
+    -fx-pref-width: 62px;
+    -fx-text-fill: -token-text-2;
+}
+.tool-button .ikonli-font-icon { -fx-icon-color: -token-text-2; -fx-icon-size: 16; }
+.tool-button:hover { -fx-background-color: -token-surface-3; }
+.tool-button:selected { -fx-background-color: -token-select; -fx-text-fill: -token-text; }
+.tool-button:selected .ikonli-font-icon { -fx-icon-color: -token-accent; }
+
+/* Cajón izquierdo */
+.drawer {
+    -fx-background-color: -token-surface-1;
+    -fx-border-color: transparent -token-border transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-padding: 12;
+    -fx-spacing: 12;
+    -fx-pref-width: 268px;
+    -fx-min-width: 268px;
+    -fx-max-width: 268px;
+}
+.panel-title { -fx-text-fill: -token-text; -fx-font-size: 15px; -fx-font-weight: bold; }
+.catalog-category { -fx-text-fill: -token-text-2; -fx-font-size: 12px; -fx-font-weight: bold; -fx-padding: 8 0 2 0; }
+.catalog-row {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-alignment: center-left;
+    -fx-graphic-text-gap: 10;
+    -fx-padding: 6 8 6 8;
+    -fx-background-radius: 4;
+    -fx-text-fill: -token-text;
+}
+.catalog-row .ikonli-font-icon { -fx-icon-color: -token-text-2; -fx-icon-size: 13; }
+.catalog-row:hover { -fx-background-color: -token-surface-3; }
+.hint { -fx-text-fill: -token-text-2; -fx-font-size: 12px; }
+
+/* Visor */
+.viewer-stage { -fx-background-color: -token-canvas; }
+.drop-zone {
+    -fx-border-color: -token-border-strong;
+    -fx-border-style: dashed;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 8;
+    -fx-padding: 40 64 40 64;
+    -fx-spacing: 10;
+    -fx-alignment: center;
+    -fx-max-width: 420px;
+    -fx-max-height: 240px;
+}
+.drop-zone-active { -fx-border-color: -token-accent; -fx-background-color: -token-select; -fx-background-radius: 8; }
+.drop-icon { -fx-icon-color: -token-text-3; -fx-icon-size: 34; }
+.empty-title { -fx-text-fill: -token-text; -fx-font-size: 15px; -fx-font-weight: bold; }
+.empty-text { -fx-text-fill: -token-text-2; -fx-font-size: 12px; }
+
+.curtain-line { -fx-stroke: -token-accent; -fx-stroke-width: 1.5; }
+.curtain-handle {
+    -fx-background-color: -token-accent;
+    -fx-background-radius: 16;
+    -fx-min-width: 32px;
+    -fx-min-height: 32px;
+    -fx-max-width: 32px;
+    -fx-max-height: 32px;
+    -fx-alignment: center;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.45), 8, 0, 0, 2);
+}
+.curtain-handle .ikonli-font-icon { -fx-icon-color: #10253a; -fx-icon-size: 14; }
+.curtain-label {
+    -fx-background-color: rgba(22,22,22,0.82);
+    -fx-background-radius: 4;
+    -fx-text-fill: -token-text;
+    -fx-font-size: 12px;
+    -fx-padding: 3 8 3 8;
+}
+.clip-legend {
+    -fx-background-color: rgba(22,22,22,0.86);
+    -fx-background-radius: 4;
+    -fx-padding: 6 10 6 10;
+    -fx-spacing: 2;
+}
+.clip-legend .label { -fx-text-fill: -token-text; -fx-font-size: 12px; }
+
+.crop-border { -fx-stroke: -token-text; -fx-stroke-width: 1; -fx-fill: transparent; }
+.crop-third { -fx-stroke: rgba(237,237,237,0.45); -fx-stroke-width: 1; }
+.crop-handle { -fx-fill: -token-text; -fx-stroke: -token-canvas; -fx-stroke-width: 1; }
+.crop-shade { -fx-fill: rgba(0,0,0,0.58); }
+
+/* Inspector */
+.inspector {
+    -fx-background-color: -token-surface-1;
+    -fx-border-color: transparent transparent transparent -token-border;
+    -fx-border-width: 0 0 0 1;
+}
+.histogram-box {
+    -fx-padding: 10 12 10 12;
+    -fx-spacing: 6;
+    -fx-border-color: transparent transparent -token-border transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.histogram-canvas-box { -fx-background-color: -token-canvas; -fx-background-radius: 4; }
+.hist-clip { -fx-text-fill: -token-text-2; -fx-font-size: 12px; }
+.section-note { -fx-text-fill: -token-text-3; -fx-font-size: 12px; }
+
+.inspector .split-pane { -fx-background-color: transparent; -fx-padding: 0; }
+.inspector .split-pane-divider { -fx-background-color: -token-border; -fx-padding: 0 0 1 0; }
+
+.context-scroll { -fx-background-color: transparent; -fx-background: -token-surface-1; }
+.context-scroll > .viewport { -fx-background-color: transparent; }
+.context-body { -fx-padding: 8 12 12 12; -fx-spacing: 6; }
+
+.control-row { -fx-spacing: 1; -fx-padding: 2 0 2 0; }
+.control-label { -fx-text-fill: -token-text-2; -fx-font-size: 12px; }
+.control-value {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: -token-text;
+    -fx-font-size: 12px;
+    -fx-alignment: center-right;
+    -fx-padding: 0 2 0 2;
+    -fx-pref-width: 58px;
+    -fx-max-width: 58px;
+}
+.control-value:focused { -fx-background-color: -token-surface-3; -fx-background-radius: 3; }
+.control-modified .control-value { -fx-text-fill: -token-accent; }
+.reset-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 2 4 2 4;
+}
+.reset-button .ikonli-font-icon { -fx-icon-color: -token-text-2; -fx-icon-size: 11; }
+.reset-button:hover .ikonli-font-icon { -fx-icon-color: -token-text; }
+
+.titled-pane { -fx-background-color: transparent; -fx-border-color: transparent; -fx-effect: null; }
+.titled-pane > .title { -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 4 0 4 0; }
+.titled-pane > .title > .text { -fx-font-weight: bold; }
+.titled-pane > *.content { -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0 0 6 0; }
+
+.back-link { -fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: -token-accent; -fx-padding: 2 0 2 0; -fx-font-size: 12px; }
+.back-link .ikonli-font-icon { -fx-icon-color: -token-accent; -fx-icon-size: 11; }
+
+/* Pila */
+.stack-box { -fx-padding: 8 0 0 0; -fx-spacing: 4; }
+.stack-header { -fx-padding: 0 12 0 12; -fx-text-fill: -token-text; -fx-font-weight: bold; }
+.stack-empty { -fx-padding: 4 12 8 12; -fx-text-fill: -token-text-2; -fx-font-size: 12px; -fx-wrap-text: true; }
+.stack-list { -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; }
+.stack-list .list-cell { -fx-background-color: transparent; -fx-padding: 0; -fx-border-color: transparent; }
+.stack-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected { -fx-background-color: transparent; }
+.stack-row { -fx-padding: 5 8 5 4; -fx-spacing: 6; -fx-alignment: center-left; -fx-background-radius: 3; }
+.stack-row:hover { -fx-background-color: -token-surface-3; }
+.stack-row:current { -fx-background-color: -token-select; }
+.stack-row:drop-target { -fx-border-color: -token-accent transparent transparent transparent; -fx-border-width: 2 0 0 0; }
+.stack-name { -fx-text-fill: -token-text; }
+.stack-name:off { -fx-text-fill: -token-text-3; }
+.stack-summary { -fx-text-fill: -token-text-2; -fx-font-size: 12px; }
+.stack-icon-button { -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 2 4 2 4; }
+.stack-icon-button .ikonli-font-icon { -fx-icon-color: -token-text-2; -fx-icon-size: 12; }
+.stack-icon-button:hover .ikonli-font-icon { -fx-icon-color: -token-text; }
+.stack-toggle-on .ikonli-font-icon { -fx-icon-color: -token-accent; }
+.stack-grip { -fx-icon-color: -token-text-3; -fx-icon-size: 11; }
+
+/* Barra de estado */
+.status-bar {
+    -fx-background-color: -token-surface-1;
+    -fx-border-color: -token-border transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 5 12 5 12;
+    -fx-spacing: 14;
+    -fx-alignment: center-left;
+}
+.status-bar .label { -fx-text-fill: -token-text-2; -fx-font-size: 12px; }
+.status-swatch { -fx-min-width: 10px; -fx-min-height: 10px; -fx-max-width: 10px; -fx-max-height: 10px; -fx-background-radius: 2; -fx-border-color: -token-border-strong; -fx-border-radius: 2; }
+
+/* Avisos */
+.notice-stack { -fx-padding: 12; -fx-spacing: 8; -fx-alignment: top-right; }
+.notice {
+    -fx-background-color: -token-surface-2;
+    -fx-background-radius: 8;
+    -fx-border-color: -token-border;
+    -fx-border-radius: 8;
+    -fx-padding: 10 12 10 12;
+    -fx-spacing: 6;
+    -fx-max-width: 340px;
+    -fx-pref-width: 340px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 14, 0, 0, 4);
+}
+.notice-error { -fx-border-color: -token-danger; }
+.notice-title { -fx-text-fill: -token-text; -fx-font-weight: bold; -fx-wrap-text: true; }
+.notice-icon-error { -fx-icon-color: -token-danger; -fx-icon-size: 14; }
+.notice-icon-info { -fx-icon-color: -token-ok; -fx-icon-size: 14; }
+.notice-details { -fx-text-fill: -token-text-2; -fx-font-size: 12px; -fx-wrap-text: true; }
+.notice-link { -fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: -token-accent; -fx-padding: 0 8 0 0; -fx-font-size: 12px; }
+
+/* Foco de teclado visible en los controles propios */
+.tool-button:focused, .catalog-row:focused, .stack-icon-button:focused, .reset-button:focused, .notice-link:focused, .back-link:focused {
+    -fx-border-color: -token-accent;
+    -fx-border-radius: 4;
+}

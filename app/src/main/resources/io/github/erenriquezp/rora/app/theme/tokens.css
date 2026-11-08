@@ -1,0 +1,49 @@
+/* Tokens de diseño de la interfaz. Redefine las variables de AtlantaFX para que sus controles los
+   hereden. TokenContrastTest comprueba el contraste de estos valores. */
+.root {
+    /* Superficies, de la más profunda a la más elevada. La foto se rodea de gris neutro. */
+    -token-canvas: #161616;
+    -token-bg: #1c1c1c;
+    -token-surface-1: #242424;
+    -token-surface-2: #2e2e2e;
+    -token-surface-3: #383838;
+    -token-border: #454545;
+    -token-border-strong: #6e6e6e;
+
+    /* Texto */
+    -token-text: #ededed;
+    -token-text-2: #b8b8b8;
+    -token-text-3: #a3a3a3;
+
+    /* Estado: el azul solo señala selección, foco y valores modificados */
+    -token-accent: #6aaef2;
+    -token-accent-fill: #2b6cb0;
+    -token-on-accent: #ffffff;
+    -token-select: #1f3a57;
+    -token-danger: #f28b82;
+    -token-warn: #e6b450;
+    -token-ok: #74c69d;
+
+    /* AtlantaFX */
+    -color-fg-default: -token-text;
+    -color-fg-muted: -token-text-2;
+    -color-fg-subtle: -token-text-3;
+    -color-fg-emphasis: -token-on-accent;
+    -color-bg-default: -token-bg;
+    -color-bg-overlay: -token-surface-2;
+    -color-bg-subtle: -token-surface-1;
+    -color-bg-inset: -token-canvas;
+    -color-border-default: -token-border;
+    -color-border-muted: -token-border;
+    -color-border-subtle: -token-border;
+    -color-neutral-emphasis: -token-border-strong;
+    -color-neutral-emphasis-plus: -token-border-strong;
+    -color-accent-fg: -token-accent;
+    -color-accent-emphasis: -token-accent-fill;
+    -color-danger-fg: -token-danger;
+    -color-warning-fg: -token-warn;
+    -color-success-fg: -token-ok;
+
+    -fx-font-family: "IBM Plex Sans";
+    -fx-font-size: 13px;
+}
