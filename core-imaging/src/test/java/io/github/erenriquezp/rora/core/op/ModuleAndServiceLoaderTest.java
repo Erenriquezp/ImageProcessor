@@ -41,7 +41,8 @@ class ModuleAndServiceLoaderTest {
             "io.github.erenriquezp.rora.core.image",
             "io.github.erenriquezp.rora.core.color",
             "io.github.erenriquezp.rora.core.op",
-            "io.github.erenriquezp.rora.core.exec");
+            "io.github.erenriquezp.rora.core.exec",
+            "io.github.erenriquezp.rora.core.io");
     assertThat(descriptor().uses()).containsExactly(Operation.class.getName());
   }
 
