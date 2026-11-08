@@ -11,11 +11,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Calidad: maven-enforcer, Spotless, Checkstyle, SpotBugs (manual) y JaCoCo.
 - Hooks locales de Git (Conventional Commits) en `tools/`.
 - `.gitignore`, `.gitattributes` y `.editorconfig`.
+- Red de seguridad de pruebas (fase 0): JUnit 5, AssertJ, tests parametrizados de caracterización con goldens y propiedades, defectos conocidos documentados (`docs/TESTING.md`).
+- CI con matriz Ubuntu/Windows × JDK 21/25, informes de JaCoCo y surefire como artefactos, job de SpotBugs.
 
 ### Changed
 - Maven wrapper actualizado a Maven 3.9.11.
 - README actualizado: requisito real de JDK 21+.
 - Captura de pantalla movida a `docs/img/`.
+- Surefire en modo headless; Spotless solo comprueba el código modificado (`ratchetFrom`).
 
 ### Removed
 - Archivos de IDE (`.idea/`) y notas de planeación sacados del control de versiones.
