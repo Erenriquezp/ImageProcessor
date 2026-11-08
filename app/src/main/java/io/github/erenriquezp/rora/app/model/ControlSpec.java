@@ -47,9 +47,15 @@ public sealed interface ControlSpec {
       return Math.max(min, Math.min(max, value));
     }
 
-    /** Ajusta a los decimales del control y al rango, para que el valor guardado sea limpio. */
+    /**
+     * Ajusta al rango y a la resolución del control (un decimal más que el paso, el del paso fino),
+     * para que el valor guardado sea limpio.
+     */
     public double normalize(double value) {
-      double p = Math.pow(10, decimals);
+      if (integer) {
+        return clamp(Math.round(value));
+      }
+      double p = Math.pow(10, decimals + 1);
       return clamp(Math.round(value * p) / p);
     }
 

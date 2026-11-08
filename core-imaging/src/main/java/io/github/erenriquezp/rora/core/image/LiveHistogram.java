@@ -6,10 +6,11 @@ import java.util.Objects;
 /**
  * Histograma para el panel en vivo: 256 niveles de R, G, B y luminancia (Rec. 709 sobre los valores
  * codificados), y porcentaje de píxeles recortados. Un píxel está recortado en luces si algún canal
- * vale 255 y en sombras si alguno vale 0. Los píxeles con alpha 0 no cuentan.
+ * vale 255 y en sombras si los tres valen 0 (un canal a 0 es normal en colores saturados). Los
+ * píxeles con alpha 0 no cuentan.
  *
  * @param highlightsPct porcentaje de píxeles contados con algún canal en 255
- * @param shadowsPct porcentaje de píxeles contados con algún canal en 0
+ * @param shadowsPct porcentaje de píxeles contados en negro puro
  * @param counted píxeles con alpha mayor que 0
  */
 public record LiveHistogram(
@@ -57,7 +58,7 @@ public record LiveHistogram(
         if (red == 255 || green == 255 || blue == 255) {
           highlights++;
         }
-        if (red == 0 || green == 0 || blue == 0) {
+        if (red == 0 && green == 0 && blue == 0) {
           shadows++;
         }
       }

@@ -23,8 +23,8 @@ class LiveHistogramTest {
   }
 
   @Test
-  void aPixelIsClippedWhenAnyChannelReachesTheLimit() {
-    LiveHistogram h = of(0xFFFF8080, 0xFF808000, 0xFF808080, 0xFF808080);
+  void highlightsClipOnAnyChannelAndShadowsOnPureBlack() {
+    LiveHistogram h = of(0xFFFF8080, 0xFF808000, 0xFF000000, 0xFF808080);
     assertThat(h.highlightsPct()).isEqualTo(25.0);
     assertThat(h.shadowsPct()).isEqualTo(25.0);
   }
