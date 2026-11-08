@@ -29,6 +29,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
         <javafx.version>25.0.5</javafx.version>
+        <atlantafx.version>2.1.0</atlantafx.version>
         <ikonli.version>12.4.0</ikonli.version>
         <junit.version>5.12.1</junit.version>
         <!-- Versiones de plugins de calidad (todos de codigo abierto) -->
@@ -68,6 +69,12 @@
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-controls</artifactId>
                 <version>${javafx.version}</version>
+            </dependency>
+            <!-- MIT (POM y LICENSE del proyecto). La 3.0.0 esta compilada contra JavaFX 27 -->
+            <dependency>
+                <groupId>io.github.mkpaz</groupId>
+                <artifactId>atlantafx-base</artifactId>
+                <version>${atlantafx.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.kordamp.ikonli</groupId>
