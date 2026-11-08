@@ -43,6 +43,21 @@ public final class Params {
     return schema;
   }
 
+  /**
+   * Los mismos valores asociados a {@code target}, que debe ser igual (por valor) a {@link
+   * #schema()}; devuelve {@code this} si ya es la misma instancia. Sirve para aplicar con una
+   * operación unos parámetros construidos con otra instancia de su esquema.
+   */
+  public Params withSchema(ParamSchema target) {
+    if (target == schema) {
+      return this;
+    }
+    if (!schema.equals(target)) {
+      throw new IllegalArgumentException("Esquema distinto: " + target + " vs " + schema);
+    }
+    return new Params(target, values);
+  }
+
   /** Copia editable de estos valores. */
   public Builder toBuilder() {
     Builder b = new Builder(schema);
