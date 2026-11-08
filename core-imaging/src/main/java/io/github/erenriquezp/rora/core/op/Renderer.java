@@ -3,6 +3,7 @@ package io.github.erenriquezp.rora.core.op;
 import io.github.erenriquezp.rora.core.exec.Progress;
 import io.github.erenriquezp.rora.core.image.Downscale;
 import io.github.erenriquezp.rora.core.image.Img;
+import io.github.erenriquezp.rora.core.image.ProxyPolicy.Size;
 import io.github.erenriquezp.rora.core.op.ParamDef.DecimalParam;
 import io.github.erenriquezp.rora.core.op.ParamDef.IntParam;
 import java.util.ArrayList;
@@ -17,7 +18,7 @@ import java.util.Optional;
  *
  * <ol>
  *   <li>PREVIEW: obtiene (o calcula y cachea) el proxy y escala los parámetros {@link
- *       ParamUnit#PIXELS} por {@code anchoProxy / anchoCompleto}.
+ *       ParamUnit#PIXELS} por la proporción entre preview y completa <b>en ese paso</b>.
  *   <li>Busca en la caché el prefijo calculado más largo y solo calcula el resto.
  *   <li>Tramos de operaciones puntuales consecutivas se fusionan ({@link PointFusion}) si la fusión
  *       está activada; nunca a través del final de la cabeza confirmada.
@@ -77,7 +78,9 @@ public final class Renderer {
 
   /** Pasos tal como se ejecutan (activos, esquema de la operación, PIXELS escalados en preview). */
   public List<OpSpec> executedSteps(Request req) {
-    double scale = scaleOf(req);
+    Size full = new Size(req.source().full().width(), req.source().full().height());
+    Size preview =
+        req.level() instanceof RenderLevel.Preview pv ? new Size(pv.width(), pv.height()) : full;
     List<OpSpec> out = new ArrayList<>();
     for (OpSpec s : req.steps()) {
       if (!s.enabled()) {
@@ -85,10 +88,11 @@ public final class Renderer {
       }
       Operation op = registry.require(s.opId());
       Params p = s.params().withSchema(op.schema());
-      if (scale < 1) {
-        p = scalePixels(p, scale);
-      }
-      out.add(new OpSpec(s.opId(), p, true));
+      double scale = Math.min(1.0, (double) preview.width() / full.width());
+      Params executed = scale < 1 ? op.forPreview(p, scale, full, preview) : p;
+      out.add(new OpSpec(s.opId(), executed, true));
+      full = op.outputSize(full, p);
+      preview = op.outputSize(preview, executed);
     }
     return out;
   }
@@ -193,13 +197,6 @@ public final class Renderer {
 
   private static boolean isPoint(Operation op, OpSpec s) {
     return op instanceof PointOperation && op.kind(s.params()) instanceof OpKind.Point;
-  }
-
-  private static double scaleOf(Request req) {
-    if (req.level() instanceof RenderLevel.Preview pv) {
-      return Math.min(1.0, (double) pv.width() / req.source().full().width());
-    }
-    return 1.0;
   }
 
   /**
