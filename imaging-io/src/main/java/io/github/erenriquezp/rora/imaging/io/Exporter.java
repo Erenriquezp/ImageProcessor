@@ -132,6 +132,33 @@ public final class Exporter {
     }
   }
 
+  /**
+   * Peso aproximado de exportar a {@code targetWidth × targetHeight}: codifica {@code preview} en
+   * memoria y escala por píxeles. No escribe nada en disco.
+   */
+  public static long estimateBytes(
+      Img preview, ExportSettings settings, int targetWidth, int targetHeight, CancellationToken t)
+      throws ImagingException {
+    CountingOutputStream counter = new CountingOutputStream();
+    long bytes;
+    switch (settings.format()) {
+      case JPEG -> {
+        new JpegEncoder()
+            .encodeTo(preview, settings, ImageMetadata.EMPTY, counter, t, Progress.NONE);
+        bytes = counter.count();
+      }
+      case PNG -> {
+        new PngEncoder()
+            .encodeTo(preview, settings, ImageMetadata.EMPTY, counter, t, Progress.NONE);
+        bytes = counter.count();
+      }
+      default -> bytes = new TiffEncoder().sizeInMemory(preview, settings, t);
+    }
+    double scale =
+        ((double) targetWidth * targetHeight) / ((double) preview.width() * preview.height());
+    return Math.round(bytes * scale);
+  }
+
   private static long sizeOf(Path file) throws ImagingException {
     try {
       return Files.size(file);

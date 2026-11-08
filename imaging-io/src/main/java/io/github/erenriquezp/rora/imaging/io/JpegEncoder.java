@@ -56,15 +56,30 @@ public final class JpegEncoder implements ImageEncoder {
       CancellationToken token,
       Progress progress)
       throws ImagingException {
+    try (OutputStream file = new BufferedOutputStream(Files.newOutputStream(target))) {
+      encodeTo(image, s, m, file, token, progress);
+    } catch (IOException e) {
+      throw EncoderSupport.translate(e);
+    }
+  }
+
+  /** Codifica en {@code sink}, sin cerrarlo. */
+  void encodeTo(
+      Img image,
+      ExportSettings s,
+      ImageMetadata m,
+      OutputStream sink,
+      CancellationToken token,
+      Progress progress)
+      throws ImagingException {
     EncoderSupport.throwIfCancelled(token);
     int[] px = image.toArray();
     AlphaFlatten.flatten(px, s.background());
     BufferedImage bi = EncoderSupport.wrap(px, image.width(), image.height(), false);
     ImageWriter writer = Codecs.writer(FormatId.JPEG);
-    try (OutputStream file = new BufferedOutputStream(Files.newOutputStream(target));
-        InjectingOutputStream injecting =
+    try (InjectingOutputStream injecting =
             new InjectingOutputStream(
-                file,
+                EncoderSupport.keepOpen(sink),
                 segments(m, s, image.width(), image.height()),
                 InjectingOutputStream::afterJpegApp0);
         ImageOutputStream out = new MemoryCacheImageOutputStream(injecting)) {

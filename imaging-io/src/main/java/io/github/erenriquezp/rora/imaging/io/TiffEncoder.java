@@ -28,6 +28,7 @@ import javax.imageio.plugins.tiff.TIFFField;
 import javax.imageio.plugins.tiff.TIFFTag;
 import javax.imageio.stream.FileImageOutputStream;
 import javax.imageio.stream.ImageOutputStream;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
 
 /** TIFF sin pérdida. De los metadatos solo se escriben las etiquetas base de texto. */
 public final class TiffEncoder implements ImageEncoder {
@@ -127,6 +128,32 @@ public final class TiffEncoder implements ImageEncoder {
       super.write(b, off, len);
       wrote(len);
     }
+  }
+
+  /** Tamaño en bytes sin escribir a disco; solo para estimar. */
+  long sizeInMemory(Img image, ExportSettings s, CancellationToken token) throws ImagingException {
+    EncoderSupport.throwIfCancelled(token);
+    int[] px = image.toArray();
+    BufferedImage bi =
+        EncoderSupport.wrap(px, image.width(), image.height(), EncoderSupport.hasAlpha(px));
+    ImageWriter writer = Codecs.writer(FormatId.TIFF);
+    CountingOutputStream counter = new CountingOutputStream();
+    try (ImageOutputStream out = new MemoryCacheImageOutputStream(counter)) {
+      writer.setOutput(out);
+      ImageWriteParam param = writer.getDefaultWriteParam();
+      if (s.tiff() == ExportSettings.TiffCompression.NONE) {
+        param.setCompressionMode(ImageWriteParam.MODE_DISABLED);
+      } else {
+        param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+        param.setCompressionType(compression(s.tiff()));
+      }
+      writer.write(null, new IIOImage(bi, null, null), param);
+    } catch (IOException | RuntimeException e) {
+      throw EncoderSupport.translate(e);
+    } finally {
+      writer.dispose();
+    }
+    return counter.count();
   }
 
   private static String compression(ExportSettings.TiffCompression c) {

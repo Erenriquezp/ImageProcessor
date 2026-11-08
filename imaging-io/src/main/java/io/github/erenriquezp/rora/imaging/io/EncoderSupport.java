@@ -10,7 +10,9 @@ import java.awt.image.DirectColorModel;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
 import java.io.ByteArrayOutputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.zip.CRC32;
@@ -32,6 +34,21 @@ final class EncoderSupport {
     ColorModel cm =
         alpha ? ColorModel.getRGBdefault() : new DirectColorModel(24, 0xFF0000, 0xFF00, 0xFF);
     return new BufferedImage(cm, r, false, null);
+  }
+
+  /** {@code out} sin que cerrar el envoltorio lo cierre: lo cierra quien lo abrió. */
+  static OutputStream keepOpen(OutputStream out) {
+    return new FilterOutputStream(out) {
+      @Override
+      public void write(byte[] b, int off, int len) throws IOException {
+        out.write(b, off, len);
+      }
+
+      @Override
+      public void close() throws IOException {
+        out.flush();
+      }
+    };
   }
 
   /** ¿Algún píxel no es opaco? */

@@ -46,15 +46,30 @@ public final class PngEncoder implements ImageEncoder {
       CancellationToken token,
       Progress progress)
       throws ImagingException {
+    try (OutputStream file = new BufferedOutputStream(Files.newOutputStream(target))) {
+      encodeTo(image, s, m, file, token, progress);
+    } catch (IOException e) {
+      throw EncoderSupport.translate(e);
+    }
+  }
+
+  /** Codifica en {@code sink}, sin cerrarlo. */
+  void encodeTo(
+      Img image,
+      ExportSettings s,
+      ImageMetadata m,
+      OutputStream sink,
+      CancellationToken token,
+      Progress progress)
+      throws ImagingException {
     EncoderSupport.throwIfCancelled(token);
     int[] px = image.toArray();
     BufferedImage bi =
         EncoderSupport.wrap(px, image.width(), image.height(), EncoderSupport.hasAlpha(px));
     ImageWriter writer = Codecs.writer(FormatId.PNG);
-    try (OutputStream file = new BufferedOutputStream(Files.newOutputStream(target));
-        InjectingOutputStream injecting =
+    try (InjectingOutputStream injecting =
             new InjectingOutputStream(
-                file,
+                EncoderSupport.keepOpen(sink),
                 chunks(m, s, image.width(), image.height()),
                 InjectingOutputStream::afterPngIhdr);
         ImageOutputStream out = new MemoryCacheImageOutputStream(injecting)) {
