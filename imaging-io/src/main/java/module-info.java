@@ -11,4 +11,8 @@ module io.github.erenriquezp.rora.imaging.io {
 
   provides io.github.erenriquezp.rora.core.io.ImageDecoder with
       io.github.erenriquezp.rora.imaging.io.ImageIoDecoder;
+  provides io.github.erenriquezp.rora.core.io.ImageEncoder with
+      io.github.erenriquezp.rora.imaging.io.JpegEncoder,
+      io.github.erenriquezp.rora.imaging.io.PngEncoder,
+      io.github.erenriquezp.rora.imaging.io.TiffEncoder;
 }
