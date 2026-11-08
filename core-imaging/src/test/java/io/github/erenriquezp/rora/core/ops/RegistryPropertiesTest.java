@@ -79,6 +79,7 @@ class RegistryPropertiesTest {
             "color.negative",
             "color.recolor",
             "color.threshold-bw",
+            "detail.unsharp-mask",
             "fragment.blend-color",
             "point.color-gain",
             "point.hue-rotate",

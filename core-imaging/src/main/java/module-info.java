@@ -16,6 +16,7 @@ module io.github.erenriquezp.rora.core {
       io.github.erenriquezp.rora.core.ops.accum.MotionAccumulationOp,
       io.github.erenriquezp.rora.core.ops.adjust.AdjustBasicOp,
       io.github.erenriquezp.rora.core.ops.blur.GaussianBlurOp,
+      io.github.erenriquezp.rora.core.ops.detail.UnsharpMaskOp,
       io.github.erenriquezp.rora.core.ops.analysis.ExposureOp,
       io.github.erenriquezp.rora.core.ops.analysis.HistogramOp,
       io.github.erenriquezp.rora.core.ops.artistic.CircularFadeOp,

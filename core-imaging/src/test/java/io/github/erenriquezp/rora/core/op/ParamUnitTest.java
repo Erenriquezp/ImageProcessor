@@ -53,6 +53,9 @@ class ParamUnitTest {
       }
     }
     assertThat(pixels).containsExactly(
-            "accum.motion.displacement", "blur.gaussian.radius", "raster.pixelate.block");
+            "accum.motion.displacement",
+            "blur.gaussian.radius",
+            "detail.unsharp-mask.radius",
+            "raster.pixelate.block");
   }
 }
