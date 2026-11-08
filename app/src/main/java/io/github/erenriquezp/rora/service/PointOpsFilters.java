@@ -26,6 +26,8 @@ final class PointOpsFilters {
      * <li>{@link EqualizeMode#LUMINANCE} — ecualiza Y (BT.709) y reescala RGB</li>
      * </ul>
      */
+    // Portado al núcleo (tone.equalize): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage histogramEqualize(BufferedImage original, EqualizeMode mode, float factor, boolean markBurned, boolean markDark) {
         BufferedImage equalized = mode == EqualizeMode.LUMINANCE
                 ? equalizeLuminance(original)
@@ -351,6 +353,8 @@ final class PointOpsFilters {
     // ── Saturación ───────────────────────────────────────────────────────────
 
     /** Factor de saturación en HSV ({@code 0} = gris, {@code 1} = original, {@code >1} = más vivo). */
+    // Portado al núcleo (point.saturation): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage pointSaturation(BufferedImage original, float factor) {
         int w = original.getWidth();
         int h = original.getHeight();

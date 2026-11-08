@@ -10,4 +10,10 @@ module io.github.erenriquezp.rora.core {
   exports io.github.erenriquezp.rora.core.exec;
 
   uses io.github.erenriquezp.rora.core.op.Operation;
+
+  // Añadir una operación = 1 clase + 1 línea aquí.
+  provides io.github.erenriquezp.rora.core.op.Operation with
+      io.github.erenriquezp.rora.core.ops.point.SaturationOp,
+      io.github.erenriquezp.rora.core.ops.raster.PixelateOp,
+      io.github.erenriquezp.rora.core.ops.tone.EqualizeOp;
 }

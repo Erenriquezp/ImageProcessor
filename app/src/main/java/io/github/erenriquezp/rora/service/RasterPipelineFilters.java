@@ -71,6 +71,8 @@ final class RasterPipelineFilters {
     // ── 1. Bitmap / pixelación ───────────────────────────────────────────────
 
     /** Rasteriza la imagen en bloques NxN (bitmap discreto). */
+    // Portado al núcleo (raster.pixelate): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage bitmapPixelate(BufferedImage original, int blockSize) {
         int w = original.getWidth();
         int h = original.getHeight();

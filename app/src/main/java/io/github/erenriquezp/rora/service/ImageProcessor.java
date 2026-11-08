@@ -148,7 +148,7 @@ public final class ImageProcessor {
     }
 
     public static BufferedImage bitmapPixelate(BufferedImage original, int blockSize) {
-        return RasterPipelineFilters.bitmapPixelate(original, blockSize);
+        return CoreBridge.apply("raster.pixelate", original, p -> p.set("block", blockSize));
     }
 
     public static BufferedImage rasterGrid(BufferedImage original, int blockSize) {
@@ -196,7 +196,13 @@ public final class ImageProcessor {
     // ── Histograma / operaciones por punto ────────────────────────────────────
 
     public static BufferedImage histogramEqualize(BufferedImage original, EqualizeMode mode, float factor, boolean markBurned, boolean markDark) {
-        return PointOpsFilters.histogramEqualize(original, mode, factor, markBurned, markDark);
+        // Como el legacy: cualquier modo distinto de LUMINANCE (incluido null) es RGB.
+        String modeId = mode == EqualizeMode.LUMINANCE ? "luminance" : "rgb";
+        return CoreBridge.apply("tone.equalize", original, p -> p
+                .set("mode", modeId)
+                .set("factor", factor)
+                .set("markBurned", markBurned)
+                .set("markDark", markDark));
     }
 
     public static ExposureDiagnostic diagnoseExposure(BufferedImage original) {
@@ -230,7 +236,7 @@ public final class ImageProcessor {
     }
 
     public static BufferedImage pointSaturation(BufferedImage original, float factor) {
-        return PointOpsFilters.pointSaturation(original, factor);
+        return CoreBridge.apply("point.saturation", original, p -> p.set("factor", factor));
     }
 
     public static BufferedImage hueRotate(BufferedImage original, float degrees) {
