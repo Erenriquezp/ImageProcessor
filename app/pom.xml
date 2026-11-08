@@ -60,7 +60,19 @@
             <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Reglas de arquitectura (fase 2). Apache-2.0, verificado en su POM de Maven Central -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
+            <version>${archunit.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <properties>
+        <skip.memory>false</skip.memory>
+        <archunit.version>1.4.1</archunit.version>
+    </properties>
 
     <build>
         <plugins>
@@ -77,6 +89,37 @@
                         </goals>
                         <configuration>
                             <includeCurrentProject>true</includeCurrentProject>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Fase 2: el test de memoria corre aparte, en un JVM con -Xmx1536m (saltable con -Dskip.memory=true) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/*MemoryTest.java</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>memory</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.memory}</skip>
+                            <excludes combine.self="override"/>
+                            <includes>
+                                <include>**/*MemoryTest.java</include>
+                            </includes>
+                            <forkCount>1</forkCount>
+                            <reuseForks>false</reuseForks>
+                            <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
+                            <reportsDirectory>${project.build.directory}/surefire-reports-memory</reportsDirectory>
+                            <argLine>@{argLine} -Xmx1536m -XX:+UseG1GC -Xlog:gc*:file=${project.build.directory}/memory-gc.log -Djava.awt.headless=true -Dfile.encoding=UTF-8</argLine>
                         </configuration>
                     </execution>
                 </executions>

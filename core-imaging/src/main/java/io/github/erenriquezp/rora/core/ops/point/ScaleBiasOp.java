@@ -1,17 +1,16 @@
 package io.github.erenriquezp.rora.core.ops.point;
 
 import io.github.erenriquezp.rora.core.exec.BandKernel;
-import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.op.OpMeta;
 import io.github.erenriquezp.rora.core.op.ParamDef.DecimalParam;
 import io.github.erenriquezp.rora.core.op.ParamSchema;
 import io.github.erenriquezp.rora.core.op.Params;
 import io.github.erenriquezp.rora.core.ops.PixelOps;
-import io.github.erenriquezp.rora.core.ops.SimpleBandOp;
+import io.github.erenriquezp.rora.core.ops.SimplePointOp;
 import java.util.OptionalDouble;
 
 /** {@code clamp(round(c · scale + bias))} en {@code float}. Port de {@code scaleBias}. */
-public final class ScaleBiasOp extends SimpleBandOp {
+public final class ScaleBiasOp extends SimplePointOp {
 
   public ScaleBiasOp() {
     super(
@@ -25,7 +24,7 @@ public final class ScaleBiasOp extends SimpleBandOp {
   }
 
   @Override
-  protected BandKernel prepare(Img src, Params params) {
+  public BandKernel pointKernel(Params params, int width, int height) {
     float scale = params.getFloat("scale");
     float bias = params.getFloat("bias");
     return (in, out, w, h, y0, y1) -> {

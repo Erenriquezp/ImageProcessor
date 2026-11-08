@@ -2,12 +2,11 @@ package io.github.erenriquezp.rora.core.ops.point;
 
 import io.github.erenriquezp.rora.core.color.Hsb;
 import io.github.erenriquezp.rora.core.exec.BandKernel;
-import io.github.erenriquezp.rora.core.image.Img;
-import io.github.erenriquezp.rora.core.op.BandOperation;
 import io.github.erenriquezp.rora.core.op.OpMeta;
 import io.github.erenriquezp.rora.core.op.ParamDef.DecimalParam;
 import io.github.erenriquezp.rora.core.op.ParamSchema;
 import io.github.erenriquezp.rora.core.op.Params;
+import io.github.erenriquezp.rora.core.op.PointBandOperation;
 import io.github.erenriquezp.rora.core.ops.PixelOps;
 import java.util.OptionalDouble;
 
@@ -15,7 +14,7 @@ import java.util.OptionalDouble;
  * Saturación HSV: {@code s' = clamp01(s · factor)} conservando tono, valor y alpha. Port exacto de
  * {@code PointOpsFilters.pointSaturation}.
  */
-public final class SaturationOp extends BandOperation {
+public final class SaturationOp extends PointBandOperation {
 
   public static final String ID = "point.saturation";
 
@@ -43,7 +42,7 @@ public final class SaturationOp extends BandOperation {
   }
 
   @Override
-  protected BandKernel prepare(Img src, Params params) {
+  public BandKernel pointKernel(Params params, int width, int height) {
     float factor = params.getFloat("factor");
     return (in, out, w, h, y0, y1) -> {
       float[] hsv = new float[3];

@@ -15,8 +15,8 @@ rora-parent (pom raíz: versiones, plugins, calidad)
 
 | Paquete | Contenido |
 |---|---|
-| `core.image` | `Img`: píxeles ARGB **no premultiplicados** en `int[]` (mismo formato que `BufferedImage.getRGB`), `stride == width`, sin setters públicos. `copyOf` copia, `adopt` toma posesión del array. |
-| `core.op` | SPI: `Operation`, `ParamSchema`/`ParamDef` (entero, decimal, booleano, enum, color, selección; rango, defecto, neutro, clave de etiqueta), `Params`, `OpMeta`, `OpKind` (puntual / vecindad(radio, alineación) / global), `OpResult` (imagen + datos auxiliares como `ExposureStats` o `ChannelHistogram`), `OpContext`, `OpRegistry`, `BandOperation`. |
+| `core.image` | `Downscale` (promedio por área con alpha ponderado), `ProxyPolicy`. `Img`: píxeles ARGB **no premultiplicados** en `int[]` (mismo formato que `BufferedImage.getRGB`), `stride == width`, sin setters públicos. `copyOf` copia, `adopt` toma posesión del array. |
+| `core.op` | Receta y render: `OpSpec`, `EditRecipe`, `RecipeHistory`, `Renderer`, `ResultCache`, `RenderKey`, `PointFusion`. SPI: `Operation`, `ParamSchema`/`ParamDef` (entero, decimal, booleano, enum, color, selección; rango, defecto, neutro, clave de etiqueta), `Params`, `OpMeta`, `OpKind` (puntual / vecindad(radio, alineación) / global), `OpResult` (imagen + datos auxiliares como `ExposureStats` o `ChannelHistogram`), `OpContext`, `OpRegistry`, `BandOperation`. |
 | `core.exec` | `TileExecutor` (pool propio, bandas de filas), `CancellationToken`, `CancelledException`, `Progress`. |
 | `core.color` | `Hsb` (RGB↔HSB sin AWT, idéntico bit a bit a `java.awt.Color`), `SrgbLut` (sRGB↔lineal; aún no la usa ninguna operación). |
 | `core.ops.*` | Implementaciones (no exportadas; se publican con `provides`). |
@@ -24,10 +24,12 @@ rora-parent (pom raíz: versiones, plugins, calidad)
 
 ### `app`
 
-- `app/`, `app/ui/`: JavaFX, sin cambios en esta fase.
+- `app/`, `app/ui/`, `app/fx/`: JavaFX. Solo presentación: hablan con `app/session`, nunca con `service/` ni con el núcleo de proceso (lo comprueba `ArchitectureRulesTest`).
+- `app/session/` (sin JavaFX, se prueba en headless): `EditSession` (fuente, receta, historial, paso pendiente, proxy), `RenderLane`/`RenderCoordinator`, `LatestWins`, `FilterSpecs`, `PaneWork`, `FramePool`, `StallMonitor`.
 - `service/ImageProcessor`: fachada estática que usa la UI. Sus firmas no cambian; las operaciones portadas delegan en el núcleo a través de `CoreBridge`.
 - `service/AwtImg`: puente exacto `BufferedImage ↔ Img` (lee como `getRGB`, escribe `TYPE_INT_ARGB` como `setRGB`).
 - `service/CoreBridge`: registro (`OpRegistry.load()`) y un `TileExecutor` compartido de N−1 hilos daemon.
+- `service/LegacySteps`: las 15 operaciones aún no portadas como pasos de receta `legacy.*`. `service/SourceFormat`: formato de origen de la convolución.
 - Implementaciones heredadas en `service/`: las portadas están `@Deprecated(forRemoval = true)` y solo las usan los tests diferenciales (se borran en la fase 3). Siguen en uso: convolución, blending de 2 y 3 imágenes, degradados y todas las operaciones de nivel C.
 
 ## Modelo de ejecución
@@ -36,7 +38,7 @@ rora-parent (pom raíz: versiones, plugins, calidad)
 - `TileExecutor` divide la imagen en **bandas de filas completas** (64 por defecto, alineadas al `rowAlign` del `OpKind`). La partición no depende del número de hilos, cada banda escribe filas disjuntas y las reducciones son enteras y se combinan en orden: **mismo resultado con cualquier número de hilos**.
 - El halo (`OpKind.haloRows()`) es la ventana de lectura que una banda puede usar. El modo `TileExecutor.strictHalo` envenena las filas de fuera para comprobarlo en tests.
 - La cancelación se comprueba antes de cada banda (`CancelledException`); el progreso se informa por banda, serializado y monótono.
-- La fachada sigue siendo síncrona y se llama desde el hilo FX como antes; mover el trabajo fuera del hilo FX y cancelar desde la UI es la fase 2.
+- La fachada sigue siendo síncrona, pero ya solo se llama desde hilos de trabajo.
 
 ## Añadir una operación
 
@@ -74,8 +76,55 @@ provides io.github.erenriquezp.rora.core.op.Operation with
 - El núcleo trabaja en sRGB de 8 bits, igual que el código heredado. El pipeline en float lineal llegará en fases posteriores; `SrgbLut` ya está disponible y probado.
 - Cada operación portada reproduce **exactamente** la aritmética heredada (mismos tipos, mismo orden de operaciones, mismos casos especiales, incluido devolver la misma instancia cuando el legacy lo hacía). La equivalencia se demuestra con tests, no se supone (ver `docs/TESTING.md`).
 
+## Pipeline no destructivo (fase 2)
+
+**Receta.** `EditRecipe` es una lista inmutable de `OpSpec(opId, Params, enabled)`. `RecipeHistory` guarda recetas, nunca imágenes (tope 200). `Params` tiene igualdad por valor y forma canónica estable; el mapeo de la UI pasa el mismo `float` que recibía la fachada, así que dos posiciones de slider que acaban en el mismo `float` son la misma clave. "Aplicar filtro" añade un paso; el paso pendiente (lo que muestran los sliders) no entra en el historial.
+
+**Renderer.** Niveles `FULL` (exacto, idéntico bit a bit a encadenar los filtros con la fachada) y `Preview` (proxy reducido, aproximado por diseño). Reanuda desde el prefijo cacheado más largo y fusiona tramos de operaciones puntuales consecutivas (`PointFusion`: los mismos kernels, banda a banda). Cachea solo puntos de control: tras cada paso no puntual, la cabeza confirmada y el resultado final; un render cancelado no deja entradas.
+
+**Caché.** `ResultCache`: LRU en bytes (`maxMemory/4`, entre 64 MB y 1 GB; `-Drora.cache.mb`), clave estructural encadenada (fuente + nivel + pasos), peso contado una vez por instancia de `Img`. Un `OutOfMemoryError` en un render la vacía y se informa en la barra de estado.
+
+**Proxy.** Lado ≈ visor × DPI × zoom en múltiplos de 256 px, tope de 4 MP, sin proxy si la escala sería ≥ 0,75, con histéresis. Los parámetros `ParamUnit.PIXELS` se escalan por el factor del proxy.
+
+### Hilos
+
+**Regla: ningún trabajo pesado en el hilo FX.** El hilo FX lee controles, crea pasos de receta y muestra lo que le publican.
+
+| Hilo | Qué hace |
+|---|---|
+| FX | Interfaz; `EditSession` (estado). Los resultados llegan con `Platform.runLater`, inmutables. |
+| `rora-preview` + pool N−1 | Carril PREVIEW: último gana, debounce de 30 ms con arranque inmediato. |
+| `rora-full` + pool (N−1)/2, prioridad menor | Carril FULL: solo exportar, zoom mayor que el proxy, diagnóstico, entrada de blending/histograma y cuentagotas. Último gana **por propósito**; la exportación está protegida. Un paso legacy lento aquí nunca bloquea un preview. |
+| `rora-aux` | Imagen original del modo comparar. |
+| `rora-pane-*` | Blending, histograma, degradado y lectura de fondos (`LatestWins`). |
+| `rora-io` | Carga y guardado (`Task`). |
+
+Un resultado sustituido nunca se publica (se comprueba al preparar en el worker y dentro de la tarea publicada). Los errores se publican y se registran con `System.Logger`. Los pasos legacy no se pueden cancelar por dentro: su resultado obsoleto se descarta.
+
+La conversión `Img → WritableImage` se hace en el worker (`FxImages`) y reutiliza imágenes con `FramePool`: una imagen retirada no se vuelve a escribir hasta pasados dos pulsos de la escena.
+
+Monitor de bloqueos (solo desarrollo): `-Drora.fxStallMonitor=true` registra las pausas del hilo FX mayores de 100 ms con su traza.
+
+### Convolución y formato de origen
+
+`ConvolveOp` da resultados distintos según el tipo de `BufferedImage` (sobre ARGB convoluciona también el alpha); solo `INT_ARGB` y `4BYTE_ABGR` coinciden. El paso `legacy.convolution` lleva un parámetro oculto `sourceFormat`, que `EditSession` calcula recorriendo la receta y que forma parte de la clave de caché. Los tipos con pérdida (gris, paleta propia, `TYPE_CUSTOM`) conservan el `BufferedImage` original. La exportación reconstruye el tipo final de la cadena. Desviación conocida: convolución→convolución sobre gris (`known-deviation`), se corrige al reescribir la convolución en la fase 3.
+
+### Diferencias visibles del preview respecto al FULL
+
+Solo existen cuando hay proxy. Lo exportado, el histograma, el blending, el diagnóstico de exposición y el cuentagotas al hacer clic son siempre exactos.
+
+1. **Resolución**: la imagen reducida por promedio de área; con zoom mayor que el proxy se ve el proxy ampliado hasta que llega el FULL.
+2. **Operaciones puntuales**: `f(reducir(src))` en lugar de `reducir(f(src))`; pequeñas diferencias en bordes y texturas finas, sobre todo en umbrales (B/N, umbral suave, posterizar, alpha test, stencil por umbral).
+3. **Posicionales** (desvanecimiento circular, mapa de profundidad, Z/W-buffer, interpolación en profundidad): misma forma, muestreada en la rejilla del proxy.
+4. **Pixelar, rejilla, stencil por celdas, MSAA**: tamaño redondeado (`round(v·s)`, con el mínimo del parámetro); la línea de la rejilla mide 1 px del proxy (más gruesa); con `s` pequeño MSAA y bloques quedan en su mínimo y el preview es más nítido que el FULL.
+5. **Buffer de acumulación**: desplazamiento `8·s` redondeado, estela de longitud aproximada.
+6. **Convolución 3×3**: el núcleo no se escala; en el preview el efecto abarca 1/s píxeles de la imagen completa (más fuerte), y el marco sin procesar (defecto conocido) mide 1 px del proxy.
+7. **Muestreo de textura**: misma escala relativa; el aliasing del vecino más cercano depende de la rejilla.
+8. **Ecualización**: el histograma se calcula sobre el proxy; curva ligeramente distinta y marcas evaluadas por píxel del proxy.
+9. **Cuentagotas al pasar el ratón**: valor del proxy, marcado con "≈"; coordenadas de la imagen completa.
+10. **Diagnóstico de exposición**: nunca aproximado ("Cargando diagnóstico..." hasta el valor exacto).
+
 ## Dirección prevista (fases siguientes)
 
-- Fase 2: recetas (`EditRecipe`), `Renderer` con proxy de preview, `ResultCache`, procesamiento fuera del hilo FX con cancelación y debounce.
-- Fase 3: UI generada desde `ParamSchema`; eliminación del código heredado portado.
+- Fase 3: UI generada desde `ParamSchema`; eliminación del código heredado portado; reescritura de la convolución.
 - Motor de IA opcional en su propio módulo; distribución con `jlink` + `jpackage`.

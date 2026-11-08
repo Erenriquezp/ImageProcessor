@@ -1,9 +1,8 @@
 package io.github.erenriquezp.rora.app.ui;
 
-import io.github.erenriquezp.rora.service.ImageIOService;
-import io.github.erenriquezp.rora.service.ImageProcessor;
+import io.github.erenriquezp.rora.app.session.CurrentImage;
+import io.github.erenriquezp.rora.app.session.PaneWork;
 import javafx.beans.binding.Bindings;
-import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -42,7 +41,7 @@ import java.util.function.Supplier;
  */
 public class BlendingPane {
 
-    private final Supplier<BufferedImage> imageSource;
+    private final CurrentImage            imageSource;
     private final Supplier<File>          backgroundChooser;
     private final Consumer<BufferedImage> onUseInEditor;
     private final Consumer<String>        onStatus;
@@ -60,8 +59,12 @@ public class BlendingPane {
     private BufferedImage backgroundImage;
     /** Last generated blend result, or {@code null}. */
     private BufferedImage blendedImage;
+    /** Trabajo en segundo plano (último gana). */
+    private final PaneImageWorker worker = new PaneImageWorker("blending", blendView);
+    /** Solo la última petición de la imagen del editor sigue adelante. */
+    private long previewGeneration;
 
-    public BlendingPane(Supplier<BufferedImage> imageSource,
+    public BlendingPane(CurrentImage            imageSource,
                         Supplier<File>          backgroundChooser,
                         Consumer<BufferedImage> onUseInEditor,
                         Consumer<String>        onStatus) {
@@ -109,6 +112,9 @@ public class BlendingPane {
     // ── Public API ────────────────────────────────────────────────────────────
 
     public VBox getView() { return view; }
+
+    /** Detiene el trabajo en segundo plano (al cerrar la aplicación). */
+    public void close() { worker.close(); }
 
     // ── Controls builder ──────────────────────────────────────────────────────
 
@@ -188,35 +194,57 @@ public class BlendingPane {
      * </ul>
      */
     private void updatePreview() {
-        BufferedImage source = imageSource.get();
-        boolean hasFg = source != null;
+        updatePreview(null);
+    }
+
+    /** @param afterShown se ejecuta cuando el blending ya se muestra (puede ser {@code null}) */
+    private void updatePreview(Runnable afterShown) {
+        boolean hasFg = imageSource.isAvailable();
         boolean hasBg = backgroundImage != null;
+        long generation = ++previewGeneration;
 
         if (hasFg && hasBg) {
-            // ── Both ready: compute blend and show ────────────────────────────
+            // ── Both ready: compute blend and show (off the FX thread) ────────
             float alpha = (float) alphaSlider.getValue();
-            blendedImage = ImageProcessor.blend(source, backgroundImage, alpha);
-            blendView.setImage(SwingFXUtils.toFXImage(blendedImage, null));
-            setOverlay(null);
+            BufferedImage background = backgroundImage;
+            imageSource.fetch(
+                    source -> {
+                        if (generation != previewGeneration) return;
+                        worker.submit(
+                                () -> PaneWork.blend(source, background, alpha),
+                                shown -> {
+                                    blendedImage = shown.exact();
+                                    worker.show(shown);
+                                    setOverlay(null);
+                                    if (afterShown != null) afterShown.run();
+                                },
+                                this::reportError);
+                    },
+                    failure -> onStatus.accept("Error en el blending: " + failure.message()));
 
         } else if (hasBg) {
             // ── Only background: show it and ask for the editor image ─────────
             blendedImage = null;
-            blendView.setImage(SwingFXUtils.toFXImage(backgroundImage, null));
+            BufferedImage background = backgroundImage;
+            worker.submit(() -> background, worker::show, this::reportError);
             setOverlay("Carga una imagen en el editor para completar el blending.");
 
         } else if (hasFg) {
             // ── Only foreground: clear view and ask for a background ──────────
             blendedImage = null;
-            blendView.setImage(null);
+            worker.clear();
             setOverlay("Selecciona una imagen de fondo para ver la previsualización.");
 
         } else {
             // ── Nothing loaded yet ────────────────────────────────────────────
             blendedImage = null;
-            blendView.setImage(null);
+            worker.clear();
             setOverlay("Carga una imagen en el editor y selecciona un fondo para comenzar.");
         }
+    }
+
+    private void reportError(Throwable error) {
+        onStatus.accept("Error en el blending: " + error.getMessage());
     }
 
     /** Shows {@code message} in the overlay label, or hides it when {@code null}. */
@@ -236,20 +264,20 @@ public class BlendingPane {
     private void loadBackground() {
         File file = backgroundChooser.get();
         if (file == null) return;
-        try {
-            backgroundImage = ImageIOService.read(file);
-            backgroundNameLabel.setText(file.getName());
-            onStatus.accept("Fondo cargado: " + file.getName());
-            updatePreview();   // ← auto-preview immediately after load
-        } catch (Exception ex) {
-            onStatus.accept("Error al cargar el fondo: " + ex.getMessage());
-        }
+        worker.read(
+                file,
+                image -> {
+                    backgroundImage = image;
+                    backgroundNameLabel.setText(file.getName());
+                    onStatus.accept("Fondo cargado: " + file.getName());
+                    updatePreview();   // ← auto-preview immediately after load
+                },
+                ex -> onStatus.accept("Error al cargar el fondo: " + ex.getMessage()));
     }
 
     /** Explicit blend triggered by the "Aplicar blending" button. */
     private void applyBlend() {
-        BufferedImage source = imageSource.get();
-        if (source == null) {
+        if (!imageSource.isAvailable()) {
             onStatus.accept("Carga una imagen en el editor antes de aplicar el blending.");
             return;
         }
@@ -257,8 +285,8 @@ public class BlendingPane {
             onStatus.accept("Carga una imagen de fondo antes de aplicar el blending.");
             return;
         }
-        updatePreview();
-        onStatus.accept(String.format("Blending aplicado (alpha = %.2f).", alphaSlider.getValue()));
+        double alpha = alphaSlider.getValue();
+        updatePreview(() -> onStatus.accept(String.format("Blending aplicado (alpha = %.2f).", alpha)));
     }
 
     private void useInEditor() {

@@ -1,19 +1,18 @@
 package io.github.erenriquezp.rora.core.ops.color;
 
 import io.github.erenriquezp.rora.core.exec.BandKernel;
-import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.op.OpMeta;
 import io.github.erenriquezp.rora.core.op.ParamDef.IntParam;
 import io.github.erenriquezp.rora.core.op.ParamSchema;
 import io.github.erenriquezp.rora.core.op.Params;
-import io.github.erenriquezp.rora.core.ops.SimpleBandOp;
+import io.github.erenriquezp.rora.core.ops.SimplePointOp;
 import java.util.OptionalInt;
 
 /**
  * Blanco si el promedio entero {@code (r + g + b) / 3} es {@code > threshold}, si no negro. Port de
  * {@code ColorFilters.bwThreshold}.
  */
-public final class ThresholdBwOp extends SimpleBandOp {
+public final class ThresholdBwOp extends SimplePointOp {
 
   public ThresholdBwOp() {
     super(
@@ -25,7 +24,7 @@ public final class ThresholdBwOp extends SimpleBandOp {
   }
 
   @Override
-  protected BandKernel prepare(Img src, Params params) {
+  public BandKernel pointKernel(Params params, int width, int height) {
     int threshold = params.getInt("threshold");
     return (in, out, w, h, y0, y1) -> {
       for (int i = y0 * w, end = y1 * w; i < end; i++) {

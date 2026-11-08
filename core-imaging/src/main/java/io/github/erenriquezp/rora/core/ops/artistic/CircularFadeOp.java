@@ -1,18 +1,17 @@
 package io.github.erenriquezp.rora.core.ops.artistic;
 
 import io.github.erenriquezp.rora.core.exec.BandKernel;
-import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.op.OpKind;
 import io.github.erenriquezp.rora.core.op.OpMeta;
 import io.github.erenriquezp.rora.core.op.ParamSchema;
 import io.github.erenriquezp.rora.core.op.Params;
-import io.github.erenriquezp.rora.core.ops.SimpleBandOp;
+import io.github.erenriquezp.rora.core.ops.SimplePointOp;
 
 /**
  * Viñeta radial <b>en el alpha</b>: {@code a = (int)(255 · max(0, 1 − d/dMax))} con el centro en
  * {@code (w/2, h/2)}; RGB intacto. Port de {@code ArtisticFilters.circularFade}.
  */
-public final class CircularFadeOp extends SimpleBandOp {
+public final class CircularFadeOp extends SimplePointOp {
 
   public CircularFadeOp() {
     super(
@@ -22,7 +21,7 @@ public final class CircularFadeOp extends SimpleBandOp {
   }
 
   @Override
-  protected BandKernel prepare(Img src, Params params) {
+  public BandKernel pointKernel(Params params, int width, int height) {
     return (in, out, w, h, y0, y1) -> {
       double cx = w / 2.0;
       double cy = h / 2.0;

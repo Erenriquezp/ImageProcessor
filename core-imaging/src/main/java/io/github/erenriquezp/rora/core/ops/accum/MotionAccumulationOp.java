@@ -43,7 +43,7 @@ public final class MotionAccumulationOp extends SimpleBandOp {
                 "add",
                 Optional.empty()),
             new IntParam("samples", "op.accum.motion.samples", 2, 64, 25, OptionalInt.empty()),
-            new IntParam(
+            IntParam.pixels(
                 "displacement", "op.accum.motion.displacement", 1, 32, 8, OptionalInt.empty())),
         new OpMeta(new OpKind.Neighborhood(0, 1), true, false, Cost.EXPENSIVE, 0));
   }

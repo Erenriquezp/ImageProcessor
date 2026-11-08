@@ -25,7 +25,7 @@ public final class PixelateOp extends BandOperation {
 
   private static final ParamSchema SCHEMA =
       ParamSchema.of(
-          new IntParam("block", "op.raster.pixelate.block", 2, 64, 8, OptionalInt.empty()));
+          IntParam.pixels("block", "op.raster.pixelate.block", 2, 64, 8, OptionalInt.empty()));
 
   private static final OpMeta META =
       new OpMeta(new OpKind.Neighborhood(7, 8), true, false, Cost.CHEAP, 0);

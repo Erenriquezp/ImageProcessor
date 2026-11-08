@@ -1,7 +1,7 @@
 package io.github.erenriquezp.rora.app.ui;
 
-import io.github.erenriquezp.rora.service.ImageProcessor;
-import javafx.embed.swing.SwingFXUtils;
+import io.github.erenriquezp.rora.app.session.CurrentImage;
+import io.github.erenriquezp.rora.app.session.PaneWork;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -15,7 +15,6 @@ import javafx.scene.layout.VBox;
 
 import java.awt.image.BufferedImage;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * Panel that generates and displays an RGB histogram chart for the image
@@ -33,7 +32,7 @@ import java.util.function.Supplier;
  */
 public class HistogramPane {
 
-    private final Supplier<BufferedImage>  imageSource;
+    private final CurrentImage             imageSource;
     private final Consumer<BufferedImage>  onUseInEditor;
     private final Consumer<String>         onStatus;
 
@@ -42,8 +41,9 @@ public class HistogramPane {
 
     /** Last generated histogram chart, or {@code null} if none yet. */
     private BufferedImage generatedHistogram;
+    private final PaneImageWorker worker = new PaneImageWorker("histogram", histogramView);
 
-    public HistogramPane(Supplier<BufferedImage>  imageSource,
+    public HistogramPane(CurrentImage             imageSource,
                          Consumer<BufferedImage>  onUseInEditor,
                          Consumer<String>         onStatus) {
         this.imageSource   = imageSource;
@@ -69,6 +69,9 @@ public class HistogramPane {
     // ── Public API ────────────────────────────────────────────────────────────
 
     public VBox getView() { return view; }
+
+    /** Detiene el trabajo en segundo plano (al cerrar la aplicación). */
+    public void close() { worker.close(); }
 
     // ── Controls builder ──────────────────────────────────────────────────────
 
@@ -107,14 +110,21 @@ public class HistogramPane {
     // ── Actions ───────────────────────────────────────────────────────────────
 
     private void generateHistogram() {
-        BufferedImage source = imageSource.get();
-        if (source == null) {
+        if (!imageSource.isAvailable()) {
             onStatus.accept("Carga una imagen en el editor antes de generar el histograma.");
             return;
         }
-        generatedHistogram = ImageProcessor.generateHistogram(source);
-        histogramView.setImage(SwingFXUtils.toFXImage(generatedHistogram, null));
-        onStatus.accept("Histograma generado (" + source.getWidth() + "×" + source.getHeight() + " px).");
+        imageSource.fetch(
+                source -> worker.submit(
+                        () -> PaneWork.histogram(source),
+                        shown -> {
+                            generatedHistogram = shown.exact();
+                            worker.show(shown);
+                            onStatus.accept("Histograma generado (" + source.getWidth()
+                                    + "×" + source.getHeight() + " px).");
+                        },
+                        error -> onStatus.accept("Error al generar el histograma: " + error.getMessage())),
+                failure -> onStatus.accept("Error al generar el histograma: " + failure.message()));
     }
 
     private void useInEditor() {

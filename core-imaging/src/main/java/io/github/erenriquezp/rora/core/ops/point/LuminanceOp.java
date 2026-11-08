@@ -1,22 +1,21 @@
 package io.github.erenriquezp.rora.core.ops.point;
 
 import io.github.erenriquezp.rora.core.exec.BandKernel;
-import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.op.OpMeta;
 import io.github.erenriquezp.rora.core.op.ParamSchema;
 import io.github.erenriquezp.rora.core.op.Params;
 import io.github.erenriquezp.rora.core.ops.PixelOps;
-import io.github.erenriquezp.rora.core.ops.SimpleBandOp;
+import io.github.erenriquezp.rora.core.ops.SimplePointOp;
 
 /** Gris BT.709 {@code clamp(round(Y))} en {@code float}. Port de {@code toLuminance}. */
-public final class LuminanceOp extends SimpleBandOp {
+public final class LuminanceOp extends SimplePointOp {
 
   public LuminanceOp() {
     super("point.luminance", ParamSchema.EMPTY, OpMeta.point());
   }
 
   @Override
-  protected BandKernel prepare(Img src, Params params) {
+  public BandKernel pointKernel(Params params, int width, int height) {
     return (in, out, w, h, y0, y1) -> {
       for (int i = y0 * w, end = y1 * w; i < end; i++) {
         int p = in[i];

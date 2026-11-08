@@ -408,6 +408,11 @@ public class EditorFilterPane {
         return equalizeShowDarkCheck.isSelected();
     }
 
+    /** El diagnóstico exacto se está calculando (nunca se muestra un valor aproximado). */
+    public void showEqualizeDiagnosticLoading() {
+        equalizeDiagnosticLabel.setText("Cargando diagnóstico...");
+    }
+
     public void updateEqualizeDiagnostic(ExposureDiagnostic diag) {
         if (diag == null) {
             equalizeDiagnosticLabel.setText("");

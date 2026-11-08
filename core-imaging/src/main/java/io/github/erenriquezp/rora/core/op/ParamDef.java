@@ -26,9 +26,28 @@ public sealed interface ParamDef {
   /** Valor con el que el parámetro no altera la imagen, si existe. */
   Optional<Object> neutralValue();
 
+  /** Unidad del valor; solo los numéricos pueden ser {@link ParamUnit#PIXELS}. */
+  default ParamUnit unit() {
+    return ParamUnit.NONE;
+  }
+
+  /**
+   * Parámetro técnico que no se muestra en la interfaz (p. ej. el formato de origen que calcula la
+   * sesión). Forma parte de los valores y de la igualdad como cualquier otro.
+   */
+  default boolean hidden() {
+    return false;
+  }
+
   /** Entero en {@code [min, max]}. */
   record IntParam(
-      String key, String labelKey, int min, int max, int defaultInt, OptionalInt neutral)
+      String key,
+      String labelKey,
+      int min,
+      int max,
+      int defaultInt,
+      OptionalInt neutral,
+      ParamUnit unit)
       implements ParamDef {
     public IntParam {
       checkKeys(key, labelKey);
@@ -36,6 +55,19 @@ public sealed interface ParamDef {
         throw new IllegalArgumentException(key + ": min > max");
       }
       Objects.requireNonNull(neutral, "neutral");
+      Objects.requireNonNull(unit, "unit");
+    }
+
+    /** Entero sin unidad. */
+    public IntParam(
+        String key, String labelKey, int min, int max, int defaultInt, OptionalInt neutral) {
+      this(key, labelKey, min, max, defaultInt, neutral, ParamUnit.NONE);
+    }
+
+    /** Entero en píxeles. */
+    public static IntParam pixels(
+        String key, String labelKey, int min, int max, int defaultInt, OptionalInt neutral) {
+      return new IntParam(key, labelKey, min, max, defaultInt, neutral, ParamUnit.PIXELS);
     }
 
     @Override
@@ -57,7 +89,8 @@ public sealed interface ParamDef {
       double max,
       double step,
       double defaultDouble,
-      OptionalDouble neutral)
+      OptionalDouble neutral,
+      ParamUnit unit)
       implements ParamDef {
     public DecimalParam {
       checkKeys(key, labelKey);
@@ -65,6 +98,19 @@ public sealed interface ParamDef {
         throw new IllegalArgumentException(key + ": rango o paso no válidos");
       }
       Objects.requireNonNull(neutral, "neutral");
+      Objects.requireNonNull(unit, "unit");
+    }
+
+    /** Decimal sin unidad. */
+    public DecimalParam(
+        String key,
+        String labelKey,
+        double min,
+        double max,
+        double step,
+        double defaultDouble,
+        OptionalDouble neutral) {
+      this(key, labelKey, min, max, step, defaultDouble, neutral, ParamUnit.NONE);
     }
 
     @Override
@@ -103,8 +149,20 @@ public sealed interface ParamDef {
       String labelKey,
       List<String> values,
       String defaultEnum,
-      Optional<String> neutral)
+      Optional<String> neutral,
+      boolean hidden)
       implements ParamDef {
+
+    /** Enum visible en la interfaz. */
+    public EnumParam(
+        String key,
+        String labelKey,
+        List<String> values,
+        String defaultEnum,
+        Optional<String> neutral) {
+      this(key, labelKey, values, defaultEnum, neutral, false);
+    }
+
     public EnumParam {
       checkKeys(key, labelKey);
       values = List.copyOf(values);

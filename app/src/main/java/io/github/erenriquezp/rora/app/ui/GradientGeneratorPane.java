@@ -1,8 +1,7 @@
 package io.github.erenriquezp.rora.app.ui;
 
+import io.github.erenriquezp.rora.app.session.PaneWork;
 import io.github.erenriquezp.rora.domain.GradientType;
-import io.github.erenriquezp.rora.service.ImageProcessor;
-import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -29,6 +28,7 @@ public class GradientGeneratorPane {
     private final VBox view;
 
     private BufferedImage generatedImage;
+    private final PaneImageWorker worker = new PaneImageWorker("gradient", gradientImageView);
 
     public GradientGeneratorPane(Consumer<BufferedImage> onUseInEditor, Consumer<String> onStatus) {
         this.onUseInEditor = onUseInEditor;
@@ -52,6 +52,9 @@ public class GradientGeneratorPane {
     }
 
     public VBox getView() { return view; }
+
+    /** Detiene el trabajo en segundo plano (al cerrar la aplicación). */
+    public void close() { worker.close(); }
 
     public BufferedImage getGeneratedImage() { return generatedImage; }
 
@@ -111,9 +114,14 @@ public class GradientGeneratorPane {
                                        Color startColor, Color endColor) {
         int startRgb = fxColorToRgb(startColor);
         int endRgb   = fxColorToRgb(endColor);
-        generatedImage = ImageProcessor.generateGradient(type, width, height, startRgb, endRgb);
-        gradientImageView.setImage(SwingFXUtils.toFXImage(generatedImage, null));
-        onStatus.accept("Degradado generado: " + width + "x" + height);
+        worker.submit(
+                () -> PaneWork.gradient(type, width, height, startRgb, endRgb),
+                shown -> {
+                    generatedImage = shown.exact();
+                    worker.show(shown);
+                    onStatus.accept("Degradado generado: " + width + "x" + height);
+                },
+                error -> onStatus.accept("Error al generar el degradado: " + error.getMessage()));
     }
 
     private void useGeneratedImageInEditor() {

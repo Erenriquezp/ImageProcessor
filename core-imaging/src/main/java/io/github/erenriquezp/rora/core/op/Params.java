@@ -8,6 +8,7 @@ import io.github.erenriquezp.rora.core.op.ParamDef.IntParam;
 import io.github.erenriquezp.rora.core.op.ParamDef.SelectionParam;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -40,6 +41,21 @@ public final class Params {
 
   public ParamSchema schema() {
     return schema;
+  }
+
+  /**
+   * Los mismos valores asociados a {@code target}, que debe ser igual (por valor) a {@link
+   * #schema()}; devuelve {@code this} si ya es la misma instancia. Sirve para aplicar con una
+   * operación unos parámetros construidos con otra instancia de su esquema.
+   */
+  public Params withSchema(ParamSchema target) {
+    if (target == schema) {
+      return this;
+    }
+    if (!schema.equals(target)) {
+      throw new IllegalArgumentException("Esquema distinto: " + target + " vs " + schema);
+    }
+    return new Params(target, values);
   }
 
   /** Copia editable de estos valores. */
@@ -104,14 +120,53 @@ public final class Params {
     }
   }
 
+  /**
+   * Igualdad <b>por valor</b>: esquemas estructuralmente iguales (ver {@link ParamSchema#equals}) y
+   * los mismos valores. Los decimales se comparan como {@code Double.equals}: un {@code float}
+   * ensanchado a {@code double} da siempre el mismo valor, así que dos entradas que acaban en el
+   * mismo {@code float} son iguales; {@code -0.0} y {@code 0.0} son distintos.
+   */
   @Override
   public boolean equals(Object o) {
-    return o instanceof Params p && p.schema == schema && p.values.equals(values);
+    return o instanceof Params p
+        && (p.schema == schema || p.schema.equals(schema))
+        && p.values.equals(values);
   }
 
   @Override
   public int hashCode() {
-    return values.hashCode();
+    return 31 * schema.hashCode() + values.hashCode();
+  }
+
+  /**
+   * Forma canónica estable, en el orden del esquema y sin depender del locale: enteros en decimal,
+   * decimales con {@link Double#toString(double)} (la representación más corta que identifica el
+   * valor; ida y vuelta exacta), booleanos, ids de enum, colores {@code #AARRGGBB} y selecciones en
+   * el orden de las opciones. Ejemplo: {@code {levels=8,factor=1.5,tone=#FFC87850}}.
+   */
+  public String canonical() {
+    StringJoiner j = new StringJoiner(",", "{", "}");
+    for (ParamDef d : schema.params()) {
+      Object v = values.get(d.key());
+      String text =
+          switch (d) {
+            case ColorParam c -> String.format(Locale.ROOT, "#%08X", (Integer) v);
+            case DecimalParam c -> Double.toString((Double) v);
+            case SelectionParam c -> {
+              Set<?> sel = (Set<?>) v;
+              StringJoiner sj = new StringJoiner("|", "[", "]");
+              for (String opt : c.options()) {
+                if (sel.contains(opt)) {
+                  sj.add(opt);
+                }
+              }
+              yield sj.toString();
+            }
+            default -> String.valueOf(v);
+          };
+      j.add(d.key() + "=" + text);
+    }
+    return j.toString();
   }
 
   /** Representación determinista, en el orden del esquema. */

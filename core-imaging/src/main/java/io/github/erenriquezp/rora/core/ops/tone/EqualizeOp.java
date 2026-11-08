@@ -64,6 +64,15 @@ public final class EqualizeOp implements Operation {
     return META;
   }
 
+  /** Mismo criterio que el atajo de {@link #apply}: factor ≤ 0 y sin marcas. */
+  @Override
+  public boolean returnsInput(Params params) {
+    BandOperation.checkSchema(this, params);
+    return params.getFloat("factor") <= 0f
+        && !params.getBool("markBurned")
+        && !params.getBool("markDark");
+  }
+
   @Override
   public OpResult apply(Img src, Params params, OpContext ctx) {
     java.util.Objects.requireNonNull(src, "src");

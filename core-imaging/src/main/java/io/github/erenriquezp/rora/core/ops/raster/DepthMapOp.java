@@ -1,14 +1,13 @@
 package io.github.erenriquezp.rora.core.ops.raster;
 
 import io.github.erenriquezp.rora.core.exec.BandKernel;
-import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.op.OpKind;
 import io.github.erenriquezp.rora.core.op.OpMeta;
 import io.github.erenriquezp.rora.core.op.ParamDef.EnumParam;
 import io.github.erenriquezp.rora.core.op.ParamSchema;
 import io.github.erenriquezp.rora.core.op.Params;
 import io.github.erenriquezp.rora.core.ops.PixelOps;
-import io.github.erenriquezp.rora.core.ops.SimpleBandOp;
+import io.github.erenriquezp.rora.core.ops.SimplePointOp;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,7 +16,7 @@ import java.util.Optional;
  * distancia al centro, posición horizontal o diagonal. Alpha intacto. Port de {@code
  * RasterPipelineFilters.depthMap} y {@code depthAt}.
  */
-public final class DepthMapOp extends SimpleBandOp {
+public final class DepthMapOp extends SimplePointOp {
 
   public DepthMapOp() {
     super(
@@ -33,7 +32,7 @@ public final class DepthMapOp extends SimpleBandOp {
   }
 
   @Override
-  protected BandKernel prepare(Img src, Params params) {
+  public BandKernel pointKernel(Params params, int width, int height) {
     return switch (params.getEnum("source")) {
       case "radial" ->
           (in, out, w, h, y0, y1) -> {

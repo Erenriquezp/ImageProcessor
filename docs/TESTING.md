@@ -13,6 +13,7 @@ Ni el núcleo ni `service/` y `domain/` dependen de JavaFX: los tests corren en 
 ./mvnw test -Dtest=LegacyPinTest
 ./mvnw test -DexcludedGroups=exhaustive   # sin los tests de 2^24 colores (~2 min menos)
 ./mvnw test -pl core-imaging              # solo el núcleo
+./mvnw verify -Dskip.memory=true          # sin el test de memoria (JVM aparte con -Xmx1536m)
 ```
 
 Surefire usa el module path (JPMS): los tests viven en los mismos paquetes que el código (`...service`, `...domain`, `...core.*`) y no requieren cambios en `module-info.java`.
@@ -27,7 +28,9 @@ JaCoCo no tiene umbral de bloqueo todavía.
 | `property` | Nivel B (y propiedades comunes). Solo propiedades: dimensiones, alpha, rango, determinismo, identidad con parámetros neutros. |
 | `known-issue` | Defecto documentado de la auditoría. El test describe el comportamiento **actual** (o está `@Disabled` si describe el correcto). |
 | `equivalence` | Fase 1. Núcleo vs legacy **bit a bit** (y el puente `BufferedImage ↔ Img`). |
-| `exhaustive` | Fase 1. Equivalencia sobre los **2^24 colores RGB** (HSB y operaciones puntuales). Incluida en `verify`; tarda ~2 min. |
+| `exhaustive` | Equivalencia sobre los **2^24 colores RGB** (HSB, operaciones puntuales y cadenas fusionadas). Incluida en `verify`; tarda ~2 min. |
+| `memory` | Fase 2. `SessionMemoryTest`: 24 MP en un JVM aparte con `-Xmx1536m`. Ejecución propia de surefire dentro de `verify`; informes en `app/target/memory-*.txt` y log de GC en `app/target/memory-gc.log`. Se salta con `-Dskip.memory=true`. |
+| `known-deviation` | Fase 2. Diferencia conocida y aceptada con la cadena anterior, fijada con su tamaño exacto. Hoy: convolución→convolución sobre gris de 8 bits. |
 
 ## Goldens
 
@@ -72,6 +75,18 @@ Las operaciones portadas al núcleo deben dar **exactamente** el mismo resultado
 Un fallo indica operación, parámetros, camino (fachada / 1 hilo / N hilos / bandas de 1 fila), tipo, tamaño, contenido, semilla y el primer píxel distinto. Para reproducirlo basta con el nombre del caso.
 
 `legacy-pin` y `known-issue` no se han tocado y ahora pasan **a través del núcleo**, porque `OpCatalog` llama a la fachada.
+
+## Pipeline y concurrencia (fase 2)
+
+| Test | Módulo | Qué comprueba |
+|---|---|---|
+| `RecipeEquivalenceTest` | core | 300 recetas con semilla (1–12 pasos, puntuales/vecindad/globales): FULL ≡ aplicación secuencial, con y sin fusión, caché fría y caliente, 1 y 7 hilos. |
+| `FusionEquivalenceTest`, `FusionAllColorsTest` | core | Fusión exacta: 1000 cadenas con semilla y cadenas HSB sobre los 2^24 colores. |
+| `FullRecipeEquivalenceTest`, `FilterSpecsTest` | app | Recetas que mezclan núcleo y legacy ≡ encadenar `processFilter` (copia literal en `ReferenceFilters`), en 6 tipos de imagen. |
+| `ConvolutionFormatTest` | app | La tabla de tipos de la convolución y la desviación conocida. |
+| `RenderLaneTest`, `LatestWinsTest`, `EditSessionTest` | app | Último gana por propósito, debounce, obsoletos descartados, errores, cierre. Con tiempo virtual (`ManualScheduler`) y colas manuales (`ManualExecutor`): sin `sleep` ni reloj real. |
+| `RenderCoordinatorTest` | app | Hilos reales sincronizados solo con latches: un FULL bloqueado no bloquea el PREVIEW. |
+| `ArchitectureRulesTest` | app | ArchUnit: la UI no depende de `service` ni invoca el proceso del núcleo; la sesión no usa JavaFX. |
 
 ## Defectos conocidos verificados
 

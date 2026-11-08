@@ -1,7 +1,6 @@
 package io.github.erenriquezp.rora.core.ops.fragment;
 
 import io.github.erenriquezp.rora.core.exec.BandKernel;
-import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.op.OpMeta;
 import io.github.erenriquezp.rora.core.op.ParamDef.ColorParam;
 import io.github.erenriquezp.rora.core.op.ParamDef.DecimalParam;
@@ -9,7 +8,7 @@ import io.github.erenriquezp.rora.core.op.ParamDef.EnumParam;
 import io.github.erenriquezp.rora.core.op.ParamSchema;
 import io.github.erenriquezp.rora.core.op.Params;
 import io.github.erenriquezp.rora.core.ops.PixelOps;
-import io.github.erenriquezp.rora.core.ops.SimpleBandOp;
+import io.github.erenriquezp.rora.core.ops.SimplePointOp;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -19,7 +18,7 @@ import java.util.OptionalInt;
  * Mezcla cada píxel (src) con un color plano (dst) según el modo; alpha de src intacto. Port de
  * {@code FragmentOpsFilters.fragmentBlend}. {@code src-over} con {@code alpha = 1} es la identidad.
  */
-public final class BlendColorOp extends SimpleBandOp {
+public final class BlendColorOp extends SimplePointOp {
 
   public BlendColorOp() {
     super(
@@ -43,7 +42,7 @@ public final class BlendColorOp extends SimpleBandOp {
   }
 
   @Override
-  protected BandKernel prepare(Img src, Params params) {
+  public BandKernel pointKernel(Params params, int width, int height) {
     String mode = params.getEnum("mode");
     int color = params.getColor("color");
     int dstR = (color >> 16) & 0xFF;
