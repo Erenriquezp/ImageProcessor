@@ -17,11 +17,17 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - 25 operaciones portadas al núcleo con resultados **idénticos bit a bit** al código anterior (puntuales, de vecindad, con estado y de análisis); la fachada `ImageProcessor` delega en ellas sin cambiar sus firmas.
 - Tests de equivalencia exacta (etiquetas `equivalence` y `exhaustive`, incluidos los 2^24 colores) y propiedades generadas desde el registro de operaciones.
 - Módulo `bench` con JMH (perfil `-Pbench`) y `docs/PERFORMANCE.md`.
+- Fase 2 — pipeline no destructivo: recetas (`EditRecipe`, `RecipeHistory`), `Renderer` con preview sobre proxy y render completo exacto, `ResultCache` acotada en MB, fusión exacta de operaciones puntuales, `ParamUnit`.
+- Capa de sesión sin JavaFX (`app.session`): `EditSession`, carriles PREVIEW y FULL con cancelación, "último gana" y debounce, y pasos de receta para las 15 operaciones aún no portadas.
+- Monitor de bloqueos del hilo FX (`-Drora.fxStallMonitor=true`), test de memoria con 24 MP (`-Xmx1536m`) y reglas de arquitectura con ArchUnit.
+- Cuentagotas: al pasar el ratón muestra el valor del preview marcado con "≈"; al hacer clic, el valor exacto.
 
 ### Changed
 - Proyecto renombrado a **Rora Studio**: groupId `io.github.erenriquezp`, paquete base `io.github.erenriquezp.rora`, módulo JPMS `io.github.erenriquezp.rora.app`.
 - Estructura Maven multimódulo: `rora-parent` en la raíz, `core-imaging`, `app` (código anterior, movido con historial) y `bench`. Para lanzar la app: `./mvnw install -DskipTests && ./mvnw -pl app javafx:run`.
 - Las operaciones portadas del paquete `service` están `@Deprecated(forRemoval = true)`; solo las usan los tests diferenciales.
+- Ningún trabajo pesado en el hilo FX: filtros, blending, histograma, degradados, carga y guardado corren en segundo plano. El historial guarda recetas en lugar de imágenes (de unos 2,9 GB a KB con 24 MP) y su tope pasa de 30 a 200 pasos.
+- Los errores del preview se muestran en la barra de estado en lugar de descartarse.
 - Maven wrapper actualizado a Maven 3.9.11.
 - README actualizado: requisito real de JDK 21+.
 - Captura de pantalla movida a `docs/img/`.

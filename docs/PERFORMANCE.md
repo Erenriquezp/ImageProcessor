@@ -72,5 +72,50 @@ Con JDK 25.0.5 los resultados son equivalentes dentro del ruido (grises: legacy 
 
 ## Deuda técnica de rendimiento detectada
 
-- `AwtImg.toBufferedImage` hace dos copias (`toArray` + `setDataElements`). Se puede reducir a una escribiendo directamente en el `DataBufferInt` del destino, a cambio de que Java2D deje de acelerar esa imagen. Pendiente de medir en la fase 2.
+- `AwtImg.toBufferedImage` hace dos copias (`toArray` + `setDataElements`). Se puede reducir a una escribiendo directamente en el `DataBufferInt` del destino, a cambio de que Java2D deje de acelerar esa imagen. Tras la fase 2 solo afecta a los pasos legacy y a la exportación.
 - El destino de cada operación es un `int[]` nuevo (puesto a cero por la JVM). Con un *pool* de buffers en `OpContext` (fase 2) se evitaría.
+
+## Fase 2: pipeline
+
+Entorno: el de arriba, JDK 25.0.5, JMH 1.37. Salida cruda en `.planning/jmh-fase2-jdk25*` (local). Reproducir: `java -jar bench/target/benchmarks.jar "PipelineBenchmark|FusionProxyBenchmark|FxImagesBenchmark"`.
+
+**Tick de slider** sobre un proxy de 2 MP (fuente de 24 MP) con un prefijo de 10 pasos núcleo+legacy en caché (`PipelineBenchmark`, ms). Meta del roadmap: < 50 ms en operaciones puntuales.
+
+| Paso pendiente | 1 hilo | 7 hilos |
+|---|---|---|
+| Saturación (HSB) | 58,6 ± 14,6 | **15,6 ± 1,8** |
+| Brillo | 2,7 ± 2,5 | 2,4 ± 0,4 |
+| Escala y bias | 31,3 ± 4,0 | 9,2 ± 0,9 |
+| Pixelar (vecindad) | 8,2 ± 2,9 | 3,9 ± 1,5 |
+
+Se cumple con 7 hilos. Con un solo hilo la saturación no llega (la aritmética HSB exacta domina). Hay que sumar la conversión a imagen FX (abajo) y hasta 30 ms de debounce.
+
+**Fusión** de 5 operaciones puntuales sobre 12 MP (`FusionProxyBenchmark`, ms): 1 hilo 325,2 ± 20,1 fusionada frente a 333,7 ± 62,6 paso a paso; 7 hilos 107,2 ± 15,6 frente a 129,2 ± 14,3. Ganancia pequeña, de la magnitud del margen de error; está activada porque es exacta.
+
+**Proxy** desde 24 MP (ms): a 2 MP, 292,8 ± 10,9 con 1 hilo y 89,9 ± 11,0 con 7; a 4 MP, 401,1 ± 24,4 y 117,3 ± 22,7. Se paga una vez por imagen y tamaño de visor.
+
+**`Img` → `WritableImage` reutilizada** (`FxImagesBenchmark`, ms), en el worker:
+
+| | `INT_ARGB` | `INT_ARGB_PRE` |
+|---|---|---|
+| Opaca, 2 MP | 4,0 ± 2,1 | 3,1 ± 0,3 |
+| Opaca, 4 MP | 6,6 ± 1,1 | 6,4 ± 0,9 |
+| Con alpha, 2 MP | 11,7 ± 0,6 | 12,7 ± 1,5 |
+| Con alpha, 4 MP | 23,2 ± 1,5 | 28,2 ± 11,5 |
+
+`INT_ARGB` nunca fue peor fuera del margen de error: es el formato por defecto (`-Drora.fx.format=pre` para cambiarlo).
+
+## Fase 2: memoria
+
+`SessionMemoryTest`, JVM aparte con `-Xmx1536m` y G1 (región de 1 MB por defecto: no hizo falta cambiarla; sin fallos de evacuación ni Full GC ajenos a los `System.gc()` del test, pausas jóvenes ≤ 6 ms). 6000×4000 `3BYTE_BGR`, receta de 10 pasos núcleo+legacy, FULL, exportación PNG e historial de 35 pasos con 35 deshacer y 35 rehacer.
+
+| | JDK 25 | JDK 21 |
+|---|---|---|
+| Máximo de heap vivo tras GC (meta < 1,5 GB) | 475 MB | 475 MB |
+| Crecimiento por el historial de 35 pasos | 10 KB | 9 KB |
+
+Antes de la fase 2, el historial de imágenes ocupaba por sí solo unos 2,9 GB con 24 MP.
+
+Panel de blending con 24 MP: 627 MB vivos publicando la imagen completa a la interfaz frente a 323 MB con una copia de 4 MP. El umbral era el 25 % del heap (384 MB), así que los paneles publican la copia y conservan la imagen exacta para "Usar en editor".
+
+Pausas del hilo FX con la app real, 24 MP y `-Drora.fxStallMonitor=true` (> 100 ms): arranque de la ventana (1,9 s), CSS de los controles al seleccionar el primer filtro (0,5 s) y subida a GPU de la textura de 24 MP al pasar a zoom con la imagen completa (0,14 s, una vez). Mover sliders, aplicar, deshacer, comparar y exportar no registraron pausas.
