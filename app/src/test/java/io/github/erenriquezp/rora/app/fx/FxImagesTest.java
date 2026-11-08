@@ -37,7 +37,7 @@ class FxImagesTest {
   }
 
   @Test
-  void configuredFormatDefaultsToPremultiplied() {
-    assertThat(FxImages.configuredFormat()).isEqualTo(FxImages.Format.INT_ARGB_PRE);
+  void configuredFormatDefaultsToArgb() {
+    assertThat(FxImages.configuredFormat()).isEqualTo(FxImages.Format.INT_ARGB);
   }
 }

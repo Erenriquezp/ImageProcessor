@@ -142,7 +142,8 @@ public class PipelineBenchmark {
       case "point.saturation" -> spec(tickOp, "factor", 0.5f + (i % 100_000) * 1e-5f);
       case "color.brightness" -> spec(tickOp, "value", (i % 200) - 100);
       case "point.scale-bias" -> spec(tickOp, "scale", 0.5f + (i % 100_000) * 1e-5f, "bias", 0f);
-      default -> spec(tickOp, "block", 2 + (i % 63));
+      // Bloques que dan 17 bloques distintos en el proxy (escala 1732/6000): sin aciertos.
+      default -> spec(tickOp, "block", (int) Math.round((2 + i % 17) * 6000.0 / 1732));
     };
   }
 

@@ -28,10 +28,15 @@ public final class FxImages {
 
   private FxImages() {}
 
-  /** Formato configurado ({@code -Drora.fx.format}); por defecto el que ganó en la medición. */
+  /**
+   * Formato configurado ({@code -Drora.fx.format}). Por defecto {@code INT_ARGB}: en la medición de
+   * la fase 2 (FxImagesBenchmark, JDK 25) nunca fue peor que {@code INT_ARGB_PRE} fuera del margen
+   * de error (opaco 2 MP 4,0 ± 2,1 vs 3,1 ± 0,3 ms; con alpha 4 MP 23,2 ± 1,5 vs 28,2 ± 11,5 ms) y
+   * deja la premultiplicación a JavaFX.
+   */
   public static Format configuredFormat() {
-    String f = System.getProperty("rora.fx.format", "pre");
-    return "argb".equalsIgnoreCase(f) ? Format.INT_ARGB : Format.INT_ARGB_PRE;
+    String f = System.getProperty("rora.fx.format", "argb");
+    return "pre".equalsIgnoreCase(f) ? Format.INT_ARGB_PRE : Format.INT_ARGB;
   }
 
   /** Pool de imágenes del visor (ver {@link FramePool}). */
