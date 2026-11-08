@@ -515,7 +515,14 @@ class StudioViewModelTest {
     vm.close();
     int rows = vm.stack().rows().size();
     session.resetRecipe();
-    session.applyRecipe(session.recipe().add(OpSpec.of(session.registry().require("color.negative"), session.registry().require("color.negative").schema().defaults())), null);
+    session.applyRecipe(
+        session
+            .recipe()
+            .add(
+                OpSpec.of(
+                    session.registry().require("color.negative"),
+                    session.registry().require("color.negative").schema().defaults())),
+        null);
     assertThat(vm.stack().rows()).hasSize(rows);
   }
 }

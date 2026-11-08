@@ -1,18 +1,28 @@
 package io.github.erenriquezp.rora.app.shell;
 
+import io.github.erenriquezp.rora.app.catalog.Catalog;
 import io.github.erenriquezp.rora.app.fx.FxImages;
 import io.github.erenriquezp.rora.app.i18n.Messages;
+import io.github.erenriquezp.rora.app.lab.LabBundle;
+import io.github.erenriquezp.rora.app.lab.LabBundles;
+import io.github.erenriquezp.rora.app.lab.LabContext;
+import io.github.erenriquezp.rora.app.lab.LabTool;
 import io.github.erenriquezp.rora.app.session.EditSession;
 import io.github.erenriquezp.rora.app.session.FramePool;
 import io.github.erenriquezp.rora.app.session.RenderCoordinator;
+import io.github.erenriquezp.rora.app.session.RenderFailure;
 import io.github.erenriquezp.rora.app.session.Scheduler;
 import io.github.erenriquezp.rora.app.session.StallMonitor;
 import io.github.erenriquezp.rora.app.theme.Theme;
 import io.github.erenriquezp.rora.app.viewmodel.Env;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -21,7 +31,7 @@ import javafx.scene.image.WritableImage;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
-/** Aplicación con la interfaz nueva; se lanza con {@code --ui=next}. */
+/** Aplicación principal. Con {@code --lab} añade el Laboratorio, si su módulo está disponible. */
 public class StudioApp extends Application {
 
   private static final System.Logger LOG = System.getLogger("rora.app");
@@ -57,13 +67,30 @@ public class StudioApp extends Application {
   @Override
   public void start(Stage stage) {
     Theme.install();
-    Messages messages = Messages.of(Locale.getDefault());
+    boolean labRequested = labRequested(getParameters().getRaw());
+    List<LabBundle> labs = labRequested ? LabBundles.discover() : List.of();
+    List<ResourceBundle> labLabels = new ArrayList<>();
+    List<Catalog.Entry> labEntries = new ArrayList<>();
+    List<LabTool> tools = new ArrayList<>();
+    for (LabBundle lab : labs) {
+      labLabels.add(lab.labels(Locale.getDefault()));
+      labEntries.addAll(lab.catalogEntries());
+      tools.addAll(lab.tools());
+    }
+    Messages messages = Messages.of(Locale.getDefault(), labLabels);
     FxImages.Format format = FxImages.configuredFormat();
-    session = EditSession.create(Platform::runLater, img -> FxImages.toFx(img, afterPool, format), true);
+    session =
+        EditSession.create(Platform::runLater, img -> FxImages.toFx(img, afterPool, format), true);
     viewModel =
         new StudioViewModel<>(
             new Env<>(
-                session, messages, Scheduler.system(), Platform::runLater, background, io),
+                session,
+                messages,
+                Scheduler.system(),
+                Platform::runLater,
+                background,
+                io,
+                labEntries),
             img -> FxImages.toFx(img, beforePool, format),
             img -> FxImages.toFx(img, overlayPool, format));
 
@@ -75,7 +102,9 @@ public class StudioApp extends Application {
     if (icon != null) {
       stage.getIcons().add(new Image(icon));
     }
-    window = new MainWindow(viewModel, stage, layoutStore());
+    Runnable openLab =
+        tools.isEmpty() ? null : () -> LabWindow.open(stage, tools, labContext(stage));
+    window = new MainWindow(viewModel, stage, layoutStore(), openLab);
     Scene scene = window.build(afterPool, beforePool, overlayPool);
     Theme.apply(scene);
     stage.setScene(scene);
@@ -85,6 +114,43 @@ public class StudioApp extends Application {
     startStallMonitorIfEnabled();
     stage.setOnHidden(e -> window.saveLayout());
     stage.show();
+    if (labRequested && labs.isEmpty()) {
+      viewModel.labMissing();
+    }
+  }
+
+  /** La bandera {@code --lab} activa el Laboratorio si su módulo está disponible. */
+  static boolean labRequested(List<String> args) {
+    return args.contains("--lab");
+  }
+
+  private LabContext labContext(Stage stage) {
+    return new LabContext() {
+      @Override
+      public javafx.stage.Window owner() {
+        return stage;
+      }
+
+      @Override
+      public boolean hasImage() {
+        return session.hasImage();
+      }
+
+      @Override
+      public void currentImage(Consumer<BufferedImage> onImage, Consumer<RenderFailure> onFailed) {
+        session.withCurrentImage(onImage, onFailed);
+      }
+
+      @Override
+      public void useImage(BufferedImage image) {
+        viewModel.useImage(image);
+      }
+
+      @Override
+      public void status(String message) {
+        viewModel.statusProperty().set(message);
+      }
+    };
   }
 
   private void startStallMonitorIfEnabled() {

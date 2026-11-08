@@ -35,6 +35,7 @@ public final class Theme {
         .getStylesheets()
         .addAll(
             Objects.requireNonNull(Theme.class.getResource("tokens.css")).toExternalForm(),
-            Objects.requireNonNull(Theme.class.getResource("studio.css")).toExternalForm());
+            Objects.requireNonNull(Theme.class.getResource("studio.css")).toExternalForm(),
+            Objects.requireNonNull(Theme.class.getResource("color-chooser.css")).toExternalForm());
   }
 }

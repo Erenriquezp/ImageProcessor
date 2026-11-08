@@ -1,5 +1,8 @@
 package io.github.erenriquezp.rora.app.session;
 
+import io.github.erenriquezp.rora.app.imaging.SourceFormat;
+import io.github.erenriquezp.rora.app.lab.LabBundle;
+import io.github.erenriquezp.rora.app.lab.LabBundles;
 import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.image.ProxyPolicy;
 import io.github.erenriquezp.rora.core.image.ProxyPolicy.Size;
@@ -12,10 +15,6 @@ import io.github.erenriquezp.rora.core.op.RecipeHistory;
 import io.github.erenriquezp.rora.core.op.RenderLevel;
 import io.github.erenriquezp.rora.core.op.Renderer;
 import io.github.erenriquezp.rora.core.op.ResultCache;
-import io.github.erenriquezp.rora.domain.ExposureDiagnostic;
-import io.github.erenriquezp.rora.service.Analysis;
-import io.github.erenriquezp.rora.service.LegacySteps;
-import io.github.erenriquezp.rora.service.SourceFormat;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +75,6 @@ public final class EditSession<F> implements AutoCloseable {
   private final OpRegistry registry;
   private final Renderer renderer;
   private final RenderCoordinator coordinator;
-  private final FilterSpecs specs;
   private final Function<Img, F> toFrame;
   private final ProxyPolicy policy;
   private final List<Listener<F>> listeners = new CopyOnWriteArrayList<>();
@@ -129,10 +127,13 @@ public final class EditSession<F> implements AutoCloseable {
             return s == null ? Optional.empty() : s.nativeImage();
           }
         };
-    this.registry = LegacySteps.registryWithLegacy(ns);
+    List<Operation> ops = new ArrayList<>(OpRegistry.load().all());
+    for (LabBundle bundle : LabBundles.discover()) {
+      ops.addAll(bundle.operations(ns));
+    }
+    this.registry = OpRegistry.of(ops);
     this.renderer = new Renderer(registry, new ResultCache(cacheBytes), fusion);
     this.coordinator = Objects.requireNonNull(coordinatorFactory.apply(renderer), "coordinator");
-    this.specs = new FilterSpecs(registry);
   }
 
   /** Sesión real: coordinador con hilos propios, caché por defecto ({@code -Drora.cache.mb}). */
@@ -154,10 +155,6 @@ public final class EditSession<F> implements AutoCloseable {
 
   public OpRegistry registry() {
     return registry;
-  }
-
-  public FilterSpecs specs() {
-    return specs;
   }
 
   public Renderer renderer() {
@@ -674,15 +671,6 @@ public final class EditSession<F> implements AutoCloseable {
         request(pendingWithoutMarks, List.of(analysis), RenderLevel.FULL),
         new WorkListener<ExposureStats>(r -> (ExposureStats) r.aux(), onStats, onFailed),
         SLOT_DIAGNOSTIC);
-  }
-
-  /** Como {@link #exposure}, ya formateado con el mismo texto que la fachada. */
-  public RenderLane.Ticket exposureDiagnostic(
-      OpSpec pendingWithoutMarks,
-      Consumer<ExposureDiagnostic> onDiagnostic,
-      Consumer<RenderFailure> onFailed) {
-    return exposure(
-        pendingWithoutMarks, stats -> onDiagnostic.accept(Analysis.describe(stats)), onFailed);
   }
 
   /**

@@ -157,6 +157,30 @@ public class SnapshotTool extends StudioApp {
               vm.toolProperty().set(StudioViewModel.Tool.FILTERS);
               set(adjust(vm, "contrast"), 20);
             }));
+    if (args.contains("--lab")) {
+      shots.add(
+          new Shot(
+              "12-laboratorio-filtro",
+              w,
+              h,
+              () -> {
+                vm.toolProperty().set(StudioViewModel.Tool.FILTERS);
+                vm.catalog().queryProperty().set("z-buffer");
+                vm.catalog().add(vm.catalog().results().get(0));
+              }));
+      shots.add(
+          new Shot(
+              "13-laboratorio-ventana",
+              w,
+              h,
+              () ->
+                  stage.getScene().getRoot().lookupAll(".tool-button").stream()
+                      .filter(n -> n instanceof javafx.scene.control.Button)
+                      .map(n -> (javafx.scene.control.Button) n)
+                      .findFirst()
+                      .orElseThrow()
+                      .fire()));
+    }
     next();
   }
 
@@ -190,7 +214,8 @@ public class SnapshotTool extends StudioApp {
   }
 
   private void save(String name) {
-    WritableImage snap = stage.getScene().snapshot(null);
+    var windows = javafx.stage.Window.getWindows();
+    WritableImage snap = windows.get(windows.size() - 1).getScene().snapshot(null);
     PixelReader r = snap.getPixelReader();
     int w = (int) snap.getWidth();
     int h = (int) snap.getHeight();

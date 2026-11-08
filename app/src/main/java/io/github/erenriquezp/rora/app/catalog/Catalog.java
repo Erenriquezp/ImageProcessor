@@ -18,7 +18,8 @@ public final class Catalog {
     COLOR("catalog.category.color"),
     STYLES("catalog.category.styles"),
     EFFECTS("catalog.category.effects"),
-    CORRECTION("catalog.category.correction");
+    CORRECTION("catalog.category.correction"),
+    LAB("catalog.category.lab");
 
     public final String labelKey;
 
@@ -117,11 +118,16 @@ public final class Catalog {
 
   /** Entradas cuyo nombre o sinónimos contienen {@code query} (sin distinguir mayúsculas). */
   public static List<Entry> search(String query, Messages messages) {
+    return search(query, messages, ENTRIES);
+  }
+
+  /** Como {@link #search(String, Messages)}, sobre {@code entries}. */
+  public static List<Entry> search(String query, Messages messages, List<Entry> entries) {
     String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
     if (q.isEmpty()) {
-      return ENTRIES;
+      return entries;
     }
-    return ENTRIES.stream()
+    return entries.stream()
         .filter(
             e ->
                 messages.get(e.labelKey()).toLowerCase(Locale.ROOT).contains(q)

@@ -68,7 +68,6 @@
     <properties>
         <!-- JavaFX 25 exige JDK 23 o superior; core-imaging sigue en 21 -->
         <maven.compiler.release>25</maven.compiler.release>
-        <skip.memory>false</skip.memory>
         <archunit.version>1.4.1</archunit.version>
     </properties>
 
@@ -78,7 +77,6 @@
             <id>ui-smoke</id>
             <properties>
                 <test>StudioUiSmoke</test>
-                <skip.memory>true</skip.memory>
             </properties>
         </profile>
     </profiles>
@@ -97,54 +95,6 @@
                                     <version>[25,)</version>
                                 </requireJavaVersion>
                             </rules>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- Cobertura agregada (app + modulos de los que depende): target/site/jacoco-aggregate -->
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>jacoco-aggregate</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>report-aggregate</goal>
-                        </goals>
-                        <configuration>
-                            <includeCurrentProject>true</includeCurrentProject>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- Fase 2: el test de memoria corre aparte, en un JVM con -Xmx1536m (saltable con -Dskip.memory=true) -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>**/*MemoryTest.java</exclude>
-                    </excludes>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>memory</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>test</goal>
-                        </goals>
-                        <configuration>
-                            <skip>${skip.memory}</skip>
-                            <excludes combine.self="override"/>
-                            <includes>
-                                <include>**/*MemoryTest.java</include>
-                            </includes>
-                            <forkCount>1</forkCount>
-                            <reuseForks>false</reuseForks>
-                            <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
-                            <reportsDirectory>${project.build.directory}/surefire-reports-memory</reportsDirectory>
-                            <argLine>@{argLine} -Xmx1536m -XX:+UseG1GC -Xlog:gc*:file=${project.build.directory}/memory-gc.log -Djava.awt.headless=true -Dfile.encoding=UTF-8</argLine>
                         </configuration>
                     </execution>
                 </executions>

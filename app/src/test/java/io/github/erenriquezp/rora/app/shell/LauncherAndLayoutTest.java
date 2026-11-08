@@ -7,11 +7,9 @@ import org.junit.jupiter.api.Test;
 class LauncherAndLayoutTest {
 
   @Test
-  void theNewUiNeedsTheFlag() {
-    assertThat(Launcher.wantsNewUi(new String[0], null)).isFalse();
-    assertThat(Launcher.wantsNewUi(new String[] {"--ui=next"}, null)).isTrue();
-    assertThat(Launcher.wantsNewUi(new String[0], "next")).isTrue();
-    assertThat(Launcher.wantsNewUi(new String[] {"--ui=old"}, "old")).isFalse();
+  void theLabNeedsItsFlag() {
+    assertThat(StudioApp.labRequested(java.util.List.of())).isFalse();
+    assertThat(StudioApp.labRequested(java.util.List.of("--lab"))).isTrue();
   }
 
   @Test

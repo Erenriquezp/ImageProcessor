@@ -6,6 +6,7 @@ import io.github.erenriquezp.rora.app.session.ImageIo;
 import io.github.erenriquezp.rora.app.session.RenderFailure;
 import io.github.erenriquezp.rora.app.session.SessionSource;
 import io.github.erenriquezp.rora.core.image.Img;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.Locale;
 import java.util.concurrent.Callable;
@@ -233,7 +234,7 @@ public final class StudioViewModel<F> implements AutoCloseable {
         () -> ImageIo.load(file),
         source -> {
           if (generation == loadGeneration) {
-            install(source, file);
+            install(source, file.getName(), extensionOf(file));
           }
         },
         error -> {
@@ -246,7 +247,25 @@ public final class StudioViewModel<F> implements AutoCloseable {
         });
   }
 
-  private void install(SessionSource source, File file) {
+  /** Lleva al editor una imagen creada en el Laboratorio. */
+  public void useImage(BufferedImage image) {
+    long generation = ++loadGeneration;
+    run(
+        () -> SessionSource.of(image),
+        source -> {
+          if (generation == loadGeneration) {
+            install(source, m.get("ui.lab.untitled"), "");
+          }
+        },
+        error -> notifications.error(m.get("ui.error.render"), error.getMessage()));
+  }
+
+  /** El usuario pidió {@code --lab} pero el módulo no está disponible. */
+  public void labMissing() {
+    notifications.error(m.get("ui.lab.missing"), "");
+  }
+
+  private void install(SessionSource source, String name, String extension) {
     if (tool.get() == Tool.CROP) {
       tool.set(Tool.ADJUST);
     }
@@ -256,9 +275,9 @@ public final class StudioViewModel<F> implements AutoCloseable {
     viewer.pushViewport();
     env.session().load(source);
     hasImage.set(true);
-    fileName.set(file.getName());
-    format.set(extensionOf(file));
-    setStatus(m.format("ui.status.opened", file.getName()));
+    fileName.set(name);
+    format.set(extension);
+    setStatus(m.format("ui.status.opened", name));
   }
 
   private static String extensionOf(File file) {

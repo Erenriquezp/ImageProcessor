@@ -70,6 +70,7 @@ final class MainWindow {
   private final Messages m;
   private final Stage stage;
   private final LayoutStore layout;
+  private final Runnable openLab;
   private final Subscriptions subs = new Subscriptions();
   private final BorderPane root = new BorderPane();
   private final StackPane drawerHost = new StackPane();
@@ -82,7 +83,8 @@ final class MainWindow {
   private StackPane centerStack;
   private boolean drawerFloating;
 
-  MainWindow(StudioViewModel<WritableImage> vm, Stage stage, LayoutStore layout) {
+  MainWindow(StudioViewModel<WritableImage> vm, Stage stage, LayoutStore layout, Runnable openLab) {
+    this.openLab = openLab;
     this.vm = vm;
     this.m = vm.messages();
     this.stage = stage;
@@ -167,8 +169,7 @@ final class MainWindow {
     double x = layout.getDouble(KEY_X, Double.NaN);
     double y = layout.getDouble(KEY_Y, Double.NaN);
     boolean onScreen =
-        !Double.isNaN(x)
-            && !javafx.stage.Screen.getScreensForRectangle(x, y, 80, 40).isEmpty();
+        !Double.isNaN(x) && !javafx.stage.Screen.getScreensForRectangle(x, y, 80, 40).isEmpty();
     if (onScreen) {
       stage.setX(x);
       stage.setY(y);
@@ -310,7 +311,9 @@ final class MainWindow {
       b.setToggleGroup(group);
       b.getStyleClass()
           .add(
-              i == 0 ? Styles.LEFT_PILL : i == modes.length - 1 ? Styles.RIGHT_PILL : Styles.CENTER_PILL);
+              i == 0
+                  ? Styles.LEFT_PILL
+                  : i == modes.length - 1 ? Styles.RIGHT_PILL : Styles.CENTER_PILL);
       compareSegmented.getChildren().add(b);
     }
     group
@@ -365,6 +368,12 @@ final class MainWindow {
             toolButton(group, Tool.FILTERS, "ui.tool.filters", "fas-magic"),
             toolButton(group, Tool.CROP, "ui.tool.crop", "fas-crop-alt"));
     rail.getStyleClass().add("tool-rail");
+    if (openLab != null) {
+      Button lab = new Button(m.get("ui.tool.lab"), new FontIcon("fas-flask"));
+      lab.getStyleClass().add("tool-button");
+      lab.setOnAction(e -> openLab.run());
+      rail.getChildren().add(lab);
+    }
     group
         .selectedToggleProperty()
         .addListener(
@@ -417,8 +426,7 @@ final class MainWindow {
           pixel.setText(r == null ? "" : readoutText(r));
           if (r != null) {
             swatch.setStyle(
-                String.format(
-                    Locale.ROOT, "-fx-background-color: #%06x;", r.argb() & 0xFFFFFF));
+                String.format(Locale.ROOT, "-fx-background-color: #%06x;", r.argb() & 0xFFFFFF));
           }
         };
     subs.add(vm.viewer().readoutProperty().subscribe(update::accept));

@@ -41,7 +41,7 @@ jobs:
           name: jacoco-${{ matrix.os }}-jdk${{ matrix.java }}
           path: |
             **/target/site/jacoco/
-            app/target/site/jacoco-aggregate/
+            lab-plugin/target/site/jacoco-aggregate/
           if-no-files-found: ignore
 
       - name: Subir resultados de surefire

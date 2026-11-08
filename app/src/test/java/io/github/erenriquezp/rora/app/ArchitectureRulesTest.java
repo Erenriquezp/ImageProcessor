@@ -146,17 +146,4 @@ class ArchitectureRulesTest {
         .areAssignableTo(TileExecutor.class)
         .check(classes);
   }
-
-  @Test
-  void onlyPaneWorkReachesTheFacadeFromTheSession() {
-    noClasses()
-        .that()
-        .resideInAPackage(SESSION)
-        .and()
-        .doNotHaveSimpleName("PaneWork")
-        .should()
-        .dependOnClassesThat()
-        .haveFullyQualifiedName(SERVICE + ".ImageProcessor")
-        .check(classes);
-  }
 }

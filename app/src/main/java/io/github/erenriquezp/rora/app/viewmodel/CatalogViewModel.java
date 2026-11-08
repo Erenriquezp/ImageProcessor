@@ -5,6 +5,8 @@ import io.github.erenriquezp.rora.core.op.EditRecipe;
 import io.github.erenriquezp.rora.core.op.OpSpec;
 import io.github.erenriquezp.rora.core.op.Operation;
 import io.github.erenriquezp.rora.core.op.Params;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -17,13 +19,16 @@ public final class CatalogViewModel<F> {
   private final Env<F> env;
   private final StackViewModel<F> stack;
   private final StringProperty query = new SimpleStringProperty("");
-  private final ObservableList<Catalog.Entry> results =
-      FXCollections.observableArrayList(Catalog.ENTRIES);
+  private final List<Catalog.Entry> entries;
+  private final ObservableList<Catalog.Entry> results = FXCollections.observableArrayList();
 
   CatalogViewModel(Env<F> env, StackViewModel<F> stack) {
     this.env = env;
     this.stack = stack;
-    query.subscribe(q -> results.setAll(Catalog.search(q, env.messages())));
+    List<Catalog.Entry> all = new ArrayList<>(Catalog.ENTRIES);
+    all.addAll(env.labEntries());
+    this.entries = List.copyOf(all);
+    query.subscribe(q -> results.setAll(Catalog.search(q, env.messages(), entries)));
   }
 
   public StringProperty queryProperty() {

@@ -44,6 +44,17 @@
     -color-warning-fg: -token-warn;
     -color-success-fg: -token-ok;
 
+    /* Nombres que usa el selector de color */
+    -color-accent: -token-accent;
+    -color-accent-deep: -token-select;
+    -color-border: -token-border;
+    -color-border-strong: -token-border-strong;
+    -color-surface-2: -token-surface-2;
+    -color-text: -token-text;
+    -color-text-dim: -token-text-2;
+    -color-text-faint: -token-border-strong;
+    -color-text-muted: -token-text-3;
+
     -fx-font-family: "IBM Plex Sans";
     -fx-font-size: 13px;
 }

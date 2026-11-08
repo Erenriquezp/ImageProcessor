@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.erenriquezp</groupId>
+        <artifactId>rora-parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>rora-lab-plugin</artifactId>
+    <name>Rora Studio - laboratorio (opcional)</name>
+    <description>Operaciones didacticas, generador, blending y codigo heredado de referencia. No va en el instalador.</description>
+
+    <properties>
+        <maven.compiler.release>25</maven.compiler.release>
+        <skip.memory>false</skip.memory>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.erenriquezp</groupId>
+            <artifactId>rora-core-imaging</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.erenriquezp</groupId>
+            <artifactId>rora-app</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.kordamp.ikonli</groupId>
+            <artifactId>ikonli-javafx</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.kordamp.ikonli</groupId>
+            <artifactId>ikonli-fontawesome6-pack</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-versions</id>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[25,)</version>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Cobertura agregada de todos los modulos: target/site/jacoco-aggregate -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>jacoco-aggregate</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report-aggregate</goal>
+                        </goals>
+                        <configuration>
+                            <includeCurrentProject>true</includeCurrentProject>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- El test de memoria corre aparte, en un JVM con -Xmx1536m (saltable con -Dskip.memory=true) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/*MemoryTest.java</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>memory</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.memory}</skip>
+                            <excludes combine.self="override"/>
+                            <includes>
+                                <include>**/*MemoryTest.java</include>
+                            </includes>
+                            <forkCount>1</forkCount>
+                            <reuseForks>false</reuseForks>
+                            <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
+                            <reportsDirectory>${project.build.directory}/surefire-reports-memory</reportsDirectory>
+                            <argLine>@{argLine} -Xmx1536m -XX:+UseG1GC -Xlog:gc*:file=${project.build.directory}/memory-gc.log -Djava.awt.headless=true -Dfile.encoding=UTF-8</argLine>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Editor con el Laboratorio: ./mvnw install -DskipTests && ./mvnw -pl lab-plugin javafx:run -->
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-cli</id>
+                        <configuration>
+                            <mainClass>io.github.erenriquezp.rora.app/io.github.erenriquezp.rora.app.shell.Launcher</mainClass>
+                            <commandlineArgs>--lab</commandlineArgs>
+                            <options>
+                                <option>--enable-native-access=javafx.graphics</option>
+                                <option>--add-modules</option>
+                                <option>io.github.erenriquezp.rora.lab</option>
+                            </options>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

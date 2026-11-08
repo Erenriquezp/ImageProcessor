@@ -13,6 +13,7 @@
     <modules>
         <module>core-imaging</module>
         <module>app</module>
+        <module>lab-plugin</module>
     </modules>
 
     <profiles>
@@ -63,6 +64,11 @@
             <dependency>
                 <groupId>io.github.erenriquezp</groupId>
                 <artifactId>rora-app</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.erenriquezp</groupId>
+                <artifactId>rora-lab-plugin</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
