@@ -72,6 +72,17 @@
         <archunit.version>1.4.1</archunit.version>
     </properties>
 
+    <profiles>
+        <!-- Humo con el toolkit real; necesita pantalla (o xvfb-run). No entra en verify -->
+        <profile>
+            <id>ui-smoke</id>
+            <properties>
+                <test>StudioUiSmoke</test>
+                <skip.memory>true</skip.memory>
+            </properties>
+        </profile>
+    </profiles>
+
     <build>
         <plugins>
             <plugin>
