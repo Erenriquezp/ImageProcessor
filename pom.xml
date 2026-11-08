@@ -24,6 +24,12 @@
         <checkstyle.version>10.21.4</checkstyle.version>
         <spotbugs-plugin.version>4.9.3.0</spotbugs-plugin.version>
         <jacoco.version>0.8.14</jacoco.version>
+        <assertj.version>3.27.3</assertj.version>
+        <!-- Spotless solo comprueba el codigo cambiado desde esta referencia (ratchet).
+             Local: develop. En CI se sobrescribe con -Dspotless.ratchet=origin/develop -->
+        <spotless.ratchet>develop</spotless.ratchet>
+        <!-- JaCoCo rellena argLine; el valor vacio evita un literal "@{argLine}" si se omite el agente -->
+        <argLine></argLine>
     </properties>
 
     <dependencies>
@@ -66,6 +72,18 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -105,6 +123,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire.version}</version>
+                <configuration>
+                    <!-- AWT sin pantalla; @{argLine} lo rellena el agente de JaCoCo -->
+                    <argLine>@{argLine} -Djava.awt.headless=true -Dfile.encoding=UTF-8</argLine>
+                    <trimStackTrace>false</trimStackTrace>
+                </configuration>
             </plugin>
             <!-- Formato: no se ejecuta en el build; usar "mvn spotless:check" (CI en modo informe) -->
             <plugin>
@@ -112,6 +135,8 @@
                 <artifactId>spotless-maven-plugin</artifactId>
                 <version>${spotless.version}</version>
                 <configuration>
+                    <!-- Solo se comprueba el codigo modificado desde la referencia; no se reformatea lo heredado -->
+                    <ratchetFrom>${spotless.ratchet}</ratchetFrom>
                     <java>
                         <includes>
                             <include>src/main/java/**/*.java</include>
