@@ -277,7 +277,13 @@ class DecodeTest {
   void jpegProfileIsConvertedOnce() throws Exception {
     byte[] icc = Fixtures.rgbProfile("Pantalla P3", Fixtures.P3_D50);
     byte[] jpg = Fixtures.insertJpeg(Fixtures.bestJpeg(dir, patches()), Fixtures.iccSeg(icc));
-    assertP3(decode(file("p3.jpg", jpg)), 3);
+    assertP3(decode(file("p3.jpg", jpg)), 2);
+  }
+
+  @Test
+  void tiffProfileIsConvertedWithinTwoLevelsOfTheAnalyticResult() throws Exception {
+    byte[] icc = Fixtures.rgbProfile("Pantalla P3", Fixtures.P3_D50);
+    assertP3(decode(file("p3.tif", Fixtures.tiffWithProfile(patches(), icc))), 2);
   }
 
   @Test

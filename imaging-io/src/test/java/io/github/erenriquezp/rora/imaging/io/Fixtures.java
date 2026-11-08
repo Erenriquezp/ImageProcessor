@@ -511,6 +511,32 @@ final class Fixtures {
     return b.array();
   }
 
+  /** TIFF sin comprimir con un perfil incrustado. */
+  static byte[] tiffWithProfile(Img img, byte[] icc) throws Exception {
+    BufferedImage b = toRgb(img);
+    ImageWriter w = ImageIO.getImageWritersByFormatName("tiff").next();
+    ByteArrayOutputStream o = new ByteArrayOutputStream();
+    try (ImageOutputStream ios = ImageIO.createImageOutputStream(o)) {
+      w.setOutput(ios);
+      javax.imageio.ImageWriteParam p = w.getDefaultWriteParam();
+      p.setCompressionMode(javax.imageio.ImageWriteParam.MODE_DISABLED);
+      var md =
+          w.getDefaultImageMetadata(javax.imageio.ImageTypeSpecifier.createFromRenderedImage(b), p);
+      var dir = javax.imageio.plugins.tiff.TIFFDirectory.createFromMetadata(md);
+      var tags = javax.imageio.plugins.tiff.BaselineTIFFTagSet.getInstance();
+      dir.addTIFFField(
+          new javax.imageio.plugins.tiff.TIFFField(
+              tags.getTag(javax.imageio.plugins.tiff.BaselineTIFFTagSet.TAG_ICC_PROFILE),
+              javax.imageio.plugins.tiff.TIFFTag.TIFF_UNDEFINED,
+              icc.length,
+              icc));
+      w.write(null, new IIOImage(b, null, dir.getAsMetadata()), p);
+    } finally {
+      w.dispose();
+    }
+    return o.toByteArray();
+  }
+
   /** ARGB ruidoso: uno de cada cuatro píxeles con alfa 0 y color distinto de 0. */
   static Img noiseArgb(int w, int h, long seed) {
     int[] d = new int[w * h];
