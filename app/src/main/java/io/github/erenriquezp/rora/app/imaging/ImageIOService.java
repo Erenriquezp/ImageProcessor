@@ -6,6 +6,14 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Lectura y escritura heredadas, sin gestión de color, orientación ni metadatos. La interfaz usa
+ * {@code app.session.StudioIo}; esto queda para el Laboratorio (fondos de blending) y los tests
+ * diferenciales.
+ *
+ * @deprecated usar {@code app.session.StudioIo}
+ */
+@Deprecated
 public final class ImageIOService {
 
     private ImageIOService() {

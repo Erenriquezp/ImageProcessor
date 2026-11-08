@@ -100,6 +100,8 @@ public final class EditSession<F> implements AutoCloseable {
   private final List<Waiter> currentWaiters = new ArrayList<>();
   private int editingIndex = -1;
   private Set<String> excludedOps = Set.of();
+  private EditRecipe exported = EditRecipe.EMPTY;
+  private boolean sourceExported;
 
   /**
    * @param coordinatorFactory crea el coordinador a partir del renderer (real en la app, manual en
@@ -174,6 +176,8 @@ public final class EditSession<F> implements AutoCloseable {
     history.reset(EditRecipe.EMPTY);
     pending = null;
     proxy = Optional.empty();
+    exported = EditRecipe.EMPTY;
+    sourceExported = false;
     decideProxy();
     stateChanged();
     fireHistory();
@@ -186,6 +190,26 @@ public final class EditSession<F> implements AutoCloseable {
 
   public Optional<SessionSource> source() {
     return Optional.ofNullable(current);
+  }
+
+  // ── Cambios sin exportar ──────────────────────────────────────────────────
+
+  /** ¿Hay ajustes que no se han exportado? Volver al estado exportado con deshacer cuenta. */
+  public boolean isModified() {
+    if (current == null) {
+      return false;
+    }
+    return !effectiveRecipe().equals(exported) || (current.origin().isEmpty() && !sourceExported);
+  }
+
+  /** El estado actual ya está en un archivo. */
+  public void markExported() {
+    exported = effectiveRecipe();
+    sourceExported = true;
+  }
+
+  private EditRecipe effectiveRecipe() {
+    return pending == null ? history.current() : history.current().add(pending);
   }
 
   // ── Receta ────────────────────────────────────────────────────────────────
@@ -656,6 +680,18 @@ public final class EditSession<F> implements AutoCloseable {
         req,
         new WorkListener<>(
             r -> SourceFormat.materialize(r.image(), eff.finalFormat(), ns), onImage, onFailed));
+  }
+
+  /** Exportación: FULL protegido de la receta efectiva actual, como {@code Img}. */
+  public RenderLane.Ticket exportImg(Consumer<Img> onImage, Consumer<RenderFailure> onFailed) {
+    SessionSource s = current;
+    Renderer.Request req =
+        new Renderer.Request(
+            s.asRenderSource(),
+            effective(pending, List.of()).steps(),
+            headLength(),
+            RenderLevel.FULL);
+    return coordinator.export(req, new WorkListener<>(Renderer.Result::image, onImage, onFailed));
   }
 
   /**
