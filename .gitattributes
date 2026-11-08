@@ -1,0 +1,31 @@
+# Normalización de fin de línea: LF en el repo y en el checkout
+* text=auto eol=lf
+
+# Scripts de Windows: CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Scripts POSIX: siempre LF
+mvnw text eol=lf
+*.sh text eol=lf
+
+# Binarios
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.jar binary
+*.zip binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+
+# Modelos de IA y LUTs (no tratar como texto)
+*.onnx binary
+*.pt binary
+*.pth binary
+*.safetensors binary
+*.cube binary
