@@ -12,6 +12,7 @@
 
     <modules>
         <module>core-imaging</module>
+        <module>imaging-io</module>
         <module>app</module>
         <module>lab-plugin</module>
     </modules>
@@ -32,6 +33,8 @@
         <javafx.version>25.0.5</javafx.version>
         <atlantafx.version>2.1.0</atlantafx.version>
         <ikonli.version>12.4.0</ikonli.version>
+        <!-- BSD (POM del proyecto). Solo lectura de WebP, en ejecucion -->
+        <twelvemonkeys.version>3.15.3</twelvemonkeys.version>
         <junit.version>5.12.1</junit.version>
         <!-- Versiones de plugins de calidad (todos de codigo abierto) -->
         <compiler.version>3.13.0</compiler.version>
@@ -60,6 +63,16 @@
                 <groupId>io.github.erenriquezp</groupId>
                 <artifactId>rora-core-imaging</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.erenriquezp</groupId>
+                <artifactId>rora-imaging-io</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.twelvemonkeys.imageio</groupId>
+                <artifactId>imageio-webp</artifactId>
+                <version>${twelvemonkeys.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.erenriquezp</groupId>
