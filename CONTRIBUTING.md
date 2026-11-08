@@ -1,4 +1,4 @@
-# Contribuir a ImageProcessor
+# Contribuir a Rora Studio
 
 ## Requisitos
 

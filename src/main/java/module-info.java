@@ -1,4 +1,4 @@
-module com.example.imageprocessor {
+module io.github.erenriquezp.rora.app {
     requires javafx.controls;
     requires javafx.fxml;
     requires javafx.swing;
@@ -6,5 +6,5 @@ module com.example.imageprocessor {
     requires org.kordamp.ikonli.javafx;
     requires org.kordamp.ikonli.fontawesome6;
 
-    exports com.example.imageprocessor.app;
+    exports io.github.erenriquezp.rora.app;
 }

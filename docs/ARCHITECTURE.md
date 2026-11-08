@@ -2,7 +2,7 @@
 
 ## Estado actual
 
-Un único módulo Maven (`com.example:imageprocessor`) con tres capas:
+Un único módulo Maven (`io.github.erenriquezp:rora-app`, paquete base `io.github.erenriquezp.rora`) con tres capas:
 
 ```
 app/      Presentación y coordinación (ImageProcessorApp + ui/)
