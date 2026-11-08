@@ -155,7 +155,16 @@ public final class InspectorView extends VBox {
     list.setFocusTraversable(true);
     list.setAccessibleText(header.getText());
     VBox.setVgrow(list, Priority.ALWAYS);
-    subs.add(stack.selectedProperty().subscribe(s -> list.refresh()));
+    subs.add(
+        stack
+            .selectedProperty()
+            .subscribe(
+                s -> {
+                  list.refresh();
+                  if (s.intValue() >= 0) {
+                    list.scrollTo(s.intValue());
+                  }
+                }));
     list.addEventFilter(KeyEvent.KEY_PRESSED, e -> onListKey(e, stack));
 
     empty.visibleProperty().bind(Bindings.isEmpty(stack.rows()));
