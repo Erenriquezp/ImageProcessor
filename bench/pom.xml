@@ -41,6 +41,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- Fase 2: solo para FxImagesBenchmark (escritura en WritableImage con el toolkit real) -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
             <artifactId>jmh-core</artifactId>
