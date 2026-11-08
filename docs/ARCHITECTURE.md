@@ -4,12 +4,13 @@
 
 ```
 rora-parent (pom raíz: versiones, plugins, calidad)
-├── core-imaging   módulo io.github.erenriquezp.rora.core — solo requiere java.base (ni JavaFX ni AWT)
-├── app            módulo io.github.erenriquezp.rora.app  — JavaFX: UI, fachada ImageProcessor, puente AWT
+├── core-imaging   módulo ...rora.core — solo requiere java.base (ni JavaFX ni AWT); --release 21
+├── app            módulo ...rora.app  — JavaFX 25: interfaz, sesión, puente AWT; --release 25
+├── lab-plugin     módulo ...rora.lab  — opcional: didácticas, generador, blending y código heredado
 └── bench          benchmarks JMH (perfil -Pbench, fuera del build por defecto, no se distribuye)
 ```
 
-`app` depende de `core-imaging`. Un test (`ModuleAndServiceLoaderTest`) comprueba que el núcleo solo requiere `java.base` y que no exporta sus implementaciones.
+`app` depende de `core-imaging`; `lab-plugin` depende de los dos y `app` no lo conoce: lo descubre con `ServiceLoader` (`LabBundle`) si el módulo está resuelto. Un test (`ModuleAndServiceLoaderTest`) comprueba que el núcleo solo requiere `java.base` y que no exporta sus implementaciones.
 
 ### `core-imaging`
 
@@ -18,19 +19,23 @@ rora-parent (pom raíz: versiones, plugins, calidad)
 | `core.image` | `Downscale` (promedio por área con alpha ponderado), `ProxyPolicy`. `Img`: píxeles ARGB **no premultiplicados** en `int[]` (mismo formato que `BufferedImage.getRGB`), `stride == width`, sin setters públicos. `copyOf` copia, `adopt` toma posesión del array. |
 | `core.op` | Receta y render: `OpSpec`, `EditRecipe`, `RecipeHistory`, `Renderer`, `ResultCache`, `RenderKey`, `PointFusion`. SPI: `Operation`, `ParamSchema`/`ParamDef` (entero, decimal, booleano, enum, color, selección; rango, defecto, neutro, clave de etiqueta), `Params`, `OpMeta`, `OpKind` (puntual / vecindad(radio, alineación) / global), `OpResult` (imagen + datos auxiliares como `ExposureStats` o `ChannelHistogram`), `OpContext`, `OpRegistry`, `BandOperation`. |
 | `core.exec` | `TileExecutor` (pool propio, bandas de filas), `CancellationToken`, `CancelledException`, `Progress`. |
-| `core.color` | `Hsb` (RGB↔HSB sin AWT, idéntico bit a bit a `java.awt.Color`), `SrgbLut` (sRGB↔lineal; aún no la usa ninguna operación). |
+| `core.color` | `Hsb` (RGB↔HSB sin AWT, idéntico bit a bit a `java.awt.Color`), `SrgbLut` (sRGB↔lineal). |
 | `core.ops.*` | Implementaciones (no exportadas; se publican con `provides`). |
 | `core.internal` | Acceso sin copia al array de `Img` dentro del módulo (no exportado). |
 
 ### `app`
 
-- `app/`, `app/ui/`, `app/fx/`: JavaFX. Solo presentación: hablan con `app/session`, nunca con `service/` ni con el núcleo de proceso (lo comprueba `ArchitectureRulesTest`).
-- `app/session/` (sin JavaFX, se prueba en headless): `EditSession` (fuente, receta, historial, paso pendiente, proxy), `RenderLane`/`RenderCoordinator`, `LatestWins`, `FilterSpecs`, `PaneWork`, `FramePool`, `StallMonitor`.
-- `service/ImageProcessor`: fachada estática que usa la UI. Sus firmas no cambian; las operaciones portadas delegan en el núcleo a través de `CoreBridge`.
-- `service/AwtImg`: puente exacto `BufferedImage ↔ Img` (lee como `getRGB`, escribe `TYPE_INT_ARGB` como `setRGB`).
-- `service/CoreBridge`: registro (`OpRegistry.load()`) y un `TileExecutor` compartido de N−1 hilos daemon.
-- `service/LegacySteps`: las 15 operaciones aún no portadas como pasos de receta `legacy.*`. `service/SourceFormat`: formato de origen de la convolución.
-- Implementaciones heredadas en `service/`: las portadas están `@Deprecated(forRemoval = true)` y solo las usan los tests diferenciales (se borran en la fase 3). Siguen en uso: convolución, blending de 2 y 3 imágenes, degradados y todas las operaciones de nivel C.
+Paquetes de interfaz en [`docs/UI.md`](UI.md).
+
+- `app/session/` (sin JavaFX, se prueba en headless): `EditSession` (fuente, receta, historial, proxy), `RenderLane`/`RenderCoordinator`, `LatestWins`, `FramePool`, `StallMonitor`.
+- `app/imaging/`: puente exacto `BufferedImage ↔ Img` (`AwtImg`, `ImageBridge`), lectura y escritura (`ImageIOService`) y formato de origen (`SourceFormat`).
+- `app/lab/`: SPI del Laboratorio.
+
+### `lab-plugin`
+
+- `lab/`: el `LabBundle` y los paneles de Generador, Blending y Triple Blending.
+- `service/`: fachada `ImageProcessor`, los 15 pasos `legacy.*` (`LegacySteps`) e implementaciones heredadas. Las portadas siguen `@Deprecated(forRemoval)` y solo las usan los tests diferenciales: varias clases mezclan métodos portados con otros en uso, por eso están aquí y no en `src/test`.
+- `domain/`: enums de esas operaciones.
 
 ## Modelo de ejecución
 
@@ -73,7 +78,7 @@ provides io.github.erenriquezp.rora.core.op.Operation with
 
 ## Formato de imagen y exactitud
 
-- El núcleo trabaja en sRGB de 8 bits, igual que el código heredado. El pipeline en float lineal llegará en fases posteriores; `SrgbLut` ya está disponible y probado.
+- Las operaciones portadas trabajan en sRGB de 8 bits, igual que el código heredado. Las nuevas (`adjust.basic`, `blur.gaussian`, `detail.unsharp-mask`) trabajan en luz lineal con `SrgbLut`.
 - Cada operación portada reproduce **exactamente** la aritmética heredada (mismos tipos, mismo orden de operaciones, mismos casos especiales, incluido devolver la misma instancia cuando el legacy lo hacía). La equivalencia se demuestra con tests, no se supone (ver `docs/TESTING.md`).
 
 ## Pipeline no destructivo (fase 2)
@@ -124,7 +129,15 @@ Solo existen cuando hay proxy. Lo exportado, el histograma, el blending, el diag
 9. **Cuentagotas al pasar el ratón**: valor del proxy, marcado con "≈"; coordenadas de la imagen completa.
 10. **Diagnóstico de exposición**: nunca aproximado ("Cargando diagnóstico..." hasta el valor exacto).
 
-## Dirección prevista (fases siguientes)
+## Operaciones nuevas (fase 3)
 
-- Fase 3: UI generada desde `ParamSchema`; eliminación del código heredado portado; reescritura de la convolución.
+**`adjust.basic`.** Un solo paso y un solo kernel: pasa a luz lineal una vez, aplica balance de blancos, exposición y curva tonal sobre la luminancia, intensidad y saturación, y cuantiza una vez al final. Hacerlo con diez operaciones cuantizaría a 8 bits entre cada una (bandas y luces perdidas). Una etapa con sus parámetros neutros no se ejecuta, así que con todos neutros la salida es exactamente la entrada. La curva actúa sobre la luminancia y aplica ganancia a RGB, lo que preserva el tono.
+
+**Gamut (`LinearPack`).** Un color fuera de rango mezcla recorte por canal, para excesos mínimos, con compresión hacia la luminancia, que conserva el tono en excesos grandes. La compresión sola era demasiado sensible cerca de `Y = 1`.
+
+**Geometría.** `Operation.outputSize` declara el tamaño de salida y `Operation.forPreview` adapta los parámetros al proxy. La escala de los parámetros en píxeles se calcula en cada paso, no solo con la fuente. El recorte es normalizado a 0..1, independiente de la resolución.
+
+## Dirección prevista
+
+- Exportación avanzada y corrección de JPG con alpha (fase 4).
 - Motor de IA opcional en su propio módulo; distribución con `jlink` + `jpackage`.
