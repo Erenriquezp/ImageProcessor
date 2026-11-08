@@ -5,7 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /** {@link Scheduler} con tiempo virtual: las tareas solo corren al llamar a {@link #advance}. */
-final class ManualScheduler implements Scheduler {
+public final class ManualScheduler implements Scheduler {
 
   private record Task(long due, long seq, Runnable r, boolean[] cancelled) {}
 
@@ -30,7 +30,7 @@ final class ManualScheduler implements Scheduler {
   }
 
   /** Avanza el reloj y ejecuta, en orden, las tareas que vencen. */
-  void advance(long nanos) {
+  public void advance(long nanos) {
     long target;
     synchronized (this) {
       target = now + nanos;
@@ -55,7 +55,7 @@ final class ManualScheduler implements Scheduler {
     }
   }
 
-  synchronized int pendingTasks() {
+  public synchronized int pendingTasks() {
     tasks.removeIf(t -> t.cancelled()[0]);
     return tasks.size();
   }

@@ -5,7 +5,7 @@ import java.util.Deque;
 import java.util.concurrent.Executor;
 
 /** Ejecutor que encola tareas; el test decide cuándo ejecutarlas (en su propio hilo). */
-final class ManualExecutor implements Executor {
+public final class ManualExecutor implements Executor {
 
   private final Deque<Runnable> queue = new ArrayDeque<>();
 
@@ -19,7 +19,7 @@ final class ManualExecutor implements Executor {
   }
 
   /** Ejecuta la siguiente tarea; {@code false} si no había. */
-  boolean runNext() {
+  public boolean runNext() {
     Runnable r;
     synchronized (this) {
       r = queue.pollFirst();
@@ -32,7 +32,7 @@ final class ManualExecutor implements Executor {
   }
 
   /** Ejecuta hasta vaciar la cola (incluidas las tareas que se encolen mientras tanto). */
-  int runAll() {
+  public int runAll() {
     int n = 0;
     while (runNext()) {
       n++;

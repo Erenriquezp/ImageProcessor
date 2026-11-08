@@ -52,6 +52,10 @@ class ParamUnitTest {
         assertThat(d.hidden()).as(op.id() + "." + d.key()).isFalse();
       }
     }
-    assertThat(pixels).containsExactly("accum.motion.displacement", "raster.pixelate.block");
+    assertThat(pixels).containsExactly(
+            "accum.motion.displacement",
+            "blur.gaussian.radius",
+            "detail.unsharp-mask.radius",
+            "raster.pixelate.block");
   }
 }

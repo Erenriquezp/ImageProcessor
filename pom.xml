@@ -13,6 +13,7 @@
     <modules>
         <module>core-imaging</module>
         <module>app</module>
+        <module>lab-plugin</module>
     </modules>
 
     <profiles>
@@ -28,18 +29,19 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
-        <javafx.version>21.0.6</javafx.version>
+        <javafx.version>25.0.5</javafx.version>
+        <atlantafx.version>2.1.0</atlantafx.version>
         <ikonli.version>12.4.0</ikonli.version>
         <junit.version>5.12.1</junit.version>
         <!-- Versiones de plugins de calidad (todos de codigo abierto) -->
         <compiler.version>3.13.0</compiler.version>
         <enforcer.version>3.5.0</enforcer.version>
-        <surefire.version>3.5.3</surefire.version>
+        <surefire.version>3.6.1</surefire.version>
         <spotless.version>2.44.5</spotless.version>
         <google-java-format.version>1.28.0</google-java-format.version>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
         <checkstyle.version>10.21.4</checkstyle.version>
-        <spotbugs-plugin.version>4.9.3.0</spotbugs-plugin.version>
+        <spotbugs-plugin.version>4.10.5.0</spotbugs-plugin.version>
         <jacoco.version>0.8.14</jacoco.version>
         <assertj.version>3.27.3</assertj.version>
         <javafx-plugin.version>0.0.8</javafx-plugin.version>
@@ -65,19 +67,20 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>io.github.erenriquezp</groupId>
+                <artifactId>rora-lab-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-controls</artifactId>
                 <version>${javafx.version}</version>
             </dependency>
+            <!-- MIT (POM y LICENSE del proyecto). La 3.0.0 esta compilada contra JavaFX 27 -->
             <dependency>
-                <groupId>org.openjfx</groupId>
-                <artifactId>javafx-fxml</artifactId>
-                <version>${javafx.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openjfx</groupId>
-                <artifactId>javafx-swing</artifactId>
-                <version>${javafx.version}</version>
+                <groupId>io.github.mkpaz</groupId>
+                <artifactId>atlantafx-base</artifactId>
+                <version>${atlantafx.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.kordamp.ikonli</groupId>
@@ -212,8 +215,7 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- Analisis de bugs: solo informe. Manual: "mvn compile spotbugs:check" (usar JDK 21;
-                 SpotBugs 4.9.3 no lee las clases del JDK 25) -->
+            <!-- Analisis de bugs: solo informe. Manual: "mvn compile spotbugs:check" (desde la 4.10 lee clases de Java 25) -->
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>

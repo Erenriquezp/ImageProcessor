@@ -1,22 +1,23 @@
 # Pruebas
 
 Red de seguridad de la fase 0 (caracterización del comportamiento heredado) y, desde la fase 1, equivalencia exacta del núcleo `core-imaging` con ese comportamiento.
-Ni el núcleo ni `service/` y `domain/` dependen de JavaFX: los tests corren en modo headless.
+Los tests corren en modo headless, salvo el humo de interfaz (perfil `ui-smoke`).
 
 ## Ejecutar
 
 ```bash
 ./mvnw test                       # todos los tests (Windows PowerShell: .\mvnw.cmd test)
-./mvnw verify                     # tests + Checkstyle (informe) + JaCoCo (informe por módulo en <módulo>/target/site/jacoco/ y agregado en app/target/site/jacoco-aggregate/)
+./mvnw verify                     # tests + Checkstyle (informe) + JaCoCo (informe por módulo en <módulo>/target/site/jacoco/ y agregado en lab-plugin/target/site/jacoco-aggregate/)
 ./mvnw test -Dgroups=property     # solo una etiqueta
 ./mvnw test -DexcludedGroups=known-issue
 ./mvnw test -Dtest=LegacyPinTest
 ./mvnw test -DexcludedGroups=exhaustive   # sin los tests de 2^24 colores (~2 min menos)
 ./mvnw test -pl core-imaging              # solo el núcleo
 ./mvnw verify -Dskip.memory=true          # sin el test de memoria (JVM aparte con -Xmx1536m)
+./mvnw -Pui-smoke -pl app -am test        # humo con el toolkit real (pantalla o xvfb-run)
 ```
 
-Surefire usa el module path (JPMS): los tests viven en los mismos paquetes que el código (`...service`, `...domain`, `...core.*`) y no requieren cambios en `module-info.java`.
+Surefire usa el module path (JPMS): los tests viven en los mismos paquetes que el código y no requieren cambios en `module-info.java`.
 En `core-imaging`, **solo los tests** leen `java.desktop` (`--add-reads` en el POM) para comparar con `java.awt.Color`; el módulo en sí solo requiere `java.base`.
 JaCoCo no tiene umbral de bloqueo todavía.
 
@@ -30,11 +31,12 @@ JaCoCo no tiene umbral de bloqueo todavía.
 | `equivalence` | Fase 1. Núcleo vs legacy **bit a bit** (y el puente `BufferedImage ↔ Img`). |
 | `exhaustive` | Equivalencia sobre los **2^24 colores RGB** (HSB, operaciones puntuales y cadenas fusionadas). Incluida en `verify`; tarda ~2 min. |
 | `memory` | Fase 2. `SessionMemoryTest`: 24 MP en un JVM aparte con `-Xmx1536m`. Ejecución propia de surefire dentro de `verify`; informes en `app/target/memory-*.txt` y log de GC en `app/target/memory-gc.log`. Se salta con `-Dskip.memory=true`. |
+| `golden` | Fase 3. Goldens exactos de las operaciones nuevas, que no tienen referencia heredada. |
 | `known-deviation` | Fase 2. Diferencia conocida y aceptada con la cadena anterior, fijada con su tamaño exacto. Hoy: convolución→convolución sobre gris de 8 bits. |
 
 ## Goldens
 
-Los PNG de referencia están en `app/src/test/resources/golden/<operacion>/<caso>__<imagen>.png` (peso total < 2 MB).
+Los PNG de referencia están en `lab-plugin/src/test/resources/golden/<operacion>/<caso>__<imagen>.png` (peso total < 2 MB).
 
 - Sin flags, un golden ausente **hace fallar** el test; nunca se crea en silencio.
 - Para regenerarlos, de forma deliberada: `./mvnw test -Dtest=LegacyPinTest -Dgolden.update=true`.
@@ -50,7 +52,7 @@ Los PNG de referencia están en `app/src/test/resources/golden/<operacion>/<caso
 
 El detalle por operación (justificación y parámetros) está en el plan local de la fase 0.
 
-## Utilidades (`app/src/test/java/.../testsupport`)
+## Utilidades (`lab-plugin/src/test/java/.../testsupport`)
 
 - `TestImages`: imágenes deterministas (degradado, tablero, ruido con semilla fija, bordes duros), RGB y ARGB con alpha parcial.
 - `ImageAssert`: igualdad exacta o con tolerancia por canal, dimensiones, alpha, rango.
@@ -87,6 +89,23 @@ Un fallo indica operación, parámetros, camino (fachada / 1 hilo / N hilos / ba
 | `RenderLaneTest`, `LatestWinsTest`, `EditSessionTest` | app | Último gana por propósito, debounce, obsoletos descartados, errores, cierre. Con tiempo virtual (`ManualScheduler`) y colas manuales (`ManualExecutor`): sin `sleep` ni reloj real. |
 | `RenderCoordinatorTest` | app | Hilos reales sincronizados solo con latches: un FULL bloqueado no bloquea el PREVIEW. |
 | `ArchitectureRulesTest` | app | ArchUnit: la UI no depende de `service` ni invoca el proceso del núcleo; la sesión no usa JavaFX. |
+
+## Interfaz (fase 3)
+
+| Test | Módulo | Qué comprueba |
+|---|---|---|
+| `AdjustBasicOpTest`, `AdjustBasicAllColorsTest` | core | Identidad exacta con neutros sobre los 2^24 colores, ida y vuelta lineal exacta, curva monótona, gris estable, un paso pequeño no salta |
+| `BlurAndSharpenTest`, `GeometryOpsTest`, `OutputSizeContractTest`, `RendererPreviewScaleTest` | core | Operaciones nuevas, tamaño de salida de todo el registro, escala por paso |
+| `ViewTransformTest`, `PureModelsTest` | app | Zoom, cortina, controles, recorte y orden de la receta, sin JavaFX |
+| `StudioViewModelTest`, `EditSessionRecipeTest` | app | ViewModels sobre una sesión real, con hilos y tiempo manuales |
+| `CatalogAndLabelsTest`, `TokenContrastTest` | app | Catálogo completo, textos sin faltas ni huérfanos, contraste AA |
+| `ArchitectureRulesTest` | app | Vistas → ViewModels → sesión; ViewModels sin nodos |
+| `StudioUiSmoke` | app | Perfil `ui-smoke`: arranca, abre, ajusta y exporta con el toolkit real |
+| `LabLabelsTest` | lab-plugin | El módulo se descubre y sus textos están completos |
+
+Las vistas no tienen tests unitarios: las cubren el humo, las capturas de `SnapshotTool` y las pruebas manuales.
+
+Los tests diferenciales con el legacy viven en `lab-plugin`, junto a ese código. Los tres reenvíos del paquete `service` (`AwtImg`, `ImageIOService`, `SourceFormat`) existen para no editarlos.
 
 ## Defectos conocidos verificados
 

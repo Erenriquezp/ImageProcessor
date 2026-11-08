@@ -15,8 +15,6 @@ import io.github.erenriquezp.rora.core.op.Params;
 import io.github.erenriquezp.rora.core.op.RenderLevel;
 import io.github.erenriquezp.rora.core.op.Renderer;
 import io.github.erenriquezp.rora.core.op.ResultCache;
-import io.github.erenriquezp.rora.service.LegacySteps;
-import io.github.erenriquezp.rora.service.SourceFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
@@ -101,7 +99,7 @@ final class TestOps {
 
   static OpRegistry registry(Operation... extra) {
     List<Operation> ops =
-        new ArrayList<>(LegacySteps.registryWithLegacy(SourceFormat.NativeSource.NONE).all());
+        new ArrayList<>(OpRegistry.load().all());
     ops.addAll(List.of(extra));
     return OpRegistry.of(ops);
   }

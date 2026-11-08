@@ -1,10 +1,9 @@
 package io.github.erenriquezp.rora.app.session;
 
+import io.github.erenriquezp.rora.app.imaging.SourceFormat;
 import io.github.erenriquezp.rora.core.op.OpRegistry;
 import io.github.erenriquezp.rora.core.op.OpSpec;
 import io.github.erenriquezp.rora.core.op.Operation;
-import io.github.erenriquezp.rora.service.LegacySteps;
-import io.github.erenriquezp.rora.service.SourceFormat;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,14 +17,17 @@ import java.util.Optional;
  * de la app: el del archivo cargado mientras los pasos anteriores sean convoluciones o devuelvan su
  * entrada ({@link Operation#returnsInput}), {@code argb} tras cualquier otro paso.
  */
-final class SourceFormats {
+public final class SourceFormats {
+
+  private static final String CONVOLUTION = "legacy.convolution";
 
   private final OpRegistry registry;
   private final String initial;
   private final Optional<BufferedImage> nativeTemplate;
   private final Map<String, String> afterConvolution = new HashMap<>();
 
-  SourceFormats(OpRegistry registry, String initial, Optional<BufferedImage> nativeTemplate) {
+  public SourceFormats(
+      OpRegistry registry, String initial, Optional<BufferedImage> nativeTemplate) {
     this.registry = registry;
     this.initial = initial;
     this.nativeTemplate = nativeTemplate;
@@ -36,10 +38,10 @@ final class SourceFormats {
    * @param finalFormat formato del resultado (tipo del {@code BufferedImage} que tenía la app al
    *     final de la cadena: lo usa la exportación)
    */
-  record Effective(List<OpSpec> steps, String finalFormat) {}
+  public record Effective(List<OpSpec> steps, String finalFormat) {}
 
   /** Pasos activos de {@code steps}, con los formatos rellenos. */
-  Effective apply(List<OpSpec> steps) {
+  public Effective apply(List<OpSpec> steps) {
     String fmt = initial;
     List<OpSpec> out = new ArrayList<>(steps.size());
     for (OpSpec s : steps) {
@@ -47,7 +49,7 @@ final class SourceFormats {
         continue;
       }
       Operation op = registry.require(s.opId());
-      if (s.opId().equals(LegacySteps.CONVOLUTION)) {
+      if (s.opId().equals(CONVOLUTION)) {
         s = s.withParams(s.params().toBuilder().set("sourceFormat", fmt).build());
         String in = fmt;
         fmt =

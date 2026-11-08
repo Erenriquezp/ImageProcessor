@@ -119,3 +119,21 @@ Antes de la fase 2, el historial de imágenes ocupaba por sí solo unos 2,9 GB c
 Panel de blending con 24 MP: 627 MB vivos publicando la imagen completa a la interfaz frente a 323 MB con una copia de 4 MP. El umbral era el 25 % del heap (384 MB), así que los paneles publican la copia y conservan la imagen exacta para "Usar en editor".
 
 Pausas del hilo FX con la app real, 24 MP y `-Drora.fxStallMonitor=true` (> 100 ms): arranque de la ventana (1,9 s), CSS de los controles al seleccionar el primer filtro (0,5 s) y subida a GPU de la textura de 24 MP al pasar a zoom con la imagen completa (0,14 s, una vez). Mover sliders, aplicar, deshacer, comparar y exportar no registraron pausas.
+
+## Fase 3: interfaz
+
+JMH con `AdjustBenchmark` (JDK 25.0.5, i5-1035G1 4C/8T). Ruido sintético, todos los ajustes activos, ms por operación:
+
+| Operación | 1 hilo | 7 hilos |
+|---|---|---|
+| `adjust.basic`, tick en proxy de 2 MP (meta < 50 ms) | 156,3 ± 4,1 | **35,5 ± 1,7** |
+| `adjust.basic`, 12 MP | 951,7 ± 65,5 | 187,7 ± 12,0 |
+| `detail.unsharp-mask`, 2 MP | 137,9 ± 4,9 | 38,8 ± 4,0 |
+| `blur.gaussian` radio 8, 2 MP | 309,9 ± 10,9 | 110,0 ± 23,2 |
+| `blur.gaussian` radio 40, 2 MP | 1327,1 ± 45,0 | 434,9 ± 45,4 |
+
+El desenfoque no llega a 50 ms por tick; "último gana" evita que bloquee, pero el slider no va fluido con radios grandes.
+
+Hilo FX con `StressTool` y el monitor de bloqueos (3 ejecuciones, `-Xmx1536m`): **0 pausas de más de 100 ms** al arrastrar sliders, hacer zoom y pan, mover la cortina, deshacer y rehacer, y abrir una imagen de 24 MP con receta de 10 pasos. El arranque de la ventana sí tiene una pausa de unos 1 s (CSS, fuentes, Prism).
+
+Arranque en frío, mediana de 8 ejecuciones: interfaz nueva 3077 ms, antigua 3527 ms (medido antes de retirar la antigua).

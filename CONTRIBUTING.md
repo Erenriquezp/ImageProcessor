@@ -2,7 +2,7 @@
 
 ## Requisitos
 
-- JDK 21 o superior.
+- JDK 25 (`core-imaging` también compila con JDK 21).
 - Git. No hace falta instalar Maven: usa `./mvnw` (Windows PowerShell: `.\mvnw.cmd`).
 
 ## Flujo de ramas
@@ -52,7 +52,7 @@ Si necesitas saltarte un hook de forma excepcional, usa `git commit --no-verify`
 | `./mvnw verify` | Compila, tests, Checkstyle, cobertura JaCoCo | Solo compilación y tests |
 | `./mvnw spotless:check` | Comprueba el formato (Google Java Format) | Aún no (modo informe) |
 | `./mvnw spotless:apply` | Aplica el formato | — |
-| `./mvnw compile spotbugs:check` | Análisis de bugs (usar JDK 21) | Aún no (modo informe) |
+| `./mvnw compile spotbugs:check` | Análisis de bugs | Aún no (modo informe) |
 
 ## Versionado
 

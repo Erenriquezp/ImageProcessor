@@ -15,6 +15,7 @@
     <description>Benchmarks JMH legacy vs nucleo. No se distribuye. Perfil -Pbench.</description>
 
     <properties>
+        <maven.compiler.release>25</maven.compiler.release>
         <!-- JMH: GPL v2 con Classpath Exception (jmh-parent-1.37.pom). Solo herramienta de medida. -->
         <jmh.version>1.37</jmh.version>
         <shade.version>3.6.0</shade.version>
@@ -37,6 +38,24 @@
                 </exclusion>
                 <exclusion>
                     <groupId>org.kordamp.ikonli</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.github.erenriquezp</groupId>
+            <artifactId>rora-lab-plugin</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.kordamp.ikonli</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.github.mkpaz</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>

@@ -1,6 +1,6 @@
 package io.github.erenriquezp.rora.app.session;
 
-import io.github.erenriquezp.rora.service.ImageIOService;
+import io.github.erenriquezp.rora.app.imaging.ImageIOService;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;

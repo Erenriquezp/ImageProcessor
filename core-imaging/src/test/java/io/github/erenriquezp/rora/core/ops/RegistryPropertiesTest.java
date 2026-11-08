@@ -66,9 +66,11 @@ class RegistryPropertiesTest {
     assertThat(REGISTRY.ids())
         .containsExactly(
             "accum.motion",
+            "adjust.basic",
             "analysis.exposure",
             "analysis.histogram",
             "artistic.circular-fade",
+            "blur.gaussian",
             "color.brightness",
             "color.grayscale-average",
             "color.grayscale-quantized",
@@ -77,6 +79,7 @@ class RegistryPropertiesTest {
             "color.negative",
             "color.recolor",
             "color.threshold-bw",
+            "detail.unsharp-mask",
             "fragment.blend-color",
             "point.color-gain",
             "point.hue-rotate",
@@ -89,7 +92,12 @@ class RegistryPropertiesTest {
             "raster.texture-sample",
             "tone.equalize",
             "tone.posterize",
-            "tone.posterize-channels");
+            "tone.posterize-channels",
+            "transform.crop",
+            "transform.flip",
+            "transform.resize",
+            "transform.rotate90",
+            "transform.straighten");
   }
 
   @TestFactory

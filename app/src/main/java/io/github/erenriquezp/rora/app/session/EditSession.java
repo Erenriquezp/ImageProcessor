@@ -1,24 +1,26 @@
 package io.github.erenriquezp.rora.app.session;
 
+import io.github.erenriquezp.rora.app.imaging.SourceFormat;
+import io.github.erenriquezp.rora.app.lab.LabBundle;
+import io.github.erenriquezp.rora.app.lab.LabBundles;
 import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.image.ProxyPolicy;
+import io.github.erenriquezp.rora.core.image.ProxyPolicy.Size;
 import io.github.erenriquezp.rora.core.op.EditRecipe;
 import io.github.erenriquezp.rora.core.op.ExposureStats;
 import io.github.erenriquezp.rora.core.op.OpRegistry;
 import io.github.erenriquezp.rora.core.op.OpSpec;
+import io.github.erenriquezp.rora.core.op.Operation;
 import io.github.erenriquezp.rora.core.op.RecipeHistory;
 import io.github.erenriquezp.rora.core.op.RenderLevel;
 import io.github.erenriquezp.rora.core.op.Renderer;
 import io.github.erenriquezp.rora.core.op.ResultCache;
-import io.github.erenriquezp.rora.domain.ExposureDiagnostic;
-import io.github.erenriquezp.rora.service.Analysis;
-import io.github.erenriquezp.rora.service.LegacySteps;
-import io.github.erenriquezp.rora.service.SourceFormat;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -62,6 +64,8 @@ public final class EditSession<F> implements AutoCloseable {
   }
 
   /** Propósitos del carril FULL: uno no sustituye a otro; prioridad al cuentagotas. */
+  private static final String RESIZE_OP = "transform.resize";
+
   private static final RenderLane.Slot SLOT_PIXEL = new RenderLane.Slot("pixel", 3);
 
   private static final RenderLane.Slot SLOT_ZOOM = new RenderLane.Slot("zoom", 2);
@@ -71,7 +75,6 @@ public final class EditSession<F> implements AutoCloseable {
   private final OpRegistry registry;
   private final Renderer renderer;
   private final RenderCoordinator coordinator;
-  private final FilterSpecs specs;
   private final Function<Img, F> toFrame;
   private final ProxyPolicy policy;
   private final List<Listener<F>> listeners = new CopyOnWriteArrayList<>();
@@ -95,6 +98,8 @@ public final class EditSession<F> implements AutoCloseable {
   private RenderLane.Ticket currentTicket;
   private RenderLane.Ticket pixelTicket;
   private final List<Waiter> currentWaiters = new ArrayList<>();
+  private int editingIndex = -1;
+  private Set<String> excludedOps = Set.of();
 
   /**
    * @param coordinatorFactory crea el coordinador a partir del renderer (real en la app, manual en
@@ -122,10 +127,13 @@ public final class EditSession<F> implements AutoCloseable {
             return s == null ? Optional.empty() : s.nativeImage();
           }
         };
-    this.registry = LegacySteps.registryWithLegacy(ns);
+    List<Operation> ops = new ArrayList<>(OpRegistry.load().all());
+    for (LabBundle bundle : LabBundles.discover()) {
+      ops.addAll(bundle.operations(ns));
+    }
+    this.registry = OpRegistry.of(ops);
     this.renderer = new Renderer(registry, new ResultCache(cacheBytes), fusion);
     this.coordinator = Objects.requireNonNull(coordinatorFactory.apply(renderer), "coordinator");
-    this.specs = new FilterSpecs(registry);
   }
 
   /** Sesión real: coordinador con hilos propios, caché por defecto ({@code -Drora.cache.mb}). */
@@ -141,12 +149,12 @@ public final class EditSession<F> implements AutoCloseable {
     listeners.add(Objects.requireNonNull(l, "listener"));
   }
 
-  public OpRegistry registry() {
-    return registry;
+  public void removeListener(Listener<F> l) {
+    listeners.remove(l);
   }
 
-  public FilterSpecs specs() {
-    return specs;
+  public OpRegistry registry() {
+    return registry;
   }
 
   public Renderer renderer() {
@@ -248,6 +256,94 @@ public final class EditSession<F> implements AutoCloseable {
     requestPreview();
   }
 
+  // ── Edición directa de la receta (UI nueva) ───────────────────────────────
+
+  /**
+   * Sustituye la receta. Las llamadas con la misma {@code gestureKey} no nula forman una sola
+   * entrada de deshacer, hasta {@link #endGesture()}.
+   */
+  public void applyRecipe(EditRecipe next, Object gestureKey) {
+    Objects.requireNonNull(next, "next");
+    history.record(next, gestureKey);
+    pending = null;
+    recipeChanged();
+  }
+
+  /** Cierra el gesto en curso y deja de considerar editado ningún paso. */
+  public void endGesture() {
+    history.endCoalescing();
+    editingIndex = -1;
+  }
+
+  /** Vacía la receta como una entrada más: se puede deshacer. */
+  public void resetRecipe() {
+    applyRecipe(EditRecipe.EMPTY, null);
+  }
+
+  /**
+   * Paso que se está editando: los anteriores forman la cabeza cacheada, de modo que cada tick solo
+   * recalcula desde él. {@code -1} si ninguno.
+   */
+  public void setEditingIndex(int index) {
+    editingIndex = index;
+  }
+
+  /** Operaciones que no se aplican mientras dure una herramienta (p. ej. el recorte al editarlo). */
+  public void setExcludedOps(Set<String> opIds) {
+    excludedOps = Set.copyOf(opIds);
+    if (current != null) {
+      recipeChanged();
+    }
+  }
+
+  private void recipeChanged() {
+    decideProxy();
+    stateChanged();
+    fireHistory();
+    requestPreview();
+  }
+
+  /** Pasos confirmados que cuentan ahora (sin los excluidos por una herramienta). */
+  private List<OpSpec> visibleSteps() {
+    List<OpSpec> steps = new ArrayList<>();
+    for (OpSpec s : history.current().steps()) {
+      if (!excludedOps.contains(s.opId())) {
+        steps.add(s);
+      }
+    }
+    return steps;
+  }
+
+  private int headLength() {
+    int head = 0;
+    List<OpSpec> all = history.current().steps();
+    int limit = editingIndex >= 0 ? Math.min(editingIndex, all.size()) : all.size();
+    for (int i = 0; i < limit; i++) {
+      OpSpec s = all.get(i);
+      if (s.enabled() && !excludedOps.contains(s.opId())) {
+        head++;
+      }
+    }
+    return head;
+  }
+
+  /** Tamaño de la imagen tras los pasos que cambian la geometría. */
+  public Size outputSize() {
+    SessionSource s = Objects.requireNonNull(current, "Sin imagen");
+    return foldSize(new Size(s.width(), s.height()), null);
+  }
+
+  private Size foldSize(Size start, String skipOp) {
+    Size size = start;
+    for (OpSpec s : visibleSteps()) {
+      if (s.enabled() && !s.opId().equals(skipOp)) {
+        Operation op = registry.require(s.opId());
+        size = op.outputSize(size, s.params().withSchema(op.schema()));
+      }
+    }
+    return size;
+  }
+
   public int undoDepth() {
     return history.undoDepth();
   }
@@ -288,8 +384,12 @@ public final class EditSession<F> implements AutoCloseable {
     if (s == null) {
       return;
     }
-    ProxyPolicy.Decision d =
-        policy.decide(new ProxyPolicy.Size(s.width(), s.height()), vw, vh, dpi, zoom, proxy);
+    Size source = new Size(s.width(), s.height());
+    // Un recorte muestra solo una parte de la fuente: hace falta más resolución de proxy para ella.
+    // Reducir con transform.resize no la pide.
+    double crop =
+        Math.max(1.0, (double) source.longSide() / foldSize(source, RESIZE_OP).longSide());
+    ProxyPolicy.Decision d = policy.decide(source, vw, vh, dpi, zoom * crop, proxy);
     proxy = d.proxy();
     fullNeeded = d.fullNeeded();
   }
@@ -299,7 +399,7 @@ public final class EditSession<F> implements AutoCloseable {
   /** Receta efectiva (confirmada + {@code pendingStep}) con los formatos de origen rellenos. */
   SourceFormats.Effective effective(OpSpec pendingStep, List<OpSpec> tail) {
     SessionSource s = Objects.requireNonNull(current, "Sin imagen");
-    List<OpSpec> steps = new ArrayList<>(history.current().steps());
+    List<OpSpec> steps = visibleSteps();
     if (pendingStep != null) {
       steps.add(pendingStep);
     }
@@ -309,8 +409,7 @@ public final class EditSession<F> implements AutoCloseable {
 
   private Renderer.Request request(OpSpec pendingStep, List<OpSpec> tail, RenderLevel level) {
     SourceFormats.Effective eff = effective(pendingStep, tail);
-    int head = history.current().activeSteps().size();
-    return new Renderer.Request(current.asRenderSource(), eff.steps(), head, level);
+    return new Renderer.Request(current.asRenderSource(), eff.steps(), headLength(), level);
   }
 
   /** Pide el preview del estado actual (proxy si lo hay; si no, la imagen completa). */
@@ -364,7 +463,8 @@ public final class EditSession<F> implements AutoCloseable {
       if (v != version || s != current) {
         return;
       }
-      Frame<F> f = new Frame<>((F) prepared, r.image(), approximate, s.width(), s.height());
+      Size out = outputSize();
+      Frame<F> f = new Frame<>((F) prepared, r.image(), approximate, out.width(), out.height());
       for (Listener<F> l : listeners) {
         l.frameReady(f);
       }
@@ -433,6 +533,38 @@ public final class EditSession<F> implements AutoCloseable {
   }
 
   /**
+   * Imagen "antes" del comparador: la fuente con solo los pasos de geometría, para que coincida con
+   * el resultado. Usa el proxy si lo hay (salvo {@code fullResolution}).
+   */
+  public RenderLane.Ticket before(
+      boolean fullResolution,
+      Function<Img, F> convert,
+      Consumer<Frame<F>> onFrame,
+      Consumer<RenderFailure> onFailed) {
+    SessionSource s = Objects.requireNonNull(current, "Sin imagen");
+    List<OpSpec> geometry = new ArrayList<>();
+    for (OpSpec step : visibleSteps()) {
+      if (step.enabled() && step.opId().startsWith("transform.")) {
+        geometry.add(step);
+      }
+    }
+    boolean useProxy = !fullResolution && proxy.isPresent();
+    RenderLevel level =
+        useProxy
+            ? new RenderLevel.Preview(proxy.get().width(), proxy.get().height())
+            : RenderLevel.FULL;
+    Size out = outputSize();
+    return coordinator.aux(
+        new Renderer.Request(s.asRenderSource(), geometry, geometry.size(), level),
+        new WorkListener<>(
+            r ->
+                new Frame<>(
+                    convert.apply(r.image()), r.image(), useProxy, out.width(), out.height()),
+            onFrame,
+            onFailed));
+  }
+
+  /**
    * La imagen actual a resolución completa (receta + pendiente, con sus marcas), del mismo tipo que
    * {@code processedImage} en la app: entrada del blending y del histograma. Se calcula una vez por
    * estado; si el estado cambia con peticiones en espera, se relanza para el estado nuevo.
@@ -458,7 +590,7 @@ public final class EditSession<F> implements AutoCloseable {
         new Renderer.Request(
             s.asRenderSource(),
             eff.steps(),
-            history.current().activeSteps().size(),
+            headLength(),
             RenderLevel.FULL);
     long state = stateVersion;
     currentTicket =
@@ -517,7 +649,7 @@ public final class EditSession<F> implements AutoCloseable {
         new Renderer.Request(
             s.asRenderSource(),
             eff.steps(),
-            history.current().activeSteps().size(),
+            headLength(),
             RenderLevel.FULL);
     SourceFormat.NativeSource ns = s.nativeSource();
     return coordinator.export(
@@ -539,15 +671,6 @@ public final class EditSession<F> implements AutoCloseable {
         request(pendingWithoutMarks, List.of(analysis), RenderLevel.FULL),
         new WorkListener<ExposureStats>(r -> (ExposureStats) r.aux(), onStats, onFailed),
         SLOT_DIAGNOSTIC);
-  }
-
-  /** Como {@link #exposure}, ya formateado con el mismo texto que la fachada. */
-  public RenderLane.Ticket exposureDiagnostic(
-      OpSpec pendingWithoutMarks,
-      Consumer<ExposureDiagnostic> onDiagnostic,
-      Consumer<RenderFailure> onFailed) {
-    return exposure(
-        pendingWithoutMarks, stats -> onDiagnostic.accept(Analysis.describe(stats)), onFailed);
   }
 
   /**

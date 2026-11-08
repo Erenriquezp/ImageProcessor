@@ -1,6 +1,7 @@
 package io.github.erenriquezp.rora.core.op;
 
 import io.github.erenriquezp.rora.core.image.Img;
+import io.github.erenriquezp.rora.core.image.ProxyPolicy.Size;
 
 /**
  * Operación de imagen (SPI). Las implementaciones se publican con {@code provides Operation with
@@ -36,6 +37,25 @@ public interface Operation {
    */
   default boolean returnsInput(Params params) {
     return false;
+  }
+
+  /**
+   * Tamaño de la salida para una entrada de tamaño {@code in}. Por defecto, el de la entrada; las
+   * operaciones de geometría lo sobrescriben, y debe coincidir con lo que produce {@link #apply}.
+   */
+  default Size outputSize(Size in, Params params) {
+    return in;
+  }
+
+  /**
+   * Parámetros con los que se ejecuta este paso en el preview.
+   *
+   * @param scale proporción entre el preview y la imagen completa en este punto de la receta
+   * @param fullIn tamaño de la entrada en la imagen completa
+   * @param previewIn tamaño de la entrada en el preview
+   */
+  default Params forPreview(Params params, double scale, Size fullIn, Size previewIn) {
+    return Renderer.scalePixels(params, scale);
   }
 
   /**

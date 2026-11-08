@@ -1,9 +1,9 @@
 package io.github.erenriquezp.rora.app.session;
 
+import io.github.erenriquezp.rora.app.imaging.ImageBridge;
+import io.github.erenriquezp.rora.app.imaging.SourceFormat;
 import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.op.Renderer;
-import io.github.erenriquezp.rora.service.ImageBridge;
-import io.github.erenriquezp.rora.service.SourceFormat;
 import java.awt.image.BufferedImage;
 import java.util.Objects;
 import java.util.Optional;
@@ -65,12 +65,12 @@ public final class SessionSource {
     return image.height();
   }
 
-  Renderer.SourceImage asRenderSource() {
+  public Renderer.SourceImage asRenderSource() {
     return new Renderer.SourceImage(id, image);
   }
 
   /** {@code NativeSource} de esta fuente: el original solo para su propia {@code Img}. */
-  SourceFormat.NativeSource nativeSource() {
+  public SourceFormat.NativeSource nativeSource() {
     return new SourceFormat.NativeSource() {
       @Override
       public Optional<BufferedImage> nativeFor(Img img) {
