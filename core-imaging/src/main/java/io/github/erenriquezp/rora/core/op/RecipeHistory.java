@@ -53,6 +53,14 @@ public final class RecipeHistory {
       return;
     }
     boolean coalesce = coalesceKey != null && coalesceKey.equals(openKey);
+    if (coalesce && next.equals(undo.peek())) {
+      // El gesto vuelve al estado de partida: no deja rastro en el historial.
+      undo.pop();
+      current = next;
+      openKey = null;
+      redo.clear();
+      return;
+    }
     if (!coalesce) {
       undo.push(current);
       while (undo.size() > limit) {
