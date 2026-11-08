@@ -28,9 +28,10 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: maven
 
+      # El nucleo sigue en Java 21; app y bench exigen JDK 25 (JavaFX 25)
       # verify: compila, ejecuta tests, Checkstyle (informe) y JaCoCo (informe, sin umbral)
       - name: Build y tests
-        run: ./mvnw -B -ntp verify
+        run: ./mvnw -B -ntp verify ${{ matrix.java == '21' && '-pl core-imaging' || '' }}
         shell: bash
 
       - name: Subir informe de JaCoCo
@@ -53,7 +54,7 @@ jobs:
             **/target/checkstyle-result.xml
           if-no-files-found: ignore
 
-  # Opcional y no bloqueante: formato (solo codigo cambiado) y SpotBugs con JDK 21
+  # Opcional y no bloqueante: formato (solo codigo cambiado) y SpotBugs
   quality-report:
     name: Informes de calidad (no bloquean)
     runs-on: ubuntu-latest
@@ -62,11 +63,11 @@ jobs:
         with:
           fetch-depth: 0 # Spotless ratchet necesita el historial y origin/develop
 
-      - name: Configurar JDK 21
+      - name: Configurar JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
           cache: maven
 
       - name: Spotless (formato, solo codigo modificado)
@@ -74,17 +75,17 @@ jobs:
         continue-on-error: true
 
   spotbugs:
-    name: SpotBugs (JDK 21, informe)
+    name: SpotBugs (JDK 25, informe)
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configurar JDK 21
+      - name: Configurar JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
           cache: maven
 
       - name: SpotBugs
