@@ -5,6 +5,7 @@
 ```
 rora-parent (pom raíz: versiones, plugins, calidad)
 ├── core-imaging   módulo ...rora.core — solo requiere java.base (ni JavaFX ni AWT); --release 21
+├── imaging-io     módulo ...rora.imaging.io — códecs sobre ImageIO; --release 21, sin JavaFX
 ├── app            módulo ...rora.app  — JavaFX 25: interfaz, sesión, puente AWT; --release 25
 ├── lab-plugin     módulo ...rora.lab  — opcional: didácticas, generador, blending y código heredado
 └── bench          benchmarks JMH (perfil -Pbench, fuera del build por defecto, no se distribuye)
@@ -20,6 +21,7 @@ rora-parent (pom raíz: versiones, plugins, calidad)
 | `core.op` | Receta y render: `OpSpec`, `EditRecipe`, `RecipeHistory`, `Renderer`, `ResultCache`, `RenderKey`, `PointFusion`. SPI: `Operation`, `ParamSchema`/`ParamDef` (entero, decimal, booleano, enum, color, selección; rango, defecto, neutro, clave de etiqueta), `Params`, `OpMeta`, `OpKind` (puntual / vecindad(radio, alineación) / global), `OpResult` (imagen + datos auxiliares como `ExposureStats` o `ChannelHistogram`), `OpContext`, `OpRegistry`, `BandOperation`. |
 | `core.exec` | `TileExecutor` (pool propio, bandas de filas), `CancellationToken`, `CancelledException`, `Progress`. |
 | `core.color` | `Hsb` (RGB↔HSB sin AWT, idéntico bit a bit a `java.awt.Color`), `SrgbLut` (sRGB↔lineal). |
+| `core.io` | SPI `ImageDecoder`/`ImageEncoder`, `ExportSettings`, `ImagingException`, y la lógica pura de E/S: orientación, aplanado, EXIF, política de metadatos, nombres, presupuesto de memoria. |
 | `core.ops.*` | Implementaciones (no exportadas; se publican con `provides`). |
 | `core.internal` | Acceso sin copia al array de `Img` dentro del módulo (no exportado). |
 
@@ -28,8 +30,12 @@ rora-parent (pom raíz: versiones, plugins, calidad)
 Paquetes de interfaz en [`docs/UI.md`](UI.md).
 
 - `app/session/` (sin JavaFX, se prueba en headless): `EditSession` (fuente, receta, historial, proxy), `RenderLane`/`RenderCoordinator`, `LatestWins`, `FramePool`, `StallMonitor`.
-- `app/imaging/`: puente exacto `BufferedImage ↔ Img` (`AwtImg`, `ImageBridge`), lectura y escritura (`ImageIOService`) y formato de origen (`SourceFormat`).
+- `app/imaging/`: puente exacto `BufferedImage ↔ Img` (`AwtImg`, `ImageBridge`), lectura y escritura heredadas (`ImageIOService`, `@Deprecated`: solo Laboratorio y tests diferenciales) y formato de origen (`SourceFormat`).
 - `app/lab/`: SPI del Laboratorio.
+
+### `imaging-io`
+
+`ImageIoDecoder`, `JpegEncoder`, `PngEncoder`, `TiffEncoder`, `Exporter` (reducción, peso objetivo, metadatos y publicación atómica) y `Codecs` (elige lector y escritor por clase y publica el SPI). La interfaz solo llega aquí a través de `app.session.StudioIo`; ArchUnit lo comprueba. Detalle en [`docs/IO.md`](IO.md).
 
 ### `lab-plugin`
 
@@ -112,7 +118,7 @@ Monitor de bloqueos (solo desarrollo): `-Drora.fxStallMonitor=true` registra las
 
 ### Convolución y formato de origen
 
-`ConvolveOp` da resultados distintos según el tipo de `BufferedImage` (sobre ARGB convoluciona también el alpha); solo `INT_ARGB` y `4BYTE_ABGR` coinciden. El paso `legacy.convolution` lleva un parámetro oculto `sourceFormat`, que `EditSession` calcula recorriendo la receta y que forma parte de la clave de caché. Los tipos con pérdida (gris, paleta propia, `TYPE_CUSTOM`) conservan el `BufferedImage` original. La exportación reconstruye el tipo final de la cadena. Desviación conocida: convolución→convolución sobre gris (`known-deviation`), se corrige al reescribir la convolución en la fase 3.
+`ConvolveOp` da resultados distintos según el tipo de `BufferedImage` (sobre ARGB convoluciona también el alpha); solo `INT_ARGB` y `4BYTE_ABGR` coinciden. El paso `legacy.convolution` lleva un parámetro oculto `sourceFormat`, que `EditSession` calcula recorriendo la receta y que forma parte de la clave de caché. Los tipos con pérdida (gris, paleta propia, `TYPE_CUSTOM`) conservan el `BufferedImage` original. La exportación reconstruye el tipo final de la cadena. Una imagen abierta por los códecs nuevos es siempre `argb`, también en gris: solo cambia el resultado de esta convolución del Laboratorio. Desviación conocida: convolución→convolución sobre gris (`known-deviation`), se corrige al reescribir la convolución en la fase 3.
 
 ### Diferencias visibles del preview respecto al FULL
 
@@ -139,5 +145,4 @@ Solo existen cuando hay proxy. Lo exportado, el histograma, el blending, el diag
 
 ## Dirección prevista
 
-- Exportación avanzada y corrección de JPG con alpha (fase 4).
 - Motor de IA opcional en su propio módulo; distribución con `jlink` + `jpackage`.

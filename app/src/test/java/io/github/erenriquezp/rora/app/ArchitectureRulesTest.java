@@ -128,6 +128,17 @@ class ArchitectureRulesTest {
   }
 
   @Test
+  void onlyTheSessionLayerTalksToTheCodecs() {
+    noClasses()
+        .that()
+        .resideInAnyPackage(VIEW_MODEL, MODEL, NEW_VIEWS[0], NEW_VIEWS[1])
+        .should()
+        .dependOnClassesThat()
+        .resideInAnyPackage("javax.imageio..", "io.github.erenriquezp.rora.imaging.io..")
+        .check(classes);
+  }
+
+  @Test
   void viewModelsDoNotProcessImagesThemselves() {
     noClasses()
         .that()

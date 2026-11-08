@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.erenriquezp</groupId>
+        <artifactId>rora-parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>rora-imaging-io</artifactId>
+    <name>Rora Studio - entrada y salida de imagen</name>
+    <description>Codecs basados en ImageIO (java.desktop). Sin JavaFX: compila en Java 21.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.erenriquezp</groupId>
+            <artifactId>rora-core-imaging</artifactId>
+        </dependency>
+        <!-- Solo en ejecucion: el lector se descubre por el SPI de ImageIO -->
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-webp</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <properties>
+        <skip.memory>false</skip.memory>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <!-- Solo la prueba de memoria lee java.management -->
+                        <id>default-testCompile</id>
+                        <configuration>
+                            <compilerArgs>
+                                <arg>--add-modules</arg>
+                                <arg>java.management,jdk.management</arg>
+                                <arg>--add-reads</arg>
+                                <arg>io.github.erenriquezp.rora.imaging.io=java.management</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- La prueba de memoria corre aparte, en un JVM con -Xmx1536m (saltable con -Dskip.memory=true) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>@{argLine} -Djava.awt.headless=true -Dfile.encoding=UTF-8 --add-modules java.management --add-reads io.github.erenriquezp.rora.imaging.io=java.management</argLine>
+                    <excludes>
+                        <exclude>**/*MemoryTest.java</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>memory</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.memory}</skip>
+                            <excludes combine.self="override"/>
+                            <includes>
+                                <include>**/*MemoryTest.java</include>
+                            </includes>
+                            <forkCount>1</forkCount>
+                            <reuseForks>false</reuseForks>
+                            <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
+                            <reportsDirectory>${project.build.directory}/surefire-reports-memory</reportsDirectory>
+                            <argLine>@{argLine} -Xmx1536m -XX:+UseG1GC -Djava.awt.headless=true -Dfile.encoding=UTF-8 --add-modules java.management --add-reads io.github.erenriquezp.rora.imaging.io=java.management</argLine>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

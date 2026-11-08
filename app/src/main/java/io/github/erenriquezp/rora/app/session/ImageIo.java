@@ -6,9 +6,12 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Carga y guardado para ejecutar fuera del hilo FX (en una {@code Task}). La carga convierte a
- * {@link SessionSource} y suelta el {@code BufferedImage} salvo en los formatos que lo necesitan.
+ * Carga y guardado heredados, sin gestión de color, orientación ni metadatos. La interfaz usa
+ * {@link StudioIo}; esto queda para los tests diferenciales.
+ *
+ * @deprecated usar {@link StudioIo}
  */
+@Deprecated
 public final class ImageIo {
 
   private ImageIo() {}

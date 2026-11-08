@@ -63,7 +63,10 @@ public class WindowBar {
 
         minBtn.setOnAction(e -> stage.setIconified(true));
         maxBtn.setOnAction(e -> toggleMaximize(stage));
-        closeBtn.setOnAction(e -> stage.close());
+        closeBtn.setOnAction(
+                e -> stage.fireEvent(
+                        new javafx.stage.WindowEvent(
+                                stage, javafx.stage.WindowEvent.WINDOW_CLOSE_REQUEST)));
 
         HBox controls = new HBox(2, minBtn, maxBtn, closeBtn);
         controls.setAlignment(Pos.CENTER_RIGHT);

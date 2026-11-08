@@ -12,6 +12,7 @@
 
     <modules>
         <module>core-imaging</module>
+        <module>imaging-io</module>
         <module>app</module>
         <module>lab-plugin</module>
     </modules>
@@ -32,6 +33,8 @@
         <javafx.version>25.0.5</javafx.version>
         <atlantafx.version>2.1.0</atlantafx.version>
         <ikonli.version>12.4.0</ikonli.version>
+        <!-- BSD (POM del proyecto). Solo lectura de WebP, en ejecucion -->
+        <twelvemonkeys.version>3.15.3</twelvemonkeys.version>
         <junit.version>5.12.1</junit.version>
         <!-- Versiones de plugins de calidad (todos de codigo abierto) -->
         <compiler.version>3.13.0</compiler.version>
@@ -43,6 +46,8 @@
         <checkstyle.version>10.21.4</checkstyle.version>
         <spotbugs-plugin.version>4.10.5.0</spotbugs-plugin.version>
         <jacoco.version>0.8.14</jacoco.version>
+        <!-- LGPL-3 (POM), solo en build -->
+        <license-plugin.version>2.8.0</license-plugin.version>
         <assertj.version>3.27.3</assertj.version>
         <javafx-plugin.version>0.0.8</javafx-plugin.version>
         <!-- Spotless solo comprueba el codigo cambiado desde esta referencia (ratchet).
@@ -60,6 +65,16 @@
                 <groupId>io.github.erenriquezp</groupId>
                 <artifactId>rora-core-imaging</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.erenriquezp</groupId>
+                <artifactId>rora-imaging-io</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.twelvemonkeys.imageio</groupId>
+                <artifactId>imageio-webp</artifactId>
+                <version>${twelvemonkeys.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.erenriquezp</groupId>
@@ -164,6 +179,33 @@
                                     <version>[3.9.0,)</version>
                                 </requireMavenVersion>
                             </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        <!-- Listado de licencias: ./mvnw -B -DskipTests install && ./mvnw -B license:aggregate-add-third-party@third-party -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>${license-plugin.version}</version>
+                <inherited>false</inherited>
+                <executions>
+                    <execution>
+                        <id>third-party</id>
+                        <goals>
+                            <goal>aggregate-add-third-party</goal>
+                        </goals>
+                        <phase>none</phase>
+                        <configuration>
+                            <outputDirectory>${project.basedir}</outputDirectory>
+                            <thirdPartyFilename>THIRD_PARTY_LICENSES.md</thirdPartyFilename>
+                            <excludedScopes>test,system,provided</excludedScopes>
+                            <excludedGroups>io\.github\.erenriquezp</excludedGroups>
+                            <fileTemplate>${project.basedir}/tools/third-party.ftl</fileTemplate>
+                            <licenseMerges>
+                                <licenseMerge>BSD-3-Clause|The BSD License|BSD-3-Clause license|BSD License 3</licenseMerge>
+                                <licenseMerge>Apache-2.0|Apache License, Version 2.0|The Apache Software License, Version 2.0|Apache 2.0</licenseMerge>
+                            </licenseMerges>
                         </configuration>
                     </execution>
                 </executions>

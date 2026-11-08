@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -58,26 +57,9 @@ class ImageIOServiceTest {
     assertThatThrownBy(() -> ImageIOService.read(f)).isInstanceOf(IOException.class);
   }
 
-  /**
-   * Caracterización del defecto n.º 1 (CONFIRMADO): el writer JPEG del JDK no acepta TYPE_INT_ARGB,
-   * {@code ImageIO.write} devuelve {@code false} y el servicio lanza IOException. Todo resultado de
-   * filtro es ARGB, así que exportar a JPG falla casi siempre.
-   */
-  @Test
-  @Tag("known-issue")
-  void knownIssue_jpgExportOfArgbImageFails() {
-    BufferedImage argb = TestImages.create(Pattern.GRADIENT, Kind.ARGB, 16, 16);
-    File f = tmp.resolve("argb.jpg").toFile();
-    assertThatThrownBy(() -> ImageIOService.write(argb, f))
-        .isInstanceOf(IOException.class)
-        .hasMessageContaining("No hay writer para el formato: jpg");
-  }
-
   /** Comportamiento CORRECTO esperado: la exportación produce un JPG válido. */
   @Test
   @Tag("known-issue")
-  @Disabled(
-      "known-issue: exportar ARGB a .jpg falla (ImageIO.write devuelve false). Se corrige en fase 4 (PROPUESTA_PRODUCTO.md §5.6/§6.3: aplanado de alpha en el encoder JPG)")
   void jpgExportOfArgbImageProducesValidJpg() throws IOException {
     BufferedImage argb = TestImages.create(Pattern.GRADIENT, Kind.ARGB, 16, 16);
     File f = tmp.resolve("argb.jpg").toFile();

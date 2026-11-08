@@ -19,7 +19,7 @@ Ventana mínima: 1100×700. En Windows la ventana usa barra de título propia; e
 
 | Tecla | Acción |
 |---|---|
-| Ctrl+O / Ctrl+S | Abrir / Exportar |
+| Ctrl+O / Ctrl+S | Abrir / Diálogo de exportación |
 | Ctrl+Z / Ctrl+Y o Ctrl+Mayús+Z | Deshacer / Rehacer |
 | `\` u `O` (mantener) | Ver el original |
 | F / 1 | Ajustar / 100 % real |
@@ -61,6 +61,10 @@ Las vistas son cableado delgado. La lógica vive en ViewModels que no conocen no
 Los paneles de parámetros se generan desde `ParamSchema`. Añadir una operación visible = la operación, sus textos y una entrada en `Catalog`.
 
 Un arrastre de slider es una sola entrada de deshacer (`GestureTracker`). Los pasos de geometría van siempre primero y no se reordenan, porque de ellos dependen los parámetros en píxeles de los pasos posteriores.
+
+## Abrir y exportar
+
+Abrir muestra una barra de progreso con cancelar solo si tarda más de 300 ms, y los avisos de conversión como notificación. El diálogo de exportación vive en `ExportDialog` y su estado en `ExportDialogViewModel`; se recuerda con `LayoutStore`. Antes de abrir otra imagen o cerrar, si hay cambios sin exportar, se pregunta con un `Prompt`. Las preguntas modales son datos del ViewModel: se prueban sin toolkit.
 
 ## Laboratorio
 

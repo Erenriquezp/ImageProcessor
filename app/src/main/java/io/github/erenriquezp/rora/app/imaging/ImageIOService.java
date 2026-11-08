@@ -1,10 +1,19 @@
 package io.github.erenriquezp.rora.app.imaging;
 
+import io.github.erenriquezp.rora.core.io.AlphaFlatten;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Lectura y escritura heredadas, sin gestión de color, orientación ni metadatos. La interfaz usa
+ * {@code app.session.StudioIo}; esto queda para el Laboratorio (fondos de blending) y los tests
+ * diferenciales.
+ *
+ * @deprecated usar {@code app.session.StudioIo}
+ */
+@Deprecated
 public final class ImageIOService {
 
     private ImageIOService() {
@@ -20,9 +29,24 @@ public final class ImageIOService {
 
     public static void write(BufferedImage image, File file) throws IOException {
         String format = detectFormat(file.getName());
-        if (!ImageIO.write(image, format, file)) {
+        BufferedImage output = format.equals("jpg") ? withoutAlpha(image) : image;
+        if (!ImageIO.write(output, format, file)) {
             throw new IOException("No hay writer para el formato: " + format);
         }
+    }
+
+    /** El escritor JPEG del JDK no admite alfa: se aplana sobre blanco. */
+    private static BufferedImage withoutAlpha(BufferedImage image) {
+        if (!image.getColorModel().hasAlpha()) {
+            return image;
+        }
+        int w = image.getWidth();
+        int h = image.getHeight();
+        int[] px = image.getRGB(0, 0, w, h, null, 0, w);
+        AlphaFlatten.flatten(px, 0xFFFFFF);
+        BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        out.setRGB(0, 0, w, h, px, 0, w);
+        return out;
     }
 
     private static String detectFormat(String fileName) {

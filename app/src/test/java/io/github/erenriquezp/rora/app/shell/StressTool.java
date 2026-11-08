@@ -2,10 +2,14 @@ package io.github.erenriquezp.rora.app.shell;
 
 import io.github.erenriquezp.rora.app.catalog.Catalog;
 import io.github.erenriquezp.rora.app.model.Curtain;
+import io.github.erenriquezp.rora.app.session.ExportTarget;
 import io.github.erenriquezp.rora.app.viewmodel.ControlState;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.ViewerViewModel.CompareMode;
+import io.github.erenriquezp.rora.core.io.ExportSettings;
+import io.github.erenriquezp.rora.core.io.FormatId;
 import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -31,7 +35,15 @@ public class StressTool extends StudioApp {
 
   private static final List<String> FILTERS =
       List.of(
-          "negative", "hue", "posterize", "pixelate", "sepia", "sharpen", "blur", "duotone", "motion");
+          "negative",
+          "hue",
+          "posterize",
+          "pixelate",
+          "sepia",
+          "sharpen",
+          "blur",
+          "duotone",
+          "motion");
 
   private final Deque<Section> sections = new ArrayDeque<>();
 
@@ -75,9 +87,7 @@ public class StressTool extends StudioApp {
                 exposure(vm).endGesture();
               }
             }));
-    sections.add(
-        new Section(
-            "zoom", 240, i -> vm.viewer().zoomAt(500, 350, i % 80 < 40)));
+    sections.add(new Section("zoom", 240, i -> vm.viewer().zoomAt(500, 350, i % 80 < 40)));
     sections.add(
         new Section(
             "pan",
@@ -115,11 +125,46 @@ public class StressTool extends StudioApp {
                 }
               }
             }));
+    sections.add(
+        new Section(
+            "export-dialog-first-open",
+            30,
+            i -> {
+              if (i == 0) {
+                vm.showExport();
+              } else if (i == 29) {
+                vm.exportDialog().close();
+              }
+            }));
+    sections.add(
+        new Section(
+            "export-jpeg-24mp",
+            1,
+            i ->
+                vm.startExport(
+                    ExportSettings.defaults(FormatId.JPEG),
+                    exportDir(image),
+                    "stress-" + System.nanoTime() + ".jpg",
+                    ExportTarget.Collision.ASK)));
+    sections.add(
+        new Section(
+            "export-png-24mp",
+            1,
+            i ->
+                vm.startExport(
+                    ExportSettings.defaults(FormatId.PNG),
+                    exportDir(image),
+                    "stress-" + System.nanoTime() + ".png",
+                    ExportTarget.Collision.ASK)));
     // El arranque de la ventana (CSS, fuentes, Prism) no forma parte de lo que se mide.
     System.out.println("SECTION startup");
     PauseTransition warm = new PauseTransition(Duration.seconds(4));
     warm.setOnFinished(e -> next());
     warm.play();
+  }
+
+  private static Path exportDir(File image) {
+    return image.toPath().toAbsolutePath().getParent();
   }
 
   private void next() {
@@ -143,7 +188,8 @@ public class StressTool extends StudioApp {
   }
 
   private void settle() {
-    if (viewModel().statusProperty().get().startsWith("Abriendo")) {
+    String st = viewModel().statusProperty().get();
+    if (st.startsWith("Abriendo") || st.startsWith("Exportando")) {
       PauseTransition poll = new PauseTransition(Duration.millis(100));
       poll.setOnFinished(e -> settle());
       poll.play();

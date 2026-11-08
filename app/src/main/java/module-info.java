@@ -4,6 +4,7 @@ module io.github.erenriquezp.rora.app {
     requires java.prefs;
     requires atlantafx.base;
     requires io.github.erenriquezp.rora.core;
+    requires io.github.erenriquezp.rora.imaging.io;
     requires org.kordamp.ikonli.javafx;
     requires org.kordamp.ikonli.fontawesome6;
 

@@ -3,8 +3,11 @@ package io.github.erenriquezp.rora.app.session;
 import io.github.erenriquezp.rora.app.imaging.ImageBridge;
 import io.github.erenriquezp.rora.app.imaging.SourceFormat;
 import io.github.erenriquezp.rora.core.image.Img;
+import io.github.erenriquezp.rora.core.io.DecodedImage;
+import io.github.erenriquezp.rora.core.io.ImageMetadata;
 import io.github.erenriquezp.rora.core.op.Renderer;
 import java.awt.image.BufferedImage;
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -23,12 +26,46 @@ public final class SessionSource {
   private final Img image;
   private final String format;
   private final BufferedImage nativeImage;
+  private final ImageMetadata metadata;
+  private final Path origin;
 
-  private SessionSource(long id, Img image, String format, BufferedImage nativeImage) {
+  private SessionSource(
+      long id,
+      Img image,
+      String format,
+      BufferedImage nativeImage,
+      ImageMetadata metadata,
+      Path origin) {
     this.id = id;
     this.image = image;
     this.format = format;
     this.nativeImage = nativeImage;
+    this.metadata = metadata;
+    this.origin = origin;
+  }
+
+  /**
+   * Imagen abierta por los códecs. Se comporta como ARGB también en la convolución heredada del
+   * Laboratorio: los píxeles ya son sRGB y no hay {@code BufferedImage} de origen.
+   */
+  public static SessionSource ofDecoded(DecodedImage decoded, Path origin) {
+    return new SessionSource(
+        IDS.incrementAndGet(),
+        decoded.image(),
+        SourceFormat.ARGB,
+        null,
+        decoded.metadata(),
+        Objects.requireNonNull(origin, "origin"));
+  }
+
+  /** Metadatos del archivo de origen; vacíos si la imagen no viene de un archivo. */
+  public ImageMetadata metadata() {
+    return metadata;
+  }
+
+  /** Archivo de origen, si lo hay. */
+  public Optional<Path> origin() {
+    return Optional.ofNullable(origin);
   }
 
   /** Convierte {@code bi} (no se conserva una referencia salvo para formatos {@code native}). */
@@ -37,7 +74,12 @@ public final class SessionSource {
     String fmt = SourceFormat.of(bi);
     Img img = ImageBridge.toImg(bi);
     return new SessionSource(
-        IDS.incrementAndGet(), img, fmt, SourceFormat.needsNative(fmt) ? bi : null);
+        IDS.incrementAndGet(),
+        img,
+        fmt,
+        SourceFormat.needsNative(fmt) ? bi : null,
+        ImageMetadata.EMPTY,
+        null);
   }
 
   /** Id único en el proceso (forma parte de las claves de caché). */

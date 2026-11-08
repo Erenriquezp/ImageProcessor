@@ -8,6 +8,7 @@ module io.github.erenriquezp.rora.core {
   exports io.github.erenriquezp.rora.core.color;
   exports io.github.erenriquezp.rora.core.op;
   exports io.github.erenriquezp.rora.core.exec;
+  exports io.github.erenriquezp.rora.core.io;
 
   uses io.github.erenriquezp.rora.core.op.Operation;
 
