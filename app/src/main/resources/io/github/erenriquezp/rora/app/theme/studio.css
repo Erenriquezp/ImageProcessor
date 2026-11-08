@@ -246,3 +246,18 @@
     -fx-border-color: -token-accent;
     -fx-border-radius: 4;
 }
+
+/* Entrada y salida */
+.notice-icon-warning { -fx-icon-color: -token-warn; -fx-icon-size: 14; }
+.io-progress { -fx-background-color: -token-surface-2; -fx-border-color: -token-border; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 8 12; -fx-translate-y: -16; }
+.export-dialog { -fx-background-color: -token-bg; }
+.export-scroll, .export-scroll > .viewport { -fx-background-color: transparent; -fx-border-color: transparent; }
+.export-grid { -fx-padding: 16 20 8 20; }
+.export-label { -fx-text-fill: -token-text-2; }
+.export-preview { -fx-text-fill: -token-text; -fx-font-weight: bold; }
+.export-estimate { -fx-text-fill: -token-text-2; }
+.export-error { -fx-text-fill: -token-danger; }
+.export-buttons { -fx-padding: 10 20 16 20; -fx-border-color: -token-border transparent transparent transparent; }
+.prompt { -fx-background-color: -token-bg; -fx-padding: 22; }
+.prompt-body { -fx-text-fill: -token-text; -fx-font-size: 14px; }
+.export-dialog .color-picker .color-picker-label { -fx-content-display: graphic-only; }

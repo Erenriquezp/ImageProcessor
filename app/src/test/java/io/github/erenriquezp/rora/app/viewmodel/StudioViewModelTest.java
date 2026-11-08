@@ -10,10 +10,13 @@ import io.github.erenriquezp.rora.app.session.EditSession;
 import io.github.erenriquezp.rora.app.session.ManualExecutor;
 import io.github.erenriquezp.rora.app.session.ManualScheduler;
 import io.github.erenriquezp.rora.app.session.RenderCoordinator;
+import io.github.erenriquezp.rora.app.session.ExportTarget.Collision;
 import io.github.erenriquezp.rora.app.session.RenderLane;
 import io.github.erenriquezp.rora.core.exec.TileExecutor;
 import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.image.ProxyPolicy;
+import io.github.erenriquezp.rora.core.io.ExportSettings;
+import io.github.erenriquezp.rora.core.io.FormatId;
 import io.github.erenriquezp.rora.core.op.OpSpec;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -490,18 +493,6 @@ class StudioViewModelTest {
   // ── Exportar y cierre ─────────────────────────────────────────────────
 
   @Test
-  void exportWritesAPngAndNotifies() {
-    adjust("exposure").userSet(0.5);
-    adjust("exposure").endGesture();
-    File chosen = dir.resolve("salida.jpg").toFile();
-    vm.export(chosen);
-    drain();
-    assertThat(dir.resolve("salida.png")).exists();
-    assertThat(dir.resolve("salida.jpg")).doesNotExist();
-    assertThat(vm.notifications().notices()).isEmpty();
-  }
-
-  @Test
   void informationNoticesGoAwayByThemselves() {
     vm.notifications().info("hola");
     assertThat(vm.notifications().notices()).hasSize(1);
@@ -524,5 +515,344 @@ class StudioViewModelTest {
                     session.registry().require("color.negative").schema().defaults())),
         null);
     assertThat(vm.stack().rows()).hasSize(rows);
+  }
+
+  // ── Entrada y salida ──────────────────────────────────────────────────
+
+  private static ExportSettings jpeg() {
+    return ExportSettings.defaults(FormatId.JPEG);
+  }
+
+  private void edit() {
+    adjust("exposure").userSet(0.5);
+    adjust("exposure").endGesture();
+    drain();
+  }
+
+  /** Como drain, pero sin avanzar el reloj: los avisos temporales siguen visibles. */
+  private void pump() {
+    while (preview.runAll() + full.runAll() + aux.runAll() + publisher.runAll() + background.runAll()
+            + io.runAll()
+        > 0) {
+      // Hasta que no quede trabajo.
+    }
+  }
+
+  private void choose(String label) {
+    Prompt p = vm.promptProperty().get();
+    assertThat(p).as("hay una pregunta pendiente").isNotNull();
+    p.choices().stream().filter(c -> c.label().equals(label)).findFirst().orElseThrow().action().run();
+    drain();
+  }
+
+  @Test
+  void exportWritesTheChosenFormatAndOffersItsFolder() {
+    edit();
+    List<Path> revealed = new java.util.ArrayList<>();
+    vm.setRevealer(revealed::add);
+    vm.startExport(jpeg(), dir, "salida.jpg", Collision.ASK);
+    pump();
+    assertThat(dir.resolve("salida.jpg")).exists();
+    NotificationsViewModel.Notice n = vm.notifications().notices().get(0);
+    assertThat(n.message()).contains("salida.jpg");
+    n.action().run().run();
+    assertThat(revealed).containsExactly(dir.resolve("salida.jpg"));
+    assertThat(session.isModified()).isFalse();
+  }
+
+  @Test
+  void exportedFileContainsTheEdit() throws Exception {
+    edit();
+    vm.startExport(ExportSettings.defaults(FormatId.PNG), dir, "e.png", Collision.ASK);
+    drain();
+    BufferedImage out = ImageIO.read(dir.resolve("e.png").toFile());
+    BufferedImage src = ImageIO.read(dir.resolve("foto.png").toFile());
+    assertThat(out.getWidth()).isEqualTo(src.getWidth());
+    assertThat(out.getRGB(5, 5)).isNotEqualTo(src.getRGB(5, 5));
+  }
+
+  @Test
+  void openingWithoutChangesDoesNotAsk() throws Exception {
+    vm.requestOpen(png("otra.png", 12, 12));
+    assertThat(vm.promptProperty().get()).isNull();
+    drain();
+    assertThat(vm.fileNameProperty().get()).isEqualTo("otra.png");
+  }
+
+  @Test
+  void openingWithChangesAsksAndCanBeCancelled() throws Exception {
+    edit();
+    vm.requestOpen(png("otra.png", 12, 12));
+    drain();
+    assertThat(vm.fileNameProperty().get()).isEqualTo("foto.png");
+    choose("Cancelar");
+    assertThat(vm.promptProperty().get()).isNull();
+    assertThat(vm.fileNameProperty().get()).isEqualTo("foto.png");
+    assertThat(session.isModified()).isTrue();
+  }
+
+  @Test
+  void discardingOpensTheOtherImage() throws Exception {
+    edit();
+    vm.requestOpen(png("otra.png", 12, 12));
+    choose("Descartar");
+    assertThat(vm.fileNameProperty().get()).isEqualTo("otra.png");
+    assertThat(session.isModified()).isFalse();
+  }
+
+  @Test
+  void exportingFromThePromptThenContinues() throws Exception {
+    edit();
+    vm.requestOpen(png("otra.png", 12, 12));
+    choose("Exportar\u2026");
+    assertThat(vm.exportDialog().visibleProperty().get()).isTrue();
+    vm.exportDialog().templateProperty().set("hecha");
+    vm.exportDialog().accept();
+    drain();
+    assertThat(dir.resolve("hecha.jpg")).exists();
+    assertThat(vm.fileNameProperty().get()).isEqualTo("otra.png");
+  }
+
+  @Test
+  void undoingBackToTheExportedStateIsNotAChange() {
+    edit();
+    assertThat(session.isModified()).isTrue();
+    vm.startExport(jpeg(), dir, "a.jpg", Collision.ASK);
+    drain();
+    assertThat(session.isModified()).isFalse();
+    vm.undo();
+    drain();
+    assertThat(session.isModified()).isTrue();
+    vm.redo();
+    drain();
+    assertThat(session.isModified()).isFalse();
+  }
+
+  @Test
+  void closingAsksOnlyWithChanges() {
+    Runnable[] closed = {null};
+    assertThat(vm.requestClose(() -> closed[0] = () -> {})).isTrue();
+    edit();
+    assertThat(vm.requestClose(() -> closed[0] = () -> {})).isFalse();
+    assertThat(closed[0]).isNull();
+    choose("Descartar");
+    assertThat(closed[0]).isNotNull();
+  }
+
+  private void exists(String name) throws Exception {
+    Files.writeString(dir.resolve(name), "previo");
+  }
+
+  @Test
+  void anExistingFileIsNotTouchedUntilConfirmed() throws Exception {
+    exists("x.jpg");
+    vm.startExport(jpeg(), dir, "x.jpg", Collision.ASK);
+    drain();
+    assertThat(Files.readString(dir.resolve("x.jpg"))).isEqualTo("previo");
+    choose("Cancelar");
+    assertThat(Files.readString(dir.resolve("x.jpg"))).isEqualTo("previo");
+  }
+
+  @Test
+  void anExistingFileCanBeNumberedOrOverwritten() throws Exception {
+    exists("x.jpg");
+    vm.startExport(jpeg(), dir, "x.jpg", Collision.ASK);
+    drain();
+    choose("Guardar con otro n\u00FAmero");
+    assertThat(dir.resolve("x (2).jpg")).exists();
+    assertThat(Files.readString(dir.resolve("x.jpg"))).isEqualTo("previo");
+
+    vm.startExport(jpeg(), dir, "x.jpg", Collision.OVERWRITE);
+    drain();
+    assertThat(vm.promptProperty().get()).as("también pide confirmación").isNotNull();
+    choose("Sobrescribir");
+    assertThat(Files.size(dir.resolve("x.jpg"))).isGreaterThan(8);
+  }
+
+  @Test
+  void numberingPolicyDoesNotAsk() throws Exception {
+    exists("x.jpg");
+    vm.startExport(jpeg(), dir, "x.jpg", Collision.NUMBER);
+    drain();
+    assertThat(vm.promptProperty().get()).isNull();
+    assertThat(dir.resolve("x (2).jpg")).exists();
+  }
+
+  @Test
+  void theOriginalNeedsASecondConfirmation() throws Exception {
+    long before = Files.size(dir.resolve("foto.png"));
+    byte[] original = Files.readAllBytes(dir.resolve("foto.png"));
+    edit();
+    vm.startExport(ExportSettings.defaults(FormatId.PNG), dir, "foto.png", Collision.ASK);
+    drain();
+    choose("Sobrescribir");
+    assertThat(vm.promptProperty().get().title()).isEqualTo("Es el archivo original");
+    assertThat(Files.readAllBytes(dir.resolve("foto.png"))).isEqualTo(original);
+    assertThat(before).isPositive();
+    choose("Sustituir el original");
+    assertThat(Files.readAllBytes(dir.resolve("foto.png"))).isNotEqualTo(original);
+  }
+
+  @Test
+  void cancellingAnOpenKeepsTheCurrentImageAndShowsNoError() throws Exception {
+    vm.open(png("otra.png", 12, 12));
+    vm.ioProgress().cancel();
+    drain();
+    assertThat(vm.fileNameProperty().get()).isEqualTo("foto.png");
+    assertThat(vm.notifications().notices()).isEmpty();
+    assertThat(vm.ioProgress().visibleProperty().get()).isFalse();
+  }
+
+  @Test
+  void progressOnlyAppearsIfTheOperationTakesAWhile() throws Exception {
+    vm.open(png("otra.png", 12, 12));
+    time.advance(ms(100));
+    publisher.runAll();
+    assertThat(vm.ioProgress().visibleProperty().get()).isFalse();
+    time.advance(ms(300));
+    publisher.runAll();
+    assertThat(vm.ioProgress().visibleProperty().get()).isTrue();
+    drain();
+    assertThat(vm.ioProgress().visibleProperty().get()).isFalse();
+  }
+
+  @Test
+  void aRawFileGetsAHumanMessage() throws Exception {
+    File raw = dir.resolve("foto.nef").toFile();
+    Files.writeString(raw.toPath(), "datos");
+    vm.open(raw);
+    drain();
+    NotificationsViewModel.Notice n = vm.notifications().notices().get(0);
+    assertThat(n.kind()).isEqualTo(NotificationsViewModel.Kind.ERROR);
+    assertThat(n.message()).contains("foto.nef").contains("RAW");
+    assertThat(n.details()).isNotEmpty();
+  }
+
+  @Test
+  void aConversionIsReported() throws Exception {
+    BufferedImage g = new BufferedImage(8, 8, BufferedImage.TYPE_USHORT_GRAY);
+    File f = dir.resolve("g16.png").toFile();
+    ImageIO.write(g, "png", f);
+    vm.open(f);
+    pump();
+    NotificationsViewModel.Notice n = vm.notifications().notices().get(0);
+    assertThat(n.kind()).isEqualTo(NotificationsViewModel.Kind.WARNING);
+    assertThat(n.message()).contains("16 bits");
+  }
+
+  @Test
+  void anExportFailureIsReportedAndLeavesTheChanges() {
+    edit();
+    vm.startExport(jpeg(), dir.resolve("no-existe"), "a.jpg", Collision.ASK);
+    drain();
+    NotificationsViewModel.Notice n = vm.notifications().notices().get(0);
+    assertThat(n.kind()).isEqualTo(NotificationsViewModel.Kind.ERROR);
+    assertThat(session.isModified()).isTrue();
+  }
+
+  @Test
+  void theDialogPreviewsTheFinalNameAndSize() {
+    ExportDialogViewModel<Img> d = vm.exportDialog();
+    d.setClock(() -> java.time.LocalDateTime.of(2026, 1, 2, 3, 4, 5));
+    vm.showExport();
+    d.templateProperty().set("{nombre}_{fecha}");
+    assertThat(d.previewNameProperty().get()).startsWith("foto_2026-01-02.jpg").contains("64 \u00D7 32");
+    assertThat(d.folderProperty().get()).isEqualTo(dir.toString());
+    d.formatProperty().set(FormatId.TIFF);
+    assertThat(d.previewNameProperty().get()).startsWith("foto_2026-01-02.tif");
+    d.limitSideProperty().set(true);
+    d.sideProperty().set(32);
+    assertThat(d.previewNameProperty().get()).contains("32 \u00D7 16");
+    d.sideProperty().set(1000);
+    assertThat(d.previewNameProperty().get()).as("nunca amplía").contains("64 \u00D7 32");
+  }
+
+  @Test
+  void theDialogSanitizesTheNameAndValidates() {
+    ExportDialogViewModel<Img> d = vm.exportDialog();
+    vm.showExport();
+    d.templateProperty().set("a/b:c");
+    assertThat(d.previewNameProperty().get()).startsWith("a_b_c.jpg");
+    d.templateProperty().set("  ");
+    assertThat(d.canExportProperty().get()).isFalse();
+    assertThat(d.errorProperty().get()).isNotEmpty();
+    d.templateProperty().set("ok");
+    d.folderProperty().set("");
+    assertThat(d.canExportProperty().get()).isFalse();
+    d.folderProperty().set(dir.toString());
+    assertThat(d.canExportProperty().get()).isTrue();
+  }
+
+  @Test
+  void presetsSetTheAgreedValues() {
+    ExportDialogViewModel<Img> d = vm.exportDialog();
+    vm.showExport();
+    d.applyPreset(ExportDialogViewModel.Preset.WEB);
+    assertThat(d.settings().metadata()).isEqualTo(ExportSettings.MetadataPolicy.REMOVE_ALL);
+    assertThat(d.settings().maxLongSide()).isEqualTo(2048);
+    assertThat(d.settings().progressive()).isTrue();
+    d.applyPreset(ExportDialogViewModel.Preset.MAX_QUALITY);
+    assertThat(d.settings().quality()).isEqualTo(100);
+    assertThat(d.settings().subsampling()).isEqualTo(ExportSettings.Subsampling.S444);
+    assertThat(d.settings().maxLongSide()).isZero();
+    d.applyPreset(ExportDialogViewModel.Preset.ORIGINAL);
+    assertThat(d.settings().format()).isEqualTo(FormatId.PNG);
+    assertThat(d.settings().metadata()).isEqualTo(ExportSettings.MetadataPolicy.REMOVE_LOCATION);
+  }
+
+  @Test
+  void theDefaultMetadataPolicyRemovesTheLocation() {
+    assertThat(vm.exportDialog().settings().metadata())
+        .isEqualTo(ExportSettings.MetadataPolicy.REMOVE_LOCATION);
+  }
+
+  @Test
+  void theEstimateIsAsynchronousAndTheLastRequestWins() {
+    ExportDialogViewModel<Img> d = vm.exportDialog();
+    vm.showExport();
+    assertThat(d.estimateProperty().get()).isEqualTo("Calculando tama\u00F1o\u2026");
+    d.qualityProperty().set(50);
+    d.qualityProperty().set(60);
+    time.advance(ms(200));
+    assertThat(background.runAll()).as("solo la última petición").isEqualTo(1);
+    drain();
+    assertThat(d.estimateProperty().get()).startsWith("Tama\u00F1o estimado");
+  }
+
+  @Test
+  void settingsAreRememberedAndBadValuesIgnored() {
+    java.util.Map<String, String> store = new java.util.HashMap<>();
+    ExportPrefs prefs =
+        new ExportPrefs() {
+          @Override
+          public String get(String key, String fallback) {
+            return store.getOrDefault(key, fallback);
+          }
+
+          @Override
+          public void put(String key, String value) {
+            store.put(key, value);
+          }
+        };
+    ExportDialogViewModel<Img> d = vm.exportDialog();
+    d.usePrefs(prefs);
+    vm.showExport();
+    d.qualityProperty().set(77);
+    d.metadataProperty().set(ExportSettings.MetadataPolicy.REMOVE_ALL);
+    d.accept();
+    drain();
+    assertThat(store).containsEntry("export.quality", "77");
+
+    d.qualityProperty().set(40);
+    d.metadataProperty().set(ExportSettings.MetadataPolicy.KEEP);
+    d.usePrefs(prefs);
+    assertThat(d.qualityProperty().get()).isEqualTo(77);
+    assertThat(d.metadataProperty().get()).isEqualTo(ExportSettings.MetadataPolicy.REMOVE_ALL);
+
+    store.put("export.quality", "muchas");
+    store.put("export.metadata", "NO_EXISTE");
+    d.usePrefs(prefs);
+    assertThat(d.qualityProperty().get()).isEqualTo(90);
+    assertThat(d.metadataProperty().get()).isEqualTo(ExportSettings.MetadataPolicy.REMOVE_LOCATION);
   }
 }

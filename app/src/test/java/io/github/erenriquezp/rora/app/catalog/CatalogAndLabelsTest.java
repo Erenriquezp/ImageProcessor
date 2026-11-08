@@ -105,11 +105,18 @@ class CatalogAndLabelsTest {
     return keys;
   }
 
-  /** Claves {@code ui.*} usadas en el código fuente de la interfaz. */
+  /** Claves {@code ui.*} de la interfaz e {@code io.*} del núcleo y los códecs. */
   private static Set<String> uiKeysInSource() throws Exception {
-    Pattern p = Pattern.compile("\"(ui\\.[a-zA-Z.]+)\"");
+    String io = "io\\.(?:error|note)\\.[a-z0-9_]+";
     Set<String> keys = new HashSet<>();
-    Path root = Path.of("src", "main", "java");
+    collectKeys(Path.of("src", "main", "java"), "ui\\.[a-zA-Z.]+", keys);
+    collectKeys(Path.of("..", "core-imaging", "src", "main", "java"), io, keys);
+    collectKeys(Path.of("..", "imaging-io", "src", "main", "java"), io, keys);
+    return keys;
+  }
+
+  private static void collectKeys(Path root, String regex, Set<String> keys) throws Exception {
+    Pattern p = Pattern.compile("\"(" + regex + ")\"");
     try (Stream<Path> files = Files.walk(root)) {
       for (Path f : files.filter(x -> x.toString().endsWith(".java")).toList()) {
         Matcher m = p.matcher(Files.readString(f));
@@ -118,7 +125,6 @@ class CatalogAndLabelsTest {
         }
       }
     }
-    return keys;
   }
 
   @Test

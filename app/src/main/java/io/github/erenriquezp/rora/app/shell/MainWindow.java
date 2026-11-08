@@ -4,20 +4,29 @@ import atlantafx.base.theme.Styles;
 import io.github.erenriquezp.rora.app.i18n.Messages;
 import io.github.erenriquezp.rora.app.model.ViewTransform;
 import io.github.erenriquezp.rora.app.session.FramePool;
+import io.github.erenriquezp.rora.app.theme.Theme;
 import io.github.erenriquezp.rora.app.ui.WindowBar;
 import io.github.erenriquezp.rora.app.ui.WindowResizer;
 import io.github.erenriquezp.rora.app.view.DrawerViews;
+import io.github.erenriquezp.rora.app.view.ExportDialog;
 import io.github.erenriquezp.rora.app.view.InspectorView;
+import io.github.erenriquezp.rora.app.view.IoProgressView;
 import io.github.erenriquezp.rora.app.view.NotificationsView;
 import io.github.erenriquezp.rora.app.view.Subscriptions;
 import io.github.erenriquezp.rora.app.view.ViewerView;
+import io.github.erenriquezp.rora.app.viewmodel.ExportPrefs;
+import io.github.erenriquezp.rora.app.viewmodel.Prompt;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel.Tool;
 import io.github.erenriquezp.rora.app.viewmodel.ViewerViewModel.CompareMode;
 import io.github.erenriquezp.rora.app.viewmodel.ViewerViewModel.PixelReadout;
+import java.awt.Desktop;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Locale;
 import java.util.function.Consumer;
+import javafx.application.Platform;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -43,6 +52,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -82,6 +92,8 @@ final class MainWindow {
   private BorderPane workArea;
   private StackPane centerStack;
   private boolean drawerFloating;
+  private Stage exportStage;
+  private Stage promptStage;
 
   MainWindow(StudioViewModel<WritableImage> vm, Stage stage, LayoutStore layout, Runnable openLab) {
     this.openLab = openLab;
@@ -128,8 +140,10 @@ final class MainWindow {
                 }));
 
     NotificationsView notices = new NotificationsView(vm.notifications(), m);
-    centerStack = new StackPane(viewer, notices);
+    Node progress = new IoProgressView(vm.ioProgress(), m);
+    centerStack = new StackPane(viewer, notices, progress);
     StackPane.setAlignment(notices, Pos.TOP_RIGHT);
+    StackPane.setAlignment(progress, Pos.BOTTOM_CENTER);
     centerStack.setMinSize(0, 0);
 
     workArea = new BorderPane();
@@ -160,6 +174,13 @@ final class MainWindow {
     restoreWindowPosition();
     installDragAndDrop(scene);
     installShortcuts(scene);
+    installDialogs();
+    stage.setOnCloseRequest(
+        e -> {
+          if (!vm.requestClose(stage::close)) {
+            e.consume();
+          }
+        });
     scene.widthProperty().addListener((o, a, b) -> onWidthChanged(b.doubleValue()));
     onWidthChanged(scene.getWidth());
     return scene;
@@ -232,8 +253,7 @@ final class MainWindow {
     open.setOnAction(e -> chooseAndOpen());
     Button export = textButton("ui.action.export", "fas-file-export");
     export.getStyleClass().add(Styles.ACCENT);
-    export.setTooltip(new Tooltip(m.get("ui.export.note")));
-    export.setOnAction(e -> chooseAndExport());
+    export.setOnAction(e -> vm.showExport());
     export.disableProperty().bind(vm.hasImageProperty().not());
 
     Button undo = iconButton("fas-undo", "ui.action.undo");
@@ -480,7 +500,15 @@ final class MainWindow {
         .getExtensionFilters()
         .add(
             new FileChooser.ExtensionFilter(
-                m.get("ui.empty.formats"), "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif"));
+                m.get("ui.empty.formats"),
+                "*.jpg",
+                "*.jpeg",
+                "*.png",
+                "*.tif",
+                "*.tiff",
+                "*.webp",
+                "*.bmp",
+                "*.gif"));
     File folder = new File(layout.getString(KEY_FOLDER, ""));
     if (folder.isDirectory()) {
       chooser.setInitialDirectory(folder);
@@ -488,20 +516,116 @@ final class MainWindow {
     File file = chooser.showOpenDialog(stage);
     if (file != null) {
       layout.putString(KEY_FOLDER, file.getParent());
-      vm.open(file);
+      vm.requestOpen(file);
     }
   }
 
-  private void chooseAndExport() {
-    FileChooser chooser = new FileChooser();
-    chooser.setTitle(m.get("ui.export.title"));
-    chooser.setInitialFileName("resultado.png");
-    chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG", "*.png"));
-    File folder = new File(layout.getString(KEY_FOLDER, ""));
-    if (folder.isDirectory()) {
-      chooser.setInitialDirectory(folder);
+  private void installDialogs() {
+    vm.exportDialog()
+        .usePrefs(
+            new ExportPrefs() {
+              @Override
+              public String get(String key, String fallback) {
+                return layout.getString(key, fallback);
+              }
+
+              @Override
+              public void put(String key, String value) {
+                layout.putString(key, value);
+              }
+            });
+    vm.setRevealer(MainWindow::revealInFolder);
+    subs.add(
+        vm.exportDialog()
+            .visibleProperty()
+            .subscribe(
+                visible -> {
+                  if (visible) {
+                    showExportDialog();
+                  } else if (exportStage != null) {
+                    exportStage.hide();
+                  }
+                }));
+    subs.add(vm.promptProperty().subscribe(this::showPrompt));
+  }
+
+  private void showExportDialog() {
+    if (exportStage == null) {
+      exportStage = new Stage();
+      exportStage.initOwner(stage);
+      exportStage.initModality(Modality.WINDOW_MODAL);
+      exportStage.setTitle(m.get("ui.export.title"));
+      Scene s =
+          new Scene(new ExportDialog(vm.exportDialog(), m).build(() -> exportStage), 640, 720);
+      Theme.apply(s);
+      exportStage.setScene(s);
+      exportStage.setMinWidth(480);
+      exportStage.setMinHeight(420);
+      exportStage.setOnCloseRequest(e -> vm.exportDialog().close());
     }
-    vm.export(chooser.showSaveDialog(stage));
+    exportStage.show();
+    exportStage.getScene().getRoot().requestFocus();
+  }
+
+  private void showPrompt(Prompt prompt) {
+    if (promptStage != null) {
+      promptStage.hide();
+      promptStage = null;
+    }
+    if (prompt == null) {
+      return;
+    }
+    Stage dialog = new Stage();
+    dialog.initOwner(stage);
+    dialog.initModality(Modality.WINDOW_MODAL);
+    dialog.setTitle(prompt.title());
+    Label body = new Label(prompt.body());
+    body.setWrapText(true);
+    body.getStyleClass().add("prompt-body");
+    HBox buttons = new HBox(10);
+    buttons.setAlignment(Pos.CENTER_RIGHT);
+    for (Prompt.Choice c : prompt.choices()) {
+      Button b = new Button(c.label());
+      if (c.primary()) {
+        b.getStyleClass().add(Styles.ACCENT);
+        b.setDefaultButton(true);
+      }
+      b.setOnAction(e -> c.action().run());
+      buttons.getChildren().add(b);
+    }
+    VBox box = new VBox(20, body, buttons);
+    box.getStyleClass().add("prompt");
+    box.setPrefWidth(480);
+    Scene s = new Scene(box);
+    Theme.apply(s);
+    dialog.setScene(s);
+    dialog.setResizable(false);
+    // Cerrar con la X equivale a la última opción, la de cancelar.
+    dialog.setOnCloseRequest(
+        e -> prompt.choices().get(prompt.choices().size() - 1).action().run());
+    promptStage = dialog;
+    dialog.show();
+  }
+
+  /** Muestra el archivo en su carpeta, fuera del hilo de la interfaz. */
+  private static void revealInFolder(Path file) {
+    Thread t =
+        new Thread(
+            () -> {
+              try {
+                if (StudioApp.usesCustomChrome()) {
+                  new ProcessBuilder("explorer.exe", "/select,", file.toString()).start();
+                } else if (Desktop.isDesktopSupported()) {
+                  Desktop.getDesktop().open(file.getParent().toFile());
+                }
+              } catch (IOException | RuntimeException e) {
+                System.getLogger("rora.app")
+                    .log(System.Logger.Level.WARNING, "No se pudo mostrar la carpeta", e);
+              }
+            },
+            "rora-reveal");
+    t.setDaemon(true);
+    t.start();
   }
 
   private void installDragAndDrop(Scene scene) {
@@ -520,7 +644,9 @@ final class MainWindow {
         e -> {
           boolean done = e.getDragboard().hasFiles() && !e.getDragboard().getFiles().isEmpty();
           if (done) {
-            vm.open(e.getDragboard().getFiles().get(0));
+            File dropped = e.getDragboard().getFiles().get(0);
+            // Tras terminar el arrastre: una pregunta modal dentro del evento lo dejaría a medias.
+            Platform.runLater(() -> vm.requestOpen(dropped));
           }
           viewer.dropZone().getStyleClass().remove("drop-zone-active");
           e.setDropCompleted(done);
@@ -531,13 +657,7 @@ final class MainWindow {
   private void installShortcuts(Scene scene) {
     var a = scene.getAccelerators();
     a.put(new KeyCodeCombination(KeyCode.O, KeyCombination.SHORTCUT_DOWN), this::chooseAndOpen);
-    a.put(
-        new KeyCodeCombination(KeyCode.S, KeyCombination.SHORTCUT_DOWN),
-        () -> {
-          if (vm.hasImageProperty().get()) {
-            chooseAndExport();
-          }
-        });
+    a.put(new KeyCodeCombination(KeyCode.S, KeyCombination.SHORTCUT_DOWN), vm::showExport);
     a.put(new KeyCodeCombination(KeyCode.Z, KeyCombination.SHORTCUT_DOWN), vm::undo);
     a.put(new KeyCodeCombination(KeyCode.Y, KeyCombination.SHORTCUT_DOWN), vm::redo);
     a.put(

@@ -42,8 +42,19 @@ public final class NotificationsView extends VBox {
 
   private Node card(Notice n) {
     FontIcon icon =
-        new FontIcon(n.kind() == Kind.ERROR ? "fas-exclamation-triangle" : "fas-check-circle");
-    icon.getStyleClass().add(n.kind() == Kind.ERROR ? "notice-icon-error" : "notice-icon-info");
+        new FontIcon(
+            switch (n.kind()) {
+              case ERROR -> "fas-exclamation-triangle";
+              case WARNING -> "fas-info-circle";
+              case INFO -> "fas-check-circle";
+            });
+    icon.getStyleClass()
+        .add(
+            switch (n.kind()) {
+              case ERROR -> "notice-icon-error";
+              case WARNING -> "notice-icon-warning";
+              case INFO -> "notice-icon-info";
+            });
     Label title = new Label(n.message());
     title.getStyleClass().add("notice-title");
     HBox.setHgrow(title, Priority.ALWAYS);
@@ -56,6 +67,12 @@ public final class NotificationsView extends VBox {
     card.getStyleClass().add("notice");
     if (n.kind() == Kind.ERROR) {
       card.getStyleClass().add("notice-error");
+    }
+    if (n.action() != null) {
+      Button action = new Button(n.action().label());
+      action.getStyleClass().add("notice-link");
+      action.setOnAction(e -> n.action().run().run());
+      card.getChildren().add(new HBox(action));
     }
     if (!n.details().isEmpty()) {
       Label details = new Label(n.details());

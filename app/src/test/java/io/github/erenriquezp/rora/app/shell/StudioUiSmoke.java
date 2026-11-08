@@ -2,7 +2,10 @@ package io.github.erenriquezp.rora.app.shell;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.erenriquezp.rora.app.session.ExportTarget;
 import io.github.erenriquezp.rora.app.viewmodel.ControlState;
+import io.github.erenriquezp.rora.core.io.ExportSettings;
+import io.github.erenriquezp.rora.core.io.FormatId;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -104,7 +107,12 @@ class StudioUiSmoke {
 
     onFx(
         () -> {
-          app.vm().export(output);
+          app.vm()
+              .startExport(
+                  ExportSettings.defaults(FormatId.PNG),
+                  dir,
+                  "salida.png",
+                  ExportTarget.Collision.ASK);
           return null;
         });
     await(output::exists, "archivo exportado");
