@@ -2,13 +2,23 @@ package io.github.erenriquezp.rora.app;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
+import io.github.erenriquezp.rora.app.fx.FxImages;
+import io.github.erenriquezp.rora.app.session.CurrentImage;
+import io.github.erenriquezp.rora.app.session.EditSession;
+import io.github.erenriquezp.rora.app.session.FilterParams;
+import io.github.erenriquezp.rora.app.session.ImageIo;
+import io.github.erenriquezp.rora.app.session.RenderCoordinator;
+import io.github.erenriquezp.rora.app.session.RenderFailure;
+import io.github.erenriquezp.rora.app.session.RenderLane;
+import io.github.erenriquezp.rora.app.session.Scheduler;
+import io.github.erenriquezp.rora.app.session.SessionSource;
+import io.github.erenriquezp.rora.app.session.StallMonitor;
 import io.github.erenriquezp.rora.app.ui.BlendingPane;
 import io.github.erenriquezp.rora.app.ui.EditorFilterPane;
 import io.github.erenriquezp.rora.app.ui.EditorPreviewPane;
@@ -19,26 +29,16 @@ import io.github.erenriquezp.rora.app.ui.TopBar;
 import io.github.erenriquezp.rora.app.ui.TripleBlendingPane;
 import io.github.erenriquezp.rora.app.ui.WindowBar;
 import io.github.erenriquezp.rora.app.ui.WindowResizer;
-import io.github.erenriquezp.rora.domain.ColorSpaceType;
-import io.github.erenriquezp.rora.domain.ConvolutionKernel;
-import io.github.erenriquezp.rora.domain.DepthSource;
-import io.github.erenriquezp.rora.domain.EqualizeMode;
-import io.github.erenriquezp.rora.domain.ExposureDiagnostic;
+import io.github.erenriquezp.rora.core.op.OpSpec;
 import io.github.erenriquezp.rora.domain.FilterType;
-import io.github.erenriquezp.rora.domain.FragmentBlendMode;
-import io.github.erenriquezp.rora.domain.LogicOpType;
-import io.github.erenriquezp.rora.domain.StencilPattern;
-import io.github.erenriquezp.rora.domain.StretchMode;
-import io.github.erenriquezp.rora.domain.TextureFilterMode;
-import io.github.erenriquezp.rora.service.BufferAcumulacion_LOAD;
-import io.github.erenriquezp.rora.service.ImageIOService;
-import io.github.erenriquezp.rora.service.ImageProcessor;
 
+import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ListChangeListener;
+import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -47,6 +47,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -60,11 +61,12 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
+import javafx.util.Duration;
 
 /**
  * Punto de entrada de la aplicación y coordinador principal.
  * Responsabilidades:
- * - Estado de sesión: {@code originalImage} y {@code processedImage}.
+ * - Estado de sesión: delegado en {@link EditSession} (receta, historial, proxy).
  * - Construcción y cableado de los componentes de UI.
  * - Operaciones de imagen: abrir, guardar, resetear, aplicar filtros.
  * - Coordinación entre la vista ({@link EditorPreviewPane}) y los servicios.
@@ -77,25 +79,29 @@ public class ImageProcessorApp extends Application {
     private static final String DEFAULT_MSG = "Carga una imagen para comenzar.";
 
     // ── Session state ─────────────────────────────────────────────────────
-    private BufferedImage originalImage; // nunca se modifica tras la carga
-    private BufferedImage processedImage; // lo que se muestra (preview en vivo o committed)
-    private BufferedImage committedImage; // resultado consolidado; base para el siguiente filtro
-    private String currentFormat = "—"; // origen de la imagen actual (PNG, JPG, …)
+    private static final System.Logger LOG = System.getLogger("rora.app");
+    private static final long SHOW_PROGRESS_AFTER_NANOS = 300_000_000L;
 
-    // ── Pila de historial (undo / redo) ───────────────────────────────────
-    private static final int HISTORY_LIMIT = 30;
-    private final Deque<BufferedImage> undoStack = new ArrayDeque<>();
-    private final Deque<BufferedImage> redoStack = new ArrayDeque<>();
+    private EditSession<WritableImage> session;
+    private String currentFormat = "—"; // origen de la imagen actual (PNG, JPG, …)
+    private EditSession.Frame<WritableImage> lastFrame;
+    private String originalShownFor = ""; // qué versión de la original muestra el panel izquierdo
+
     private final BooleanProperty canUndo = new SimpleBooleanProperty(false);
     private final BooleanProperty canRedo = new SimpleBooleanProperty(false);
 
-    // ── Preview en vivo (cómputo en hilo de fondo, coalescido por generación) ─
-    private final ExecutorService previewExec = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "live-preview");
-        t.setDaemon(true);
-        return t;
-    });
-    private final AtomicLong previewGen = new AtomicLong();
+    // ── Trabajo en segundo plano ──────────────────────────────────────────
+    private final ExecutorService io =
+            RenderCoordinator.singleThread("rora-io", Thread.NORM_PRIORITY);
+    private long loadGeneration; // solo la última carga pedida llega a la sesión
+    private final PauseTransition viewportDebounce = new PauseTransition(Duration.millis(150));
+    private final PauseTransition diagnosticDebounce = new PauseTransition(Duration.millis(150));
+    private OpSpec diagnosticSpec;
+    private RenderLane.Ticket diagnosticTicket;
+    private long renderStartedAt;
+    private boolean showingProgress;
+    private String restingStatus = DEFAULT_MSG;
+    private StallMonitor stallMonitor;
 
     // ── UI components ─────────────────────────────────────────────────────
     private final EditorPreviewPane previewPane = new EditorPreviewPane();
@@ -129,15 +135,56 @@ public class ImageProcessorApp extends Application {
             stage.getIcons().add(appIcon);
         }
 
+        session = EditSession.create(
+                Platform::runLater,
+                img -> FxImages.toFx(img, previewPane.processedPool(), FxImages.configuredFormat()),
+                true);
+        session.addListener(new EditSession.Listener<>() {
+            @Override
+            public void frameReady(EditSession.Frame<WritableImage> frame) {
+                onFrameReady(frame);
+            }
+
+            @Override
+            public void historyChanged(int depth, boolean undoable, boolean redoable) {
+                canUndo.set(undoable);
+                canRedo.set(redoable);
+                historyLabel.setText(depth == 0 ? "" : "Pasos: " + depth);
+            }
+
+            @Override
+            public void failed(RenderFailure failure) {
+                setStatus("Error al procesar la imagen: " + failure.message());
+            }
+
+            @Override
+            public void progress(double fraction) {
+                onProgress(fraction);
+            }
+        });
+        startStallMonitorIfEnabled();
+
+        CurrentImage currentImage = new CurrentImage() {
+            @Override
+            public boolean isAvailable() {
+                return session.hasImage();
+            }
+
+            @Override
+            public void fetch(Consumer<BufferedImage> onImage, Consumer<RenderFailure> onFailed) {
+                session.withCurrentImage(onImage, onFailed);
+            }
+        };
+
         gradientPane = new GradientGeneratorPane(this::loadGeneratedImageInEditor, this::setStatus);
-        histogramPane = new HistogramPane(() -> processedImage, this::loadGeneratedImageInEditor, this::setStatus);
+        histogramPane = new HistogramPane(currentImage, this::loadGeneratedImageInEditor, this::setStatus);
         blendingPane = new BlendingPane(
-                () -> processedImage,
+                currentImage,
                 () -> ImageFileChooserFactory.createOpenImageChooser().showOpenDialog(stage),
                 this::loadGeneratedImageInEditor,
                 this::setStatus);
         tripleBlendingPane = new TripleBlendingPane(
-                () -> processedImage,
+                currentImage,
                 () -> ImageFileChooserFactory.createOpenImageChooser().showOpenDialog(stage),
                 () -> ImageFileChooserFactory.createOpenImageChooser().showOpenDialog(stage),
                 this::loadGeneratedImageInEditor,
@@ -208,7 +255,13 @@ public class ImageProcessorApp extends Application {
         });
 
         compareToggle.selectedProperty().addListener(
-                (obs, old, selected) -> refreshView(selected));
+                (obs, old, selected) -> refreshCompare());
+
+        // El proxy depende del visor: los cambios de tamaño y zoom se agrupan
+        viewportDebounce.setOnFinished(e -> pushViewport());
+        previewPane.setOnViewportChanged(viewportDebounce::playFromStart);
+        diagnosticDebounce.setOnFinished(e -> requestDiagnostic());
+        previewPane.setOnPixelPicked(this::pickExactPixel);
 
         // Cargar imágenes arrastradas sobre el panel de previsualización
         previewPane.setOnImageDropped(this::loadImageFile);
@@ -345,7 +398,8 @@ public class ImageProcessorApp extends Application {
             return;
         }
         cursorSwatch.setStyle("-fx-background-color: rgb(" + p.r() + "," + p.g() + "," + p.b() + ");");
-        cursorLabel.setText(p.x() + ", " + p.y() + "   rgb(" + p.r() + ", " + p.g() + ", " + p.b() + ")");
+        cursorLabel.setText((p.approximate() ? "≈ " : "")
+                + p.x() + ", " + p.y() + "   rgb(" + p.r() + ", " + p.g() + ", " + p.b() + ")");
     }
 
     private void showZoom(double level) {
@@ -359,19 +413,48 @@ public class ImageProcessorApp extends Application {
         loadImageFile(chooser.showOpenDialog(stage));
     }
 
-    /** Carga un archivo de imagen (desde el diálogo o arrastrar-y-soltar). */
+    /** Carga un archivo de imagen (desde el diálogo o arrastrar-y-soltar) fuera del hilo FX. */
     private void loadImageFile(File file) {
         if (file == null)
             return;
-        try {
-            setSessionImages(ImageIOService.read(file));
-            currentFormat = extensionOf(file);
-            fileNameLabel.setText(file.getName());
-            schedulePreview(); // refleja el filtro seleccionado (o muestra la imagen base)
-            setStatus("Imagen cargada: " + file.getName());
-        } catch (Exception ex) {
-            setErrorStatus("Error al abrir imagen", ex);
-        }
+        long generation = ++loadGeneration;
+        setStatus("Abriendo " + file.getName() + "…");
+        runIo(() -> ImageIo.load(file),
+                source -> {
+                    if (generation != loadGeneration)
+                        return; // el usuario ya pidió otra imagen
+                    installSource(source, extensionOf(file), file.getName());
+                    setStatus("Imagen cargada: " + file.getName());
+                },
+                ex -> setErrorStatus("Error al abrir imagen", ex));
+    }
+
+    /** Ejecuta {@code work} en una {@link Task} y publica el resultado en el hilo FX. */
+    private <T> void runIo(Callable<T> work, Consumer<T> onDone, Consumer<Throwable> onFailed) {
+        Task<T> task = new Task<>() {
+            @Override
+            protected T call() throws Exception {
+                return work.call();
+            }
+        };
+        task.setOnSucceeded(e -> onDone.accept(task.getValue()));
+        task.setOnFailed(e -> {
+            LOG.log(System.Logger.Level.WARNING, "Fallo de E/S", task.getException());
+            onFailed.accept(task.getException());
+        });
+        io.execute(task);
+    }
+
+    /** Pone {@code source} como imagen del editor. */
+    private void installSource(SessionSource source, String format, String title) {
+        pushViewport();
+        lastFrame = null;
+        session.load(source);
+        currentFormat = format;
+        fileNameLabel.setText(title);
+        updateImageInfo();
+        refreshCompare();
+        schedulePreview(); // refleja el filtro seleccionado (o muestra la imagen base)
     }
 
     private static String extensionOf(File file) {
@@ -383,10 +466,8 @@ public class ImageProcessorApp extends Application {
     }
 
     private void saveImage(Stage stage) {
-        BufferedImage candidate = processedImage != null
-                ? processedImage
-                : gradientPane.getGeneratedImage();
-        if (candidate == null) {
+        BufferedImage generated = gradientPane.getGeneratedImage();
+        if (!session.hasImage() && generated == null) {
             setStatus("No hay imagen para guardar.");
             return;
         }
@@ -395,35 +476,43 @@ public class ImageProcessorApp extends Application {
         File file = chooser.showSaveDialog(stage);
         if (file == null)
             return;
-        try {
-            ImageIOService.write(candidate, file);
-            setStatus("Imagen guardada en: " + file.getName());
-        } catch (Exception ex) {
-            setErrorStatus("Error al guardar", ex);
+        setStatus("Guardando " + file.getName() + "…");
+        if (session.hasImage()) {
+            session.export(
+                    image -> writeImage(image, file),
+                    failure -> setStatus("Error al guardar: " + failure.message()));
+        } else {
+            writeImage(generated, file);
         }
     }
 
+    private void writeImage(BufferedImage image, File file) {
+        runIo(() -> {
+                    ImageIo.save(image, file);
+                    return file;
+                },
+                f -> setStatus("Imagen guardada en: " + f.getName()),
+                ex -> setErrorStatus("Error al guardar", ex));
+    }
+
     private void resetImage() {
-        if (originalImage == null) {
+        if (!session.hasImage()) {
             setStatus("No hay imagen cargada para resetear.");
             return;
         }
-        committedImage = originalImage;
-        undoStack.clear();
-        redoStack.clear();
-        updateHistoryState();
+        markRenderStart();
+        session.reset();
         compareToggle.setSelected(false);
-        showCommitted();
+        editorFilterPane.clearSelection();
         setStatus("Imagen restablecida al estado original.");
     }
 
     /**
-     * Consolida (commit) el filtro seleccionado: lo aplica sobre la imagen
-     * base, lo apila en el historial y deja la selección en "Sin filtro" para
-     * que el siguiente filtro parta del resultado recién consolidado.
+     * Consolida el filtro seleccionado: lo añade a la receta (una entrada de historial) y deja la
+     * selección en "Sin filtro" para que el siguiente filtro parta del resultado consolidado.
      */
     private void applySelectedFilter() {
-        if (originalImage == null) {
+        if (!session.hasImage()) {
             setStatus("Carga una imagen antes de aplicar filtros.");
             return;
         }
@@ -434,17 +523,12 @@ public class ImageProcessorApp extends Application {
             return;
         }
         try {
-            FilterParams commitParams = snapshotParams().withNoHighlights();
-            BufferedImage result = processFilter(filter, committedImage, commitParams);
-            pushHistory(committedImage);
-            committedImage = result;
-            redoStack.clear();
-            updateHistoryState();
-            // showCommitted() deselecciona y muestra el resultado recién consolidado,
-            // de modo que el siguiente filtro parte de esta nueva base.
-            showCommitted();
-            setStatus("Filtro aplicado: " + filter + " · pasos: " + undoStack.size());
-        } catch (Exception ex) {
+            OpSpec step = session.specs().of(filter, snapshotParams().withNoHighlights()).orElseThrow();
+            markRenderStart();
+            int depth = session.apply(step);
+            editorFilterPane.clearSelection();
+            setStatus("Filtro aplicado: " + filter + " · pasos: " + depth);
+        } catch (RuntimeException ex) {
             setErrorStatus("Error al aplicar filtro", ex);
         }
     }
@@ -452,188 +536,156 @@ public class ImageProcessorApp extends Application {
     // ── Undo / Redo ───────────────────────────────────────────────────────
 
     private void undo() {
-        if (undoStack.isEmpty()) {
+        markRenderStart();
+        if (!session.undo()) {
             return;
         }
-        redoStack.push(committedImage);
-        committedImage = undoStack.pop();
-        updateHistoryState();
-        showCommitted();
-        setStatus(undoStack.isEmpty()
+        editorFilterPane.clearSelection();
+        setStatus(session.undoDepth() == 0
                 ? "Deshacer · imagen original"
-                : "Deshacer · pasos: " + undoStack.size());
+                : "Deshacer · pasos: " + session.undoDepth());
     }
 
     private void redo() {
-        if (redoStack.isEmpty()) {
+        markRenderStart();
+        if (!session.redo()) {
             return;
         }
-        undoStack.push(committedImage);
-        committedImage = redoStack.pop();
-        updateHistoryState();
-        showCommitted();
-        setStatus("Rehacer · pasos: " + undoStack.size());
-    }
-
-    private void pushHistory(BufferedImage image) {
-        undoStack.push(image);
-        while (undoStack.size() > HISTORY_LIMIT)
-            undoStack.removeLast();
-    }
-
-    private void updateHistoryState() {
-        canUndo.set(!undoStack.isEmpty());
-        canRedo.set(!redoStack.isEmpty());
-        historyLabel.setText(undoStack.isEmpty() ? "" : "Pasos: " + undoStack.size());
-    }
-
-    /** Muestra la imagen consolidada (cancela cualquier preview en vuelo). */
-    private void showCommitted() {
-        editorFilterPane.clearSelection(); // no-op si ya está en NONE
-        previewGen.incrementAndGet(); // invalida previews en background
-        processedImage = committedImage;
-        refreshView(compareToggle.isSelected());
+        editorFilterPane.clearSelection();
+        setStatus("Rehacer · pasos: " + session.undoDepth());
     }
 
     // ── Live preview ──────────────────────────────────────────────────────
 
-    /**
-     * Recalcula el preview del filtro seleccionado sobre la imagen base, en un
-     * hilo de fondo, descartando resultados obsoletos (coalescing por
-     * generación) para mantener la UI fluida al arrastrar sliders.
-     */
+    /** Traduce el filtro seleccionado a paso pendiente; la sesión lo renderiza en segundo plano. */
     private void schedulePreview() {
-        if (originalImage == null)
+        if (!session.hasImage())
             return;
 
         FilterType filter = editorFilterPane.getSelectedFilter();
+        markRenderStart();
         if (filter == null || filter == FilterType.NONE) {
-            previewGen.incrementAndGet();
-            processedImage = committedImage;
-            refreshView(compareToggle.isSelected());
+            cancelDiagnostic();
+            session.setPending(Optional.empty());
             return;
         }
+        FilterParams params = snapshotParams();
+        session.setPending(session.specs().of(filter, params));
+        if (filter == FilterType.HISTOGRAM_EQUALIZE) {
+            // Exacto sobre la imagen completa y sin marcas; "cargando" hasta tenerlo.
+            editorFilterPane.showEqualizeDiagnosticLoading();
+            diagnosticSpec = session.specs().of(filter, params.withNoHighlights()).orElseThrow();
+            diagnosticDebounce.playFromStart();
+        } else {
+            cancelDiagnostic();
+        }
+    }
 
-        final long gen = previewGen.incrementAndGet();
-        final BufferedImage base = committedImage;
-        final FilterParams params = snapshotParams();
+    private void requestDiagnostic() {
+        if (diagnosticSpec == null || !session.hasImage())
+            return;
+        diagnosticTicket = session.exposureDiagnostic(
+                diagnosticSpec,
+                editorFilterPane::updateEqualizeDiagnostic,
+                failure -> setStatus("Error en el diagnóstico: " + failure.message()));
+    }
 
-        previewExec.submit(() -> {
-            if (gen != previewGen.get())
-                return; // ya superado en cola → no computar
-            final BufferedImage result;
-            final ExposureDiagnostic diag;
-            try {
-                result = processFilter(filter, base, params);
-                if (filter == FilterType.HISTOGRAM_EQUALIZE) {
-                    BufferedImage cleanImg = processFilter(filter, base, params.withNoHighlights());
-                    diag = ImageProcessor.diagnoseExposure(cleanImg);
-                } else {
-                    diag = null;
-                }
-            } catch (Exception ex) {
-                return; // entrada inválida transitoria → ignorar
-            }
-            if (gen != previewGen.get())
-                return; // resultado obsoleto
-            Platform.runLater(() -> {
-                if (gen != previewGen.get())
-                    return;
-                processedImage = result;
-                refreshView(compareToggle.isSelected());
-                if (filter == FilterType.HISTOGRAM_EQUALIZE) {
-                    editorFilterPane.updateEqualizeDiagnostic(diag);
-                }
-            });
-        });
+    private void cancelDiagnostic() {
+        diagnosticDebounce.stop();
+        diagnosticSpec = null;
+        if (diagnosticTicket != null) {
+            diagnosticTicket.cancel();
+            diagnosticTicket = null;
+        }
     }
 
     private void loadGeneratedImageInEditor(BufferedImage image) {
-        setSessionImages(image);
-        currentFormat = "GEN";
-        fileNameLabel.setText("Sin título");
-        schedulePreview(); // refleja el filtro seleccionado (o muestra la imagen base)
+        runIo(() -> SessionSource.of(image),
+                source -> installSource(source, "GEN", "Sin título"),
+                ex -> setErrorStatus("Error al cargar la imagen", ex));
+    }
+
+    /** Clic en el resultado: valor exacto del píxel (de la caché o con un render completo). */
+    private void pickExactPixel(int x, int y) {
+        if (!session.hasImage())
+            return;
+        session.exactPixel(x, y,
+                argb -> showCursorReadout(new EditorPreviewPane.PixelReadout(
+                        x, y, (argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF, false)),
+                failure -> setStatus("Error al leer el píxel: " + failure.message()));
     }
 
     // ── View coordination ─────────────────────────────────────────────────
 
-    /**
-     * Sincroniza la vista con el estado de sesión.
-     * Delega la lógica de compare mode y zoom en {@link EditorPreviewPane}.
-     */
-    private void refreshView(boolean showOriginal) {
-        boolean comparing = showOriginal && originalImage != null;
-        previewPane.setCompareMode(comparing);
-        if (comparing)
-            previewPane.showOriginal(originalImage);
-        previewPane.showProcessed(processedImage);
+    private void onFrameReady(EditSession.Frame<WritableImage> frame) {
+        lastFrame = frame;
+        previewPane.showProcessed(frame);
         updateImageInfo();
+        if (showingProgress) {
+            showingProgress = false;
+            statusLabel.setText(restingStatus);
+        }
+        refreshCompare();
+    }
+
+    /** Sincroniza el modo comparar y pide la original si lo mostrado ya no le corresponde. */
+    private void refreshCompare() {
+        boolean comparing = compareToggle.isSelected() && session.hasImage();
+        previewPane.setCompareMode(comparing);
+        if (!comparing || lastFrame == null) {
+            return;
+        }
+        boolean fullResolution = !lastFrame.approximate() && session.proxySize().isPresent();
+        String wanted = session.source().orElseThrow().id() + ":" + lastFrame.pixels().width()
+                + ":" + fullResolution;
+        if (wanted.equals(originalShownFor)) {
+            return;
+        }
+        originalShownFor = wanted;
+        session.original(
+                fullResolution,
+                img -> FxImages.toFx(img, previewPane.originalPool(), FxImages.configuredFormat()),
+                previewPane::showOriginal,
+                failure -> {
+                    originalShownFor = "";
+                    setStatus("Error al mostrar la original: " + failure.message());
+                });
+    }
+
+    private void pushViewport() {
+        int width = previewPane.viewportWidth();
+        int height = previewPane.viewportHeight();
+        if (width > 0 && height > 0) {
+            session.setViewport(width, height, previewPane.outputScale(), previewPane.effectiveZoom());
+            refreshCompare();
+        }
+    }
+
+    private void markRenderStart() {
+        renderStartedAt = System.nanoTime();
+    }
+
+    /** Progreso agrupado (≤ 30 Hz): solo si el render tarda lo bastante para que se note. */
+    private void onProgress(double fraction) {
+        if (showingProgress || System.nanoTime() - renderStartedAt > SHOW_PROGRESS_AFTER_NANOS) {
+            showingProgress = true;
+            statusLabel.setText("Procesando… " + Math.round(fraction * 100) + " %");
+        }
     }
 
     /** Refresca los indicadores de formato y dimensiones de la barra de estado. */
     private void updateImageInfo() {
-        if (processedImage != null) {
+        Optional<SessionSource> source = session.source();
+        if (source.isPresent()) {
             formatLabel.setText(currentFormat);
-            dimsLabel.setText(processedImage.getWidth() + " × " + processedImage.getHeight() + " px");
+            dimsLabel.setText(source.get().width() + " × " + source.get().height() + " px");
         } else {
             formatLabel.setText("—");
             dimsLabel.setText("—");
         }
     }
 
-    private void setSessionImages(BufferedImage image) {
-        originalImage = image;
-        processedImage = image;
-        committedImage = image;
-        undoStack.clear();
-        redoStack.clear();
-        updateHistoryState();
-    }
-
-    // ── Filter dispatch ───────────────────────────────────────────────────
-
-    /** Snapshot inmutable de los parámetros de la UI (leído en el hilo FX). */
-    private record FilterParams(
-            int brightness, float saturation, float valueFactor,
-            int retroLevels, int retro2Levels, boolean r2r, boolean r2g, boolean r2b,
-            int grayQuantLevels, int threshold, int alpha,
-            int tintR, int tintG, int tintB,
-            StretchMode stretchMode, ConvolutionKernel kernel,
-            DepthSource depthSource, int depthThreshold, int pixelBlockSize,
-            float textureScale, TextureFilterMode textureFilter,
-            int alphaTestThreshold, boolean alphaTestLuminance, int multisampleSize,
-            StencilPattern stencilPattern, FragmentBlendMode fragmentBlendMode,
-            float fragmentBlendAlpha, LogicOpType logicOp, int logicMask,
-            int planeR, int planeG, int planeB,
-            int fogR, int fogG, int fogB,
-            EqualizeMode equalizeMode, float gainR, float gainG, float gainB,
-            float lerpFactor, float extrapolateFactor, float scale, float bias,
-            int pointThreshold, int softThreshold, float pointSaturation, float hueDegrees,
-            ColorSpaceType colorSpace,
-            float equalizeIntensity, boolean equalizeMarkBurned, boolean equalizeMarkDark) {
-
-        public FilterParams withNoHighlights() {
-            return new FilterParams(
-                    brightness, saturation, valueFactor,
-                    retroLevels, retro2Levels, r2r, r2g, r2b,
-                    grayQuantLevels, threshold, alpha,
-                    tintR, tintG, tintB,
-                    stretchMode, kernel,
-                    depthSource, depthThreshold, pixelBlockSize,
-                    textureScale, textureFilter,
-                    alphaTestThreshold, alphaTestLuminance, multisampleSize,
-                    stencilPattern, fragmentBlendMode,
-                    fragmentBlendAlpha, logicOp, logicMask,
-                    planeR, planeG, planeB,
-                    fogR, fogG, fogB,
-                    equalizeMode, gainR, gainG, gainB,
-                    lerpFactor, extrapolateFactor, scale, bias,
-                    pointThreshold, softThreshold, pointSaturation, hueDegrees,
-                    colorSpace,
-                    equalizeIntensity, false, false
-            );
-        }
-    }
+    // ── Filter parameters ─────────────────────────────────────────────────
 
     /** Captura los parámetros actuales — debe llamarse en el hilo de JavaFX. */
     private FilterParams snapshotParams() {
@@ -694,86 +746,51 @@ public class ImageProcessorApp extends Application {
                 editorFilterPane.isEqualizeMarkDark());
     }
 
-    /**
-     * Aplica {@code filter} sobre {@code base} usando el snapshot {@code p}.
-     * Es estático y puro: no toca estado de sesión, por lo que puede ejecutarse
-     * con seguridad fuera del hilo de JavaFX (preview en background).
-     */
-    private static BufferedImage processFilter(FilterType filter, BufferedImage base, FilterParams p) {
-        return switch (filter) {
-            case GRAYSCALE -> ImageProcessor.grayscale(base);
-            case NEGATIVE -> ImageProcessor.negative(base);
-            case BRIGHTNESS -> ImageProcessor.brightness(base, p.brightness());
-            case HSV -> ImageProcessor.hsv(base, p.saturation(), p.valueFactor());
-            case FROSTED -> ImageProcessor.frosted(base);
-            case CIRCULAR_FADE -> ImageProcessor.circularFade(base);
-            case ALPHA_GLOBAL -> ImageProcessor.alphaGlobal(base, p.alpha());
-            case RETRO1 -> ImageProcessor.retro1(base, p.retroLevels());
-            case RETRO2 -> ImageProcessor.retro2(base, p.retro2Levels(), p.r2r(), p.r2g(), p.r2b());
-            case GRAYSCALE_QUANTIZED -> ImageProcessor.grayscaleQuantized(base, p.grayQuantLevels());
-            case BW_THRESHOLD -> ImageProcessor.bwThreshold(base, p.threshold());
-            case RECOLOR -> ImageProcessor.recolor(base, p.tintR(), p.tintG(), p.tintB());
-            case BUFFER_ACUMULATION_ADD -> ImageProcessor.bufferAccumulation(base, BufferAcumulacion_LOAD.Mode.ADD);
-            case BUFFER_ACUMULATION_ACUM -> ImageProcessor.bufferAccumulation(base, BufferAcumulacion_LOAD.Mode.ACUM);
-            case BUFFER_ACUMULATION_MULT -> ImageProcessor.bufferAccumulation(base, BufferAcumulacion_LOAD.Mode.MULT);
-            case STRETCH_4_BITS -> ImageProcessor.stretch4Bits(base, p.stretchMode());
-            case CONVOLUTION -> ImageProcessor.convolution(base, p.kernel());
-            // ── Color Matrix ──────────────────────────────────────────────
-            case SEPIA -> ImageProcessor.sepia(base);
-            case COOL_TONE -> ImageProcessor.coolTone(base);
-            case WARM_TONE -> ImageProcessor.warmTone(base);
-            case POLAROID -> ImageProcessor.polaroid(base);
-            case KODACHROME -> ImageProcessor.kodachrome(base);
-            // ── Raster / Depth ────────────────────────────────────────────
-            case DEPTH_MAP -> ImageProcessor.depthMap(base, p.depthSource());
-            case Z_BUFFER -> ImageProcessor.zBuffer(base, p.depthSource(), p.depthThreshold(),
-                    p.planeR(), p.planeG(), p.planeB());
-            case BITMAP_PIXELATE -> ImageProcessor.bitmapPixelate(base, p.pixelBlockSize());
-            case RASTER_GRID -> ImageProcessor.rasterGrid(base, p.pixelBlockSize());
-            // ── Texturas / W-Buffer ───────────────────────────────────────
-            case TEXTURE_SAMPLE -> ImageProcessor.textureSample(base, p.textureScale(), p.textureFilter());
-            case DEPTH_INTERPOLATE -> ImageProcessor.depthInterpolate(base, p.depthSource(),
-                    p.planeR(), p.planeG(), p.planeB(), p.fogR(), p.fogG(), p.fogB());
-            case W_BUFFER -> ImageProcessor.wBuffer(base, p.depthSource(), p.depthThreshold(),
-                    p.planeR(), p.planeG(), p.planeB());
-            // ── Fragmentos ────────────────────────────────────────────────
-            case MULTISAMPLE -> ImageProcessor.multisample(base, p.multisampleSize());
-            case ALPHA_TEST -> ImageProcessor.alphaTest(base, p.alphaTestThreshold(), p.alphaTestLuminance());
-            case STENCIL_TEST -> ImageProcessor.stencilTest(base, p.stencilPattern(),
-                    p.depthThreshold(), p.pixelBlockSize());
-            case FRAGMENT_BLEND -> ImageProcessor.fragmentBlend(base, p.fragmentBlendMode(),
-                    p.planeR(), p.planeG(), p.planeB(), p.fragmentBlendAlpha());
-            case LOGIC_OP -> ImageProcessor.logicOp(base, p.logicOp(), p.logicMask());
-            // ── Histograma / point ops ────────────────────────────────────
-            case HISTOGRAM_EQUALIZE -> ImageProcessor.histogramEqualize(base, p.equalizeMode(), p.equalizeIntensity(), p.equalizeMarkBurned(), p.equalizeMarkDark());
-            case COLOR_ADJUST -> ImageProcessor.colorAdjust(base, p.gainR(), p.gainG(), p.gainB());
-            case POINT_INTERPOLATE -> ImageProcessor.pointInterpolate(base, p.lerpFactor(),
-                    p.planeR(), p.planeG(), p.planeB());
-            case POINT_EXTRAPOLATE -> ImageProcessor.pointExtrapolate(base, p.extrapolateFactor(),
-                    p.planeR(), p.planeG(), p.planeB());
-            case SCALE_BIAS -> ImageProcessor.scaleBias(base, p.scale(), p.bias());
-            case POINT_THRESHOLD -> ImageProcessor.pointThreshold(base, p.pointThreshold(), p.softThreshold());
-            case TO_LUMINANCE -> ImageProcessor.toLuminance(base);
-            case POINT_SATURATION -> ImageProcessor.pointSaturation(base, p.pointSaturation());
-            case HUE_ROTATE -> ImageProcessor.hueRotate(base, p.hueDegrees());
-            case COLOR_SPACE -> ImageProcessor.colorSpaceConvert(base, p.colorSpace());
-            case NONE -> base;
-        };
-    }
-
     // ── Status bar ────────────────────────────────────────────────────────
 
     private void setStatus(String message) {
+        restingStatus = message;
+        showingProgress = false;
         statusLabel.setText(message);
     }
 
-    private void setErrorStatus(String prefix, Exception ex) {
+    private void setErrorStatus(String prefix, Throwable ex) {
         setStatus(prefix + ": " + ex.getMessage());
+    }
+
+    /** Monitor de bloqueos del hilo FX, solo con {@code -Drora.fxStallMonitor=true}. */
+    private void startStallMonitorIfEnabled() {
+        if (!Boolean.getBoolean("rora.fxStallMonitor")) {
+            return;
+        }
+        Thread fxThread = Thread.currentThread();
+        stallMonitor = new StallMonitor(
+                Scheduler.system(),
+                Platform::runLater,
+                () -> {
+                    StringBuilder sb = new StringBuilder();
+                    for (StackTraceElement frame : fxThread.getStackTrace()) {
+                        sb.append("    at ").append(frame).append('\n');
+                    }
+                    return sb.toString();
+                },
+                message -> LOG.log(System.Logger.Level.WARNING, message),
+                StallMonitor.DEFAULT_TICK_NANOS,
+                StallMonitor.DEFAULT_THRESHOLD_NANOS);
+        stallMonitor.start();
     }
 
     @Override
     public void stop() {
-        previewExec.shutdownNow();
+        if (stallMonitor != null) {
+            stallMonitor.close();
+        }
+        gradientPane.close();
+        histogramPane.close();
+        blendingPane.close();
+        tripleBlendingPane.close();
+        session.close();
+        io.shutdownNow();
     }
 
     public static void main(String[] args) {

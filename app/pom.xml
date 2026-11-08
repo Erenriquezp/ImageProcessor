@@ -60,10 +60,18 @@
             <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Reglas de arquitectura (fase 2). Apache-2.0, verificado en su POM de Maven Central -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
+            <version>${archunit.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <properties>
         <skip.memory>false</skip.memory>
+        <archunit.version>1.4.1</archunit.version>
     </properties>
 
     <build>

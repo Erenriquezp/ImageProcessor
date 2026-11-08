@@ -1,7 +1,10 @@
 package io.github.erenriquezp.rora.app.ui;
 
+import io.github.erenriquezp.rora.app.fx.FxImages;
+import io.github.erenriquezp.rora.app.session.EditSession;
+import io.github.erenriquezp.rora.app.session.FramePool;
+import io.github.erenriquezp.rora.core.image.Img;
 import javafx.beans.binding.Bindings;
-import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -20,7 +23,6 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import org.kordamp.ikonli.javafx.FontIcon;
 
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.Locale;
 import java.util.function.Consumer;
@@ -63,7 +65,19 @@ public class EditorPreviewPane {
 
     // ── Status readouts (cursor pixel + zoom) ─────────────────────────────
     /** Lectura de un píxel bajo el cursor: posición y color RGB. */
-    public record PixelReadout(int x, int y, int r, int g, int b) {}
+    public record PixelReadout(int x, int y, int r, int g, int b, boolean approximate) {}
+
+    /** Píxel de la imagen completa sobre el que se ha hecho clic. */
+    @FunctionalInterface
+    public interface PixelPick { void pick(int x, int y); }
+    private PixelPick onPixelPicked;
+
+    // ── Frames mostrados (píxeles para el cuentagotas) y reutilización de imágenes ─
+    private final FramePool<WritableImage> processedPool = FxImages.newPool();
+    private final FramePool<WritableImage> originalPool  = FxImages.newPool();
+    private EditSession.Frame<WritableImage> processedFrame;
+    private EditSession.Frame<WritableImage> originalFrame;
+    private Runnable onViewportChanged;
     private Consumer<PixelReadout> onCursorReadout;   // null cuando el cursor sale de la imagen
     private DoubleConsumer         onZoomChanged;
 
@@ -97,7 +111,12 @@ public class EditorPreviewPane {
 
         // Viewport resize → refrescar dimensiones de zoom
         leftScrollPane .viewportBoundsProperty().addListener((obs, o, b) -> updateZoomDimensions());
-        rightScrollPane.viewportBoundsProperty().addListener((obs, o, b) -> updateZoomDimensions());
+        rightScrollPane.viewportBoundsProperty().addListener((obs, o, b) -> {
+            updateZoomDimensions();
+            fireViewportChanged();
+        });
+        FxImages.bindPulses(processedView, processedPool);
+        FxImages.bindPulses(originalView, originalPool);
 
         // Rueda del ratón — cada panel zooms de forma independiente
         leftScrollPane .addEventFilter(ScrollEvent.SCROLL, e -> { activatePane(true);  onScrollZoom(e, true);  });
@@ -111,6 +130,8 @@ public class EditorPreviewPane {
         processedView.setOnMouseMoved(e -> fireReadout(e, processedView));
         originalView .setOnMouseMoved(e -> fireReadout(e, originalView));
         processedView.setOnMouseExited(e -> clearReadout());
+        // Clic sobre el resultado → valor exacto del píxel (además de activar el panel)
+        processedView.setOnMouseClicked(this::firePick);
         originalView .setOnMouseExited(e -> clearReadout());
 
         // Arrastrar y soltar una imagen sobre el panel de resultado
@@ -156,24 +177,83 @@ public class EditorPreviewPane {
         if (onCursorReadout != null) onCursorReadout.accept(null);
     }
 
-    /** Mapea la posición del ratón al píxel de la imagen y reporta su color. */
+    /**
+     * Mapea la posición del ratón al píxel y reporta su color: las coordenadas son las de la imagen
+     * completa; el color sale de los píxeles del frame (marcado como aproximado si es el proxy).
+     */
     private void fireReadout(MouseEvent e, ImageView view) {
         if (onCursorReadout == null) return;
-        Image img = view.getImage();
+        EditSession.Frame<WritableImage> frame = view == processedView ? processedFrame : originalFrame;
         double dispW = view.getBoundsInLocal().getWidth();
         double dispH = view.getBoundsInLocal().getHeight();
-        if (img == null || dispW <= 0 || dispH <= 0) { onCursorReadout.accept(null); return; }
+        if (frame == null || dispW <= 0 || dispH <= 0) { onCursorReadout.accept(null); return; }
 
-        int iw = (int) img.getWidth(), ih = (int) img.getHeight();
-        int px = Math.max(0, Math.min(iw - 1, (int) (e.getX() / dispW * iw)));
-        int py = Math.max(0, Math.min(ih - 1, (int) (e.getY() / dispH * ih)));
-
-        Color c = img.getPixelReader().getColor(px, py);
-        onCursorReadout.accept(new PixelReadout(px, py,
-                (int) Math.round(c.getRed()   * 255),
-                (int) Math.round(c.getGreen() * 255),
-                (int) Math.round(c.getBlue()  * 255)));
+        Img pixels = frame.pixels();
+        int sx = clampIndex(e.getX() / dispW * pixels.width(),  pixels.width());
+        int sy = clampIndex(e.getY() / dispH * pixels.height(), pixels.height());
+        int argb = pixels.argb(sx, sy);
+        onCursorReadout.accept(new PixelReadout(
+                clampIndex(e.getX() / dispW * frame.fullWidth(),  frame.fullWidth()),
+                clampIndex(e.getY() / dispH * frame.fullHeight(), frame.fullHeight()),
+                (argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF,
+                frame.approximate()));
     }
+
+    private void firePick(MouseEvent e) {
+        EditSession.Frame<WritableImage> frame = processedFrame;
+        double dispW = processedView.getBoundsInLocal().getWidth();
+        double dispH = processedView.getBoundsInLocal().getHeight();
+        if (onPixelPicked == null || frame == null || dispW <= 0 || dispH <= 0
+                || !e.isStillSincePress()) {
+            return;
+        }
+        onPixelPicked.pick(
+                clampIndex(e.getX() / dispW * frame.fullWidth(),  frame.fullWidth()),
+                clampIndex(e.getY() / dispH * frame.fullHeight(), frame.fullHeight()));
+    }
+
+    private static int clampIndex(double v, int size) {
+        return Math.max(0, Math.min(size - 1, (int) v));
+    }
+
+    /** Callback con el píxel de la imagen completa sobre el que se hace clic. */
+    public void setOnPixelPicked(PixelPick handler) { this.onPixelPicked = handler; }
+
+    /** Callback cuando cambia el tamaño del visor o el zoom (para recalcular el proxy). */
+    public void setOnViewportChanged(Runnable handler) { this.onViewportChanged = handler; }
+
+    private void fireViewportChanged() {
+        if (onViewportChanged != null) onViewportChanged.run();
+    }
+
+    /** Ancho del visor en píxeles lógicos (0 antes de la primera maquetación). */
+    public int viewportWidth() {
+        Bounds b = rightScrollPane.getViewportBounds();
+        return b == null ? 0 : (int) Math.ceil(b.getWidth());
+    }
+
+    /** Alto del visor en píxeles lógicos. */
+    public int viewportHeight() {
+        Bounds b = rightScrollPane.getViewportBounds();
+        return b == null ? 0 : (int) Math.ceil(b.getHeight());
+    }
+
+    /** Escala DPI de la ventana. */
+    public double outputScale() {
+        var scene = editorHBox.getScene();
+        return scene == null || scene.getWindow() == null ? 1.0 : scene.getWindow().getOutputScaleX();
+    }
+
+    /** Zoom efectivo: el mayor de los paneles visibles. */
+    public double effectiveZoom() {
+        return compareModeOn ? Math.max(leftZoomLevel, rightZoomLevel) : rightZoomLevel;
+    }
+
+    /** Pool del panel de resultado (el worker escribe en estas imágenes). */
+    public FramePool<WritableImage> processedPool() { return processedPool; }
+
+    /** Pool del panel original. */
+    public FramePool<WritableImage> originalPool() { return originalPool; }
 
     /**
      * Registra el callback invocado cuando el usuario suelta un archivo de
@@ -181,15 +261,19 @@ public class EditorPreviewPane {
      */
     public void setOnImageDropped(Consumer<File> handler) { this.onImageDropped = handler; }
 
-    /** Actualiza la imagen del panel de resultado. */
-    public void showProcessed(BufferedImage image) {
-        processedView.setImage(image == null ? null : SwingFXUtils.toFXImage(image, null));
-        emptyState.setVisible(image == null);
+    /** Actualiza el panel de resultado ({@code null} si no hay imagen). */
+    public void showProcessed(EditSession.Frame<WritableImage> frame) {
+        processedFrame = frame;
+        processedView.setImage(frame == null ? null : frame.image());
+        if (frame != null) processedPool.displayed(frame.image());
+        emptyState.setVisible(frame == null);
     }
 
-    /** Actualiza la imagen del panel original (solo relevante en modo comparar). */
-    public void showOriginal(BufferedImage image) {
-        originalView.setImage(image == null ? null : SwingFXUtils.toFXImage(image, null));
+    /** Actualiza el panel original (solo relevante en modo comparar). */
+    public void showOriginal(EditSession.Frame<WritableImage> frame) {
+        originalFrame = frame;
+        originalView.setImage(frame == null ? null : frame.image());
+        if (frame != null) originalPool.displayed(frame.image());
     }
 
     /**
@@ -287,12 +371,14 @@ public class EditorPreviewPane {
         leftZoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, level));
         applyZoomToPane(leftScrollPane, leftContent, originalView, leftZoomLevel);
         if (leftPaneActive) updateZoomIndicator();
+        fireViewportChanged();
     }
 
     private void setRightZoom(double level) {
         rightZoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, level));
         applyZoomToPane(rightScrollPane, rightContent, processedView, rightZoomLevel);
         if (!leftPaneActive) updateZoomIndicator();
+        fireViewportChanged();
     }
 
     /** Refresca ambos paneles (p.ej. al redimensionar la ventana). */

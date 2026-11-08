@@ -1,9 +1,8 @@
 package io.github.erenriquezp.rora.app.ui;
 
-import io.github.erenriquezp.rora.service.ImageIOService;
-import io.github.erenriquezp.rora.service.ImageProcessor;
+import io.github.erenriquezp.rora.app.session.CurrentImage;
+import io.github.erenriquezp.rora.app.session.PaneWork;
 import javafx.beans.binding.Bindings;
-import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -48,7 +47,7 @@ import java.util.function.Supplier;
  */
 public class TripleBlendingPane {
 
-    private final Supplier<BufferedImage> imageSource;
+    private final CurrentImage            imageSource;
     private final Supplier<File>          backgroundChooser1;
     private final Supplier<File>          backgroundChooser2;
     private final Consumer<BufferedImage> onUseInEditor;
@@ -68,8 +67,11 @@ public class TripleBlendingPane {
     private BufferedImage backgroundImage1;
     private BufferedImage backgroundImage2;
     private BufferedImage blendedImage;
+    private final PaneImageWorker worker = new PaneImageWorker("triple", blendView);
+    /** Solo la última petición de la imagen del editor sigue adelante. */
+    private long previewGeneration;
 
-    public TripleBlendingPane(Supplier<BufferedImage> imageSource,
+    public TripleBlendingPane(CurrentImage            imageSource,
                               Supplier<File>          backgroundChooser1,
                               Supplier<File>          backgroundChooser2,
                               Consumer<BufferedImage> onUseInEditor,
@@ -120,6 +122,9 @@ public class TripleBlendingPane {
     // ── Public API ────────────────────────────────────────────────────────────
 
     public VBox getView() { return view; }
+
+    /** Detiene el trabajo en segundo plano (al cerrar la aplicación). */
+    public void close() { worker.close(); }
 
     // ── Controls builder ──────────────────────────────────────────────────────
 
@@ -221,65 +226,93 @@ public class TripleBlendingPane {
      * </table>
      */
     private void updatePreview() {
-        BufferedImage fg  = imageSource.get();
-        boolean hasFg  = fg  != null;
+        updatePreview(null);
+    }
+
+    /** @param afterShown se ejecuta cuando el triple blending ya se muestra (o {@code null}) */
+    private void updatePreview(Runnable afterShown) {
+        boolean hasFg  = imageSource.isAvailable();
         boolean hasBg1 = backgroundImage1 != null;
         boolean hasBg2 = backgroundImage2 != null;
+        long generation = ++previewGeneration;
+        BufferedImage bg1 = backgroundImage1;
+        BufferedImage bg2 = backgroundImage2;
+        float a1 = (float) alpha1Slider.getValue();
+        float a2 = (float) alpha2Slider.getValue();
+        float a3 = (float) alpha3Slider.getValue();
 
         if (hasFg && hasBg1 && hasBg2) {
             // ── All three → full triple blend ─────────────────────────────────
-            blendedImage = ImageProcessor.tripleBlend(
-                    fg, backgroundImage1, backgroundImage2,
-                    (float) alpha1Slider.getValue(),
-                    (float) alpha2Slider.getValue(),
-                    (float) alpha3Slider.getValue());
-            show(blendedImage, null);
+            withForeground(generation, fg -> show(
+                    () -> PaneWork.tripleBlend(fg, bg1, bg2, a1, a2, a3), null, true, afterShown));
 
         } else if (hasFg && hasBg1) {
             // ── fg + bg1 → partial 2-image blend, ask for bg2 ─────────────────
             blendedImage = null;
             float a = (float)(alpha1Slider.getValue()
                     / Math.max(0.001, alpha1Slider.getValue() + alpha2Slider.getValue()));
-            show(ImageProcessor.blend(fg, backgroundImage1, 1f - a),
-                 "Carga la segunda imagen de fondo para completar el triple blending.");
+            withForeground(generation, fg -> show(() -> PaneWork.blend(fg, bg1, 1f - a),
+                 "Carga la segunda imagen de fondo para completar el triple blending.", false, null));
 
         } else if (hasFg && hasBg2) {
             // ── fg + bg2 → partial 2-image blend, ask for bg1 ─────────────────
             blendedImage = null;
             float a = (float)(alpha1Slider.getValue()
                     / Math.max(0.001, alpha1Slider.getValue() + alpha3Slider.getValue()));
-            show(ImageProcessor.blend(fg, backgroundImage2, 1f - a),
-                 "Carga la primera imagen de fondo para completar el triple blending.");
+            withForeground(generation, fg -> show(() -> PaneWork.blend(fg, bg2, 1f - a),
+                 "Carga la primera imagen de fondo para completar el triple blending.", false, null));
 
         } else if (hasBg1 && hasBg2) {
             // ── bg1 + bg2, no fg → show bg1, ask for editor image ─────────────
             blendedImage = null;
-            show(backgroundImage1,
-                 "Carga una imagen en el editor para completar el triple blending.");
+            show(() -> bg1,
+                 "Carga una imagen en el editor para completar el triple blending.", false, null);
 
         } else if (hasBg1) {
             blendedImage = null;
-            show(backgroundImage1,
-                 "Carga la segunda imagen de fondo y una imagen del editor para continuar.");
+            show(() -> bg1,
+                 "Carga la segunda imagen de fondo y una imagen del editor para continuar.", false, null);
 
         } else if (hasBg2) {
             blendedImage = null;
-            show(backgroundImage2,
-                 "Carga la primera imagen de fondo y una imagen del editor para continuar.");
+            show(() -> bg2,
+                 "Carga la primera imagen de fondo y una imagen del editor para continuar.", false, null);
 
         } else if (hasFg) {
             blendedImage = null;
-            show(null, "Carga dos imágenes de fondo para ver la previsualización.");
+            clear("Carga dos imágenes de fondo para ver la previsualización.");
 
         } else {
             blendedImage = null;
-            show(null, "Carga una imagen en el editor y dos imágenes de fondo para comenzar.");
+            clear("Carga una imagen en el editor y dos imágenes de fondo para comenzar.");
         }
     }
 
-    /** Updates {@code blendView} and the overlay in one call. */
-    private void show(BufferedImage image, String overlayMessage) {
-        blendView.setImage(image == null ? null : SwingFXUtils.toFXImage(image, null));
+    private void withForeground(long generation, Consumer<BufferedImage> then) {
+        imageSource.fetch(
+                fg -> { if (generation == previewGeneration) then.accept(fg); },
+                failure -> onStatus.accept("Error en el triple blending: " + failure.message()));
+    }
+
+    /** Calcula en segundo plano, muestra el resultado y actualiza el overlay. */
+    private void show(Supplier<BufferedImage> job, String overlayMessage,
+                      boolean isFinalResult, Runnable afterShown) {
+        worker.submit(job,
+                shown -> {
+                    if (isFinalResult) blendedImage = shown.exact();
+                    worker.show(shown);
+                    setOverlay(overlayMessage);
+                    if (afterShown != null) afterShown.run();
+                },
+                error -> onStatus.accept("Error en el triple blending: " + error.getMessage()));
+    }
+
+    private void clear(String overlayMessage) {
+        worker.clear();
+        setOverlay(overlayMessage);
+    }
+
+    private void setOverlay(String overlayMessage) {
         if (overlayMessage == null) {
             overlayLabel.setVisible(false);
             overlayLabel.setManaged(false);
@@ -296,26 +329,25 @@ public class TripleBlendingPane {
         Supplier<File> chooser = slot == 1 ? backgroundChooser1 : backgroundChooser2;
         File file = chooser.get();
         if (file == null) return;
-        try {
-            BufferedImage loaded = ImageIOService.read(file);
-            if (slot == 1) {
-                backgroundImage1 = loaded;
-                bg1NameLabel.setText(file.getName());
-            } else {
-                backgroundImage2 = loaded;
-                bg2NameLabel.setText(file.getName());
-            }
-            onStatus.accept("Fondo " + slot + " cargado: " + file.getName());
-            updatePreview();
-        } catch (Exception ex) {
-            onStatus.accept("Error al cargar fondo " + slot + ": " + ex.getMessage());
-        }
+        worker.read(
+                file,
+                loaded -> {
+                    if (slot == 1) {
+                        backgroundImage1 = loaded;
+                        bg1NameLabel.setText(file.getName());
+                    } else {
+                        backgroundImage2 = loaded;
+                        bg2NameLabel.setText(file.getName());
+                    }
+                    onStatus.accept("Fondo " + slot + " cargado: " + file.getName());
+                    updatePreview();
+                },
+                ex -> onStatus.accept("Error al cargar fondo " + slot + ": " + ex.getMessage()));
     }
 
     /** Explicit blend triggered by the "Aplicar triple blending" button. */
     private void applyBlend() {
-        BufferedImage fg = imageSource.get();
-        if (fg == null) {
+        if (!imageSource.isAvailable()) {
             onStatus.accept("Carga una imagen en el editor antes de aplicar el triple blending.");
             return;
         }
@@ -327,10 +359,11 @@ public class TripleBlendingPane {
             onStatus.accept("Carga la segunda imagen de fondo antes de aplicar el triple blending.");
             return;
         }
-        updatePreview();
-        onStatus.accept(String.format(
-                "Triple blending aplicado (α₁=%.2f  α₂=%.2f  α₃=%.2f).",
-                alpha1Slider.getValue(), alpha2Slider.getValue(), alpha3Slider.getValue()));
+        double a1 = alpha1Slider.getValue();
+        double a2 = alpha2Slider.getValue();
+        double a3 = alpha3Slider.getValue();
+        updatePreview(() -> onStatus.accept(String.format(
+                "Triple blending aplicado (α₁=%.2f  α₂=%.2f  α₃=%.2f).", a1, a2, a3)));
     }
 
     private void useInEditor() {

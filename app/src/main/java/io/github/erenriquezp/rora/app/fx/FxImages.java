@@ -2,6 +2,8 @@ package io.github.erenriquezp.rora.app.fx;
 
 import io.github.erenriquezp.rora.app.session.FramePool;
 import io.github.erenriquezp.rora.core.image.Img;
+import javafx.application.Platform;
+import javafx.scene.Node;
 import javafx.scene.image.PixelFormat;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
@@ -43,6 +45,33 @@ public final class FxImages {
   public static FramePool<WritableImage> newPool() {
     return new FramePool<>(
         WritableImage::new, img -> (int) img.getWidth(), img -> (int) img.getHeight());
+  }
+
+  /**
+   * Avisa a {@code pool} de cada pulso de la escena de {@code node} y pide otro pulso mientras haya
+   * imágenes retiradas (si la escena está quieta no habría pulsos y no se liberarían).
+   */
+  public static void bindPulses(Node node, FramePool<?> pool) {
+    Runnable onPulse =
+        () -> {
+          pool.pulse();
+          if (pool.hasRetired()) {
+            Platform.requestNextPulse();
+          }
+        };
+    if (node.getScene() != null) {
+      node.getScene().addPostLayoutPulseListener(onPulse);
+    }
+    node.sceneProperty()
+        .addListener(
+            (obs, old, scene) -> {
+              if (old != null) {
+                old.removePostLayoutPulseListener(onPulse);
+              }
+              if (scene != null) {
+                scene.addPostLayoutPulseListener(onPulse);
+              }
+            });
   }
 
   /** Imagen del pool con el contenido de {@code img} (en el hilo que llama: el worker). */
