@@ -21,8 +21,12 @@ class RecipeEquivalenceTest {
   private static final OpRegistry REGISTRY = OpRegistry.load();
   private static final TileExecutor SEVEN = TileExecutor.create(7);
 
-  /** Operaciones que pueden ir en una receta (las de análisis no cambian la imagen, pero valen). */
-  private static final List<Operation> OPS = REGISTRY.all();
+  /**
+   * Operaciones de edición (las de análisis no son pasos de receta: su resultado auxiliar no se
+   * cachea a propósito, ver {@code RendererTest#analysisStepIsRecomputedSoItsAuxIsNeverLost}).
+   */
+  private static final List<Operation> OPS =
+      REGISTRY.all().stream().filter(op -> !op.id().startsWith("analysis.")).toList();
 
   @AfterAll
   static void close() {

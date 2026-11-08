@@ -229,6 +229,24 @@ class RendererTest {
   }
 
   @Test
+  void analysisStepIsRecomputedSoItsAuxIsNeverLost() {
+    ResultCache cache = new ResultCache(64L << 20);
+    Renderer r = new Renderer(CORE, cache, true);
+    Renderer.Request req =
+        new Renderer.Request(
+            SOURCE,
+            List.of(spec(CORE, "raster.pixelate", "block", 4), spec(CORE, "analysis.exposure")),
+            1,
+            RenderLevel.FULL);
+    Renderer.Result first = r.render(req, OpContext.sequential());
+    Renderer.Result second = r.render(req, OpContext.sequential());
+    assertThat(first.aux()).isInstanceOf(ExposureStats.class);
+    assertThat(second.aux()).isEqualTo(first.aux());
+    assertThat(second.stepsComputed()).as("solo el análisis").isEqualTo(1);
+    assertThat(cache.contains(r.keyOf(req))).isFalse();
+  }
+
+  @Test
   void paramsBuiltWithAnEqualSchemaInstanceAreRebound() {
     Operation neg = CORE.require("point.saturation");
     ParamSchema copy = ParamSchema.of(neg.schema().params().toArray(new ParamDef[0]));

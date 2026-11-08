@@ -23,7 +23,7 @@ import java.util.Optional;
  *       está activada; nunca a través del final de la cabeza confirmada.
  *   <li>Cachea solo puntos de control: tras cada paso no puntual, al final de la cabeza y el
  *       resultado final; siempre después de que el paso termine (un render cancelado no deja
- *       entradas parciales).
+ *       entradas parciales). Un paso con datos auxiliares (análisis) no se cachea.
  * </ol>
  */
 public final class Renderer {
@@ -161,7 +161,9 @@ public final class Renderer {
       }
       ctx.token().throwIfCancelled();
       boolean checkpoint = end == n || end == head || !isPoint(ops[end - 1], exec.get(end - 1));
-      if (checkpoint) {
+      // Un paso con datos auxiliares (análisis) no se cachea: un acierto perdería el aux, y
+      // recalcularlo sobre su entrada (que sí está en caché) es barato.
+      if (checkpoint && aux == null) {
         cache.put(keys[end], cur);
       }
       i = end;
