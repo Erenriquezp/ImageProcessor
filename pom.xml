@@ -28,7 +28,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
-        <javafx.version>21.0.6</javafx.version>
+        <javafx.version>25.0.5</javafx.version>
         <ikonli.version>12.4.0</ikonli.version>
         <junit.version>5.12.1</junit.version>
         <!-- Versiones de plugins de calidad (todos de codigo abierto) -->

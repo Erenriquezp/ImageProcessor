@@ -70,12 +70,30 @@
     </dependencies>
 
     <properties>
+        <!-- JavaFX 25 exige JDK 23 o superior; core-imaging sigue en 21 -->
+        <maven.compiler.release>25</maven.compiler.release>
         <skip.memory>false</skip.memory>
         <archunit.version>1.4.1</archunit.version>
     </properties>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-versions</id>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[25,)</version>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Cobertura agregada (app + modulos de los que depende): target/site/jacoco-aggregate -->
             <plugin>
                 <groupId>org.jacoco</groupId>
