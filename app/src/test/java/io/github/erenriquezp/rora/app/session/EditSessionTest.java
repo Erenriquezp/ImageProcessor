@@ -243,18 +243,103 @@ class EditSessionTest {
     session.load(SessionSource.of(bi));
     drain();
     List<Integer> got = new ArrayList<>();
-    assertThat(session.exactPixel(5, 7, got::add, failures::add)).as("sin pasos").isEmpty();
-    assertThat(got).containsExactly(bi.getRGB(5, 7));
+    session.exactPixel(5, 7, got::add, failures::add);
+    assertThat(got).as("sin pasos: de la fuente").containsExactly(bi.getRGB(5, 7));
     FilterParams p = params();
     session.apply(spec(FilterType.NEGATIVE, p));
     drain();
-    assertThat(session.exactPixel(5, 7, got::add, failures::add)).as("lanza FULL").isPresent();
+    session.exactPixel(5, 7, got::add, failures::add);
+    assertThat(got).as("aun no hay FULL").hasSize(1);
     drain();
     int expected =
         PipelineSupport.reference(bi, List.of(new Step(FilterType.NEGATIVE, p))).getRGB(5, 7);
     assertThat(got).containsExactly(bi.getRGB(5, 7), expected);
-    assertThat(session.exactPixel(6, 7, got::add, failures::add)).as("ya en caché").isEmpty();
-    assertThat(got).hasSize(3);
+    session.exactPixel(6, 7, got::add, failures::add);
+    assertThat(got).as("ya en cache").hasSize(3);
+  }
+
+  @Test
+  void aChangeOfStateAbandonsThePendingExactPixel() {
+    session.setViewport(800, 600, 1, 1);
+    session.load(SessionSource.of(SessionFixtures.image("INT_ARGB", 3000, 2000, 6)));
+    FilterParams p = params();
+    session.apply(spec(FilterType.NEGATIVE, p));
+    drain();
+    List<Integer> got = new ArrayList<>();
+    session.exactPixel(1, 1, got::add, failures::add);
+    session.setPending(Optional.of(spec(FilterType.BRIGHTNESS, p)));
+    drain();
+    assertThat(got).isEmpty();
+  }
+
+  @Test
+  void currentImageIsComputedOncePerStateAndKeepsTheChainType() {
+    BufferedImage bi = SessionFixtures.image("3BYTE_BGR", 300, 200, 11);
+    session.load(SessionSource.of(bi));
+    drain();
+    FilterParams p = params();
+    session.apply(spec(FilterType.CONVOLUTION, withKernel(p, ConvolutionKernel.BLUR)));
+    drain();
+    List<BufferedImage> got = new ArrayList<>();
+    session.withCurrentImage(got::add, failures::add);
+    session.withCurrentImage(got::add, failures::add); // espera al mismo render
+    drain();
+    assertThat(got).hasSize(2);
+    assertThat(got.get(0)).isSameAs(got.get(1));
+    assertThat(got.get(0).getType()).isEqualTo(BufferedImage.TYPE_3BYTE_BGR);
+    session.withCurrentImage(got::add, failures::add);
+    assertThat(got).as("ya calculada: inmediato").hasSize(3);
+  }
+
+  @Test
+  void waitersForTheCurrentImageAreServedForTheNewStateAfterAChange() {
+    BufferedImage bi = SessionFixtures.image("INT_ARGB", 300, 200, 12);
+    session.load(SessionSource.of(bi));
+    drain();
+    FilterParams p = params();
+    List<BufferedImage> got = new ArrayList<>();
+    session.withCurrentImage(got::add, failures::add);
+    session.setPending(Optional.of(spec(FilterType.NEGATIVE, p)));
+    drain();
+    BufferedImage expected =
+        PipelineSupport.reference(bi, List.of(new Step(FilterType.NEGATIVE, p)));
+    assertThat(got).hasSize(1);
+    assertThat(SessionFixtures.sameRgb(expected, got.get(0))).isTrue();
+  }
+
+  @Test
+  void purposesDoNotSupersedeEachOther() {
+    BufferedImage bi = SessionFixtures.image("INT_RGB", 300, 200, 13);
+    session.load(SessionSource.of(bi));
+    FilterParams p = params();
+    OpSpec noMarks = spec(FilterType.HISTOGRAM_EQUALIZE, p);
+    session.setPending(Optional.of(spec(FilterType.HISTOGRAM_EQUALIZE, withMarks(p))));
+    drain();
+    AtomicReference<ExposureDiagnostic> diag = new AtomicReference<>();
+    List<BufferedImage> img = new ArrayList<>();
+    session.exposureDiagnostic(noMarks, diag::set, failures::add);
+    session.withCurrentImage(img::add, failures::add);
+    drain();
+    assertThat(diag.get()).as("el diagnostico no se pierde").isNotNull();
+    assertThat(img).hasSize(1);
+    assertThat(failures).isEmpty();
+  }
+
+  @Test
+  void originalFrameUsesTheProxyForDisplayAndTheSourceForReadout() {
+    BufferedImage bi = SessionFixtures.image("INT_RGB", 3000, 2000, 14);
+    session.setViewport(800, 600, 1, 1);
+    session.load(SessionSource.of(bi));
+    drain();
+    AtomicReference<EditSession.Frame<Img>> f = new AtomicReference<>();
+    session.original(false, img -> img, f::set, failures::add);
+    drain();
+    assertThat(f.get().image().width()).isEqualTo(1024);
+    assertThat(f.get().pixels().width()).as("cuentagotas exacto").isEqualTo(3000);
+    assertThat(f.get().approximate()).isFalse();
+    session.original(true, img -> img, f::set, failures::add);
+    drain();
+    assertThat(f.get().image().width()).isEqualTo(3000);
   }
 
   @Test

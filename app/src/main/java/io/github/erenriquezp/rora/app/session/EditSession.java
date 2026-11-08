@@ -10,6 +10,8 @@ import io.github.erenriquezp.rora.core.op.RecipeHistory;
 import io.github.erenriquezp.rora.core.op.RenderLevel;
 import io.github.erenriquezp.rora.core.op.Renderer;
 import io.github.erenriquezp.rora.core.op.ResultCache;
+import io.github.erenriquezp.rora.domain.ExposureDiagnostic;
+import io.github.erenriquezp.rora.service.Analysis;
 import io.github.erenriquezp.rora.service.LegacySteps;
 import io.github.erenriquezp.rora.service.SourceFormat;
 import java.awt.image.BufferedImage;
@@ -59,6 +61,13 @@ public final class EditSession<F> implements AutoCloseable {
     default void progress(double fraction) {}
   }
 
+  /** Propósitos del carril FULL: uno no sustituye a otro; prioridad al cuentagotas. */
+  private static final RenderLane.Slot SLOT_PIXEL = new RenderLane.Slot("pixel", 3);
+
+  private static final RenderLane.Slot SLOT_ZOOM = new RenderLane.Slot("zoom", 2);
+  private static final RenderLane.Slot SLOT_CURRENT = new RenderLane.Slot("current", 1);
+  private static final RenderLane.Slot SLOT_DIAGNOSTIC = new RenderLane.Slot("diagnostic", 1);
+
   private final OpRegistry registry;
   private final Renderer renderer;
   private final RenderCoordinator coordinator;
@@ -81,6 +90,11 @@ public final class EditSession<F> implements AutoCloseable {
   private double zoom = 1.0;
   private long version;
   private RenderLane.Ticket zoomTicket;
+  private long stateVersion;
+  private BufferedImage currentImage;
+  private RenderLane.Ticket currentTicket;
+  private RenderLane.Ticket pixelTicket;
+  private final List<Waiter> currentWaiters = new ArrayList<>();
 
   /**
    * @param coordinatorFactory crea el coordinador a partir del renderer (real en la app, manual en
@@ -153,6 +167,7 @@ public final class EditSession<F> implements AutoCloseable {
     pending = null;
     proxy = Optional.empty();
     decideProxy();
+    stateChanged();
     fireHistory();
     requestPreview();
   }
@@ -182,6 +197,7 @@ public final class EditSession<F> implements AutoCloseable {
       return;
     }
     pending = next;
+    stateChanged();
     requestPreview();
   }
 
@@ -193,6 +209,7 @@ public final class EditSession<F> implements AutoCloseable {
     Objects.requireNonNull(committed, "committed");
     history.record(history.current().add(committed), null);
     pending = null;
+    stateChanged();
     fireHistory();
     requestPreview();
     return history.undoDepth();
@@ -204,6 +221,7 @@ public final class EditSession<F> implements AutoCloseable {
     }
     history.undo();
     pending = null;
+    stateChanged();
     fireHistory();
     requestPreview();
     return true;
@@ -215,6 +233,7 @@ public final class EditSession<F> implements AutoCloseable {
     }
     history.redo();
     pending = null;
+    stateChanged();
     fireHistory();
     requestPreview();
     return true;
@@ -224,6 +243,7 @@ public final class EditSession<F> implements AutoCloseable {
   public void reset() {
     history.reset(EditRecipe.EMPTY);
     pending = null;
+    stateChanged();
     fireHistory();
     requestPreview();
   }
@@ -353,7 +373,8 @@ public final class EditSession<F> implements AutoCloseable {
         zoomTicket =
             coordinator.full(
                 request(pending, List.of(), RenderLevel.FULL),
-                new FrameListener(v, false, s, false));
+                new FrameListener(v, false, s, false),
+                SLOT_ZOOM);
       }
     }
 
@@ -375,8 +396,8 @@ public final class EditSession<F> implements AutoCloseable {
   }
 
   /**
-   * Render FULL interactivo (último gana en el carril FULL) de la receta confirmada + {@code
-   * pendingStep} + {@code tail}; {@code inWorker} se ejecuta en el worker con el resultado.
+   * Render FULL interactivo de la receta confirmada + {@code pendingStep} + {@code tail}; {@code
+   * inWorker} se ejecuta en el worker con el resultado.
    */
   public <T> RenderLane.Ticket full(
       OpSpec pendingStep,
@@ -387,6 +408,101 @@ public final class EditSession<F> implements AutoCloseable {
     return coordinator.full(
         request(pendingStep, tail, RenderLevel.FULL),
         new WorkListener<>(inWorker, onDone, onFailed));
+  }
+
+  /**
+   * Imagen original para el panel izquierdo del modo comparar, en el carril auxiliar: el proxy si
+   * lo hay (salvo {@code fullResolution}) y, para el cuentagotas, los píxeles de la fuente.
+   */
+  public RenderLane.Ticket original(
+      boolean fullResolution,
+      Function<Img, F> convert,
+      Consumer<Frame<F>> onFrame,
+      Consumer<RenderFailure> onFailed) {
+    SessionSource s = Objects.requireNonNull(current, "Sin imagen");
+    RenderLevel level =
+        fullResolution || proxy.isEmpty()
+            ? RenderLevel.FULL
+            : new RenderLevel.Preview(proxy.get().width(), proxy.get().height());
+    return coordinator.aux(
+        new Renderer.Request(s.asRenderSource(), List.of(), 0, level),
+        new WorkListener<>(
+            r -> new Frame<>(convert.apply(r.image()), s.image(), false, s.width(), s.height()),
+            onFrame,
+            onFailed));
+  }
+
+  /**
+   * La imagen actual a resolución completa (receta + pendiente, con sus marcas), del mismo tipo que
+   * {@code processedImage} en la app: entrada del blending y del histograma. Se calcula una vez por
+   * estado; si el estado cambia con peticiones en espera, se relanza para el estado nuevo.
+   */
+  public void withCurrentImage(Consumer<BufferedImage> onImage, Consumer<RenderFailure> onFailed) {
+    if (currentImage != null) {
+      onImage.accept(currentImage);
+      return;
+    }
+    currentWaiters.add(new Waiter(onImage, onFailed));
+    if (currentTicket == null) {
+      requestCurrentImage();
+    }
+  }
+
+  private record Waiter(Consumer<BufferedImage> onImage, Consumer<RenderFailure> onFailed) {}
+
+  private void requestCurrentImage() {
+    SourceFormats.Effective eff = effective(pending, List.of());
+    SessionSource s = current;
+    SourceFormat.NativeSource ns = s.nativeSource();
+    Renderer.Request req =
+        new Renderer.Request(
+            s.asRenderSource(),
+            eff.steps(),
+            history.current().activeSteps().size(),
+            RenderLevel.FULL);
+    long state = stateVersion;
+    currentTicket =
+        coordinator.full(
+            req,
+            new WorkListener<BufferedImage>(
+                r -> SourceFormat.materialize(r.image(), eff.finalFormat(), ns),
+                img -> {
+                  if (state != stateVersion) {
+                    return;
+                  }
+                  currentTicket = null;
+                  currentImage = img;
+                  List<Waiter> ws = List.copyOf(currentWaiters);
+                  currentWaiters.clear();
+                  ws.forEach(w -> w.onImage().accept(img));
+                },
+                f -> {
+                  if (state != stateVersion) {
+                    return;
+                  }
+                  currentTicket = null;
+                  List<Waiter> ws = List.copyOf(currentWaiters);
+                  currentWaiters.clear();
+                  ws.forEach(w -> w.onFailed().accept(f));
+                }),
+            SLOT_CURRENT);
+  }
+
+  /** Lo que depende de la receta efectiva deja de valer: se llama tras cada cambio de estado. */
+  private void stateChanged() {
+    stateVersion++;
+    currentImage = null;
+    if (currentTicket != null) {
+      currentTicket.cancel();
+      currentTicket = null;
+    }
+    if (pixelTicket != null) {
+      pixelTicket.cancel();
+      pixelTicket = null;
+    }
+    if (!currentWaiters.isEmpty() && current != null) {
+      requestCurrentImage();
+    }
   }
 
   /**
@@ -419,25 +535,49 @@ public final class EditSession<F> implements AutoCloseable {
       Consumer<ExposureStats> onStats,
       Consumer<RenderFailure> onFailed) {
     OpSpec analysis = OpSpec.defaults(registry.require("analysis.exposure"));
-    return full(
-        pendingWithoutMarks, List.of(analysis), r -> (ExposureStats) r.aux(), onStats, onFailed);
+    return coordinator.full(
+        request(pendingWithoutMarks, List.of(analysis), RenderLevel.FULL),
+        new WorkListener<ExposureStats>(r -> (ExposureStats) r.aux(), onStats, onFailed),
+        SLOT_DIAGNOSTIC);
   }
 
-  /** Color exacto del píxel {@code (x, y)} de la imagen completa (de la caché o con un FULL). */
-  public Optional<RenderLane.Ticket> exactPixel(
-      int x, int y, IntConsumer onArgb, Consumer<RenderFailure> onFailed) {
+  /** Como {@link #exposure}, ya formateado con el mismo texto que la fachada. */
+  public RenderLane.Ticket exposureDiagnostic(
+      OpSpec pendingWithoutMarks,
+      Consumer<ExposureDiagnostic> onDiagnostic,
+      Consumer<RenderFailure> onFailed) {
+    return exposure(
+        pendingWithoutMarks, stats -> onDiagnostic.accept(Analysis.describe(stats)), onFailed);
+  }
+
+  /**
+   * Color exacto del píxel {@code (x, y)} de la imagen completa: de la caché si está; si no, con un
+   * FULL prioritario. Un cambio de estado abandona la petición en curso.
+   */
+  public void exactPixel(int x, int y, IntConsumer onArgb, Consumer<RenderFailure> onFailed) {
     Renderer.Request req = request(pending, List.of(), RenderLevel.FULL);
-    Optional<Img> cached = renderer.cache().get(renderer.keyOf(req));
-    if (req.steps().isEmpty()) {
-      cached = Optional.of(current.image());
-    }
+    Optional<Img> cached =
+        req.steps().isEmpty()
+            ? Optional.of(current.image())
+            : renderer.cache().get(renderer.keyOf(req));
     if (cached.isPresent()) {
       onArgb.accept(cached.get().argb(x, y));
-      return Optional.empty();
+      return;
     }
-    return Optional.of(
+    if (pixelTicket != null) {
+      pixelTicket.cancel();
+    }
+    pixelTicket =
         coordinator.full(
-            req, new WorkListener<>(r -> r.image().argb(x, y), onArgb::accept, onFailed)));
+            req,
+            new WorkListener<Integer>(
+                r -> r.image().argb(x, y),
+                v -> {
+                  pixelTicket = null;
+                  onArgb.accept(v);
+                },
+                onFailed),
+            SLOT_PIXEL);
   }
 
   /** Oyente genérico: trabajo en el worker, resultado en el publicador. */

@@ -320,6 +320,60 @@ class RenderLaneTest {
   }
 
   @Test
+  void differentSlotsDoNotSupersedeEachOtherAndRunByPriority() {
+    RenderLane.Slot low = new RenderLane.Slot("low", 1);
+    RenderLane.Slot high = new RenderLane.Slot("high", 5);
+    Recorder a = new Recorder();
+    Recorder b = new Recorder();
+    Recorder c = new Recorder();
+    lane.submit(bright(1), a, low); // arranca
+    lane.submit(bright(2), b, low); // sustituye a 1 en su ranura
+    lane.submit(bright(3), c, high);
+    worker.runAll(); // 1, descartada
+    time.advance(ms(30));
+    worker.runAll(); // 3 por prioridad
+    time.advance(ms(30));
+    worker.runAll(); // 2
+    publisher.runAll();
+    assertThat(a.done).isEmpty();
+    assertThat(b.done).extracting(this::brightnessOf).containsExactly(2);
+    assertThat(c.done).extracting(this::brightnessOf).containsExactly(3);
+    assertThat(lane.isIdle()).isTrue();
+  }
+
+  @Test
+  void supersedingOneSlotKeepsListenersOfOtherSlotsOnTheSameRender() {
+    RenderLane.Slot s1 = new RenderLane.Slot("a", 1);
+    RenderLane.Slot s2 = new RenderLane.Slot("b", 1);
+    Recorder a = new Recorder();
+    Recorder b = new Recorder();
+    Recorder other = new Recorder();
+    lane.submit(bright(5), a, s1);
+    lane.submit(bright(5), b, s2); // se une
+    lane.submit(bright(6), other, s1); // sustituye solo a "a"
+    worker.runAll();
+    publisher.runAll();
+    assertThat(a.done).isEmpty();
+    assertThat(b.done).extracting(this::brightnessOf).containsExactly(5);
+    time.advance(ms(30));
+    worker.runAll();
+    publisher.runAll();
+    assertThat(other.done).extracting(this::brightnessOf).containsExactly(6);
+  }
+
+  @Test
+  void exportJoinedToAnInteractiveRenderSurvivesItsReplacement() {
+    Recorder inter = new Recorder();
+    Recorder exp = new Recorder();
+    lane.submit(bright(5), inter, false);
+    lane.submit(bright(5), exp, true); // se une al render en curso
+    lane.submit(bright(6), inter, false);
+    worker.runAll();
+    publisher.runAll();
+    assertThat(exp.done).extracting(this::brightnessOf).containsExactly(5);
+  }
+
+  @Test
   void rejectsNegativeDebounce() {
     assertThatThrownBy(
             () ->

@@ -26,12 +26,20 @@ public final class RenderCoordinator implements AutoCloseable {
 
   private final RenderLane preview;
   private final RenderLane full;
+  private final RenderLane aux;
   private final AutoCloseable resources;
 
   /** Para tests: carriles ya construidos (con ejecutores y tiempo manuales). */
   public RenderCoordinator(RenderLane preview, RenderLane full, AutoCloseable resources) {
+    this(preview, full, full, resources);
+  }
+
+  /** Para tests: con carril auxiliar propio (imagen original del modo comparar). */
+  public RenderCoordinator(
+      RenderLane preview, RenderLane full, RenderLane aux, AutoCloseable resources) {
     this.preview = Objects.requireNonNull(preview, "preview");
     this.full = Objects.requireNonNull(full, "full");
+    this.aux = Objects.requireNonNull(aux, "aux");
     this.resources = resources;
   }
 
@@ -43,6 +51,7 @@ public final class RenderCoordinator implements AutoCloseable {
     TileExecutor fullTiles = TileExecutor.create(Math.max(1, n / 2));
     ExecutorService previewWorker = singleThread("rora-preview", Thread.NORM_PRIORITY);
     ExecutorService fullWorker = singleThread("rora-full", Thread.NORM_PRIORITY - 1);
+    ExecutorService auxWorker = singleThread("rora-aux", Thread.NORM_PRIORITY);
     Scheduler scheduler = Scheduler.system();
     RenderLane p =
         new RenderLane(
@@ -54,16 +63,19 @@ public final class RenderCoordinator implements AutoCloseable {
             publisher,
             PREVIEW_DEBOUNCE_NANOS);
     RenderLane f = new RenderLane("full", renderer, fullTiles, fullWorker, scheduler, publisher, 0);
+    RenderLane x = new RenderLane("aux", renderer, previewTiles, auxWorker, scheduler, publisher, 0);
     AutoCloseable res =
         () -> {
           previewWorker.shutdownNow();
           fullWorker.shutdownNow();
+          auxWorker.shutdownNow();
           awaitQuietly(previewWorker);
           awaitQuietly(fullWorker);
+          awaitQuietly(auxWorker);
           previewTiles.close();
           fullTiles.close();
         };
-    return new RenderCoordinator(p, f, res);
+    return new RenderCoordinator(p, f, x, res);
   }
 
   static ExecutorService singleThread(String name, int priority) {
@@ -89,9 +101,20 @@ public final class RenderCoordinator implements AutoCloseable {
     return preview.submit(req, l, false);
   }
 
-  /** FULL interactivo (zoom, diagnóstico, blending, histograma, cuentagotas). */
+  /** FULL interactivo, último gana dentro de su propósito ({@code slot}). */
+  public RenderLane.Ticket full(
+      Renderer.Request req, RenderLane.Listener l, RenderLane.Slot slot) {
+    return full.submit(req, l, slot);
+  }
+
+  /** FULL interactivo en la ranura por defecto. */
   public RenderLane.Ticket full(Renderer.Request req, RenderLane.Listener l) {
-    return full.submit(req, l, false);
+    return full.submit(req, l, RenderLane.Slot.DEFAULT);
+  }
+
+  /** Render barato de la imagen original (modo comparar), sin competir con los otros carriles. */
+  public RenderLane.Ticket aux(Renderer.Request req, RenderLane.Listener l) {
+    return aux.submit(req, l, RenderLane.Slot.DEFAULT);
   }
 
   /** FULL de exportación: no lo sustituye ninguna petición interactiva. */
@@ -100,13 +123,14 @@ public final class RenderCoordinator implements AutoCloseable {
   }
 
   public boolean isIdle() {
-    return preview.isIdle() && full.isIdle();
+    return preview.isIdle() && full.isIdle() && aux.isIdle();
   }
 
   @Override
   public void close() {
     preview.close();
     full.close();
+    aux.close();
     if (resources != null) {
       try {
         resources.close();

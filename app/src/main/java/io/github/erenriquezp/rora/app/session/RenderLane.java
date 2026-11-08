@@ -8,9 +8,13 @@ import io.github.erenriquezp.rora.core.op.OpContext;
 import io.github.erenriquezp.rora.core.op.RenderKey;
 import io.github.erenriquezp.rora.core.op.Renderer;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -19,14 +23,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Carril de render en segundo plano (sin JavaFX). Ejecuta como máximo <b>un</b> trabajo a la vez.
  *
  * <ul>
- *   <li><b>Último gana</b> entre peticiones interactivas: una nueva sustituye a la pendiente y
- *       cancela la que está en curso, salvo que pidan la misma clave (entonces se unen).
- *   <li>Peticiones <b>protegidas</b> (exportación): no las sustituye nada; van antes que las
- *       interactivas; las de la misma clave se unen.
+ *   <li><b>Último gana por propósito</b> ({@link Slot}): una petición sustituye a la anterior de su
+ *       misma ranura y la cancela si estaba en curso. Ranuras distintas (zoom, diagnóstico,
+ *       cuentagotas…) no se sustituyen entre sí: esperan su turno, por prioridad. La cola está
+ *       acotada por el número de ranuras: nunca hay duplicados.
+ *   <li>Peticiones con la misma clave <b>se unen</b> al mismo render, sea cual sea su ranura; cada
+ *       oyente conserva su ranura, así que sustituir una no afecta a las demás.
+ *   <li>Peticiones <b>protegidas</b> (exportación): no las sustituye nada y van primero.
  *   <li><b>Debounce con arranque inmediato</b>: un trabajo no empieza antes de {@code debounce}
  *       desde el arranque anterior; si el carril está libre y ya pasó ese tiempo, empieza ya.
- *   <li><b>Nunca obsoleto</b>: un trabajo sustituido no se publica; se comprueba al empezar, al
- *       terminar (en el worker) y dentro de la tarea publicada.
+ *   <li><b>Nunca obsoleto</b>: un oyente sustituido no recibe nada; se comprueba antes de preparar
+ *       (en el worker) y dentro de la tarea publicada.
  *   <li><b>Errores</b>: se publican al oyente ({@link RenderFailure}) y se registran; un {@link
  *       OutOfMemoryError} vacía la caché. Las cancelaciones por sustitución no se publican.
  * </ul>
@@ -37,6 +44,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class RenderLane implements AutoCloseable {
 
   private static final System.Logger LOG = System.getLogger("rora.render");
+
+  /**
+   * Propósito de una petición interactiva.
+   *
+   * @param name identidad de la ranura
+   * @param priority las de mayor prioridad arrancan antes
+   */
+  public record Slot(String name, int priority) {
+    /** Ranura única de las peticiones sin propósito declarado. */
+    public static final Slot DEFAULT = new Slot("default", 0);
+  }
 
   /** Recibe el resultado en el hilo del publicador. */
   public interface Listener {
@@ -51,9 +69,7 @@ public final class RenderLane implements AutoCloseable {
       return null;
     }
 
-    /**
-     * Resultado y lo preparado en el worker; por defecto llama a {@link #onDone(Renderer.Result)}.
-     */
+    /** Resultado y lo preparado en el worker; por defecto llama a {@link #onDone(Renderer.Result)}. */
     default void onDone(Renderer.Result result, Object prepared) {
       onDone(result);
     }
@@ -81,21 +97,19 @@ public final class RenderLane implements AutoCloseable {
 
   // Estado protegido por "this".
   private Job running;
-  private Job pendingInteractive;
+  private final Map<Slot, Job> pendingBySlot = new LinkedHashMap<>();
   private final Deque<Job> pendingProtected = new ArrayDeque<>();
   private Scheduler.Cancellable timer;
   private long lastStart = Long.MIN_VALUE / 2;
   private boolean closed;
+  private long seqCounter;
 
   /**
-   * Secuencia de la última petición interactiva: una interactiva solo publica si sigue siéndolo
-   * (así un resultado ya terminado pero aún sin publicar no se muestra tras una petición más
-   * nueva). Es un número y no el trabajo, para no retener oyentes ni resultados de trabajos
-   * terminados.
+   * Secuencia de la última petición de cada ranura: un oyente solo recibe el resultado si sigue
+   * siendo la última de la suya (así un resultado ya terminado pero aún sin publicar no se muestra
+   * tras una petición más nueva). Números, no trabajos: no retiene oyentes ni resultados.
    */
-  private volatile long latestInteractiveSeq;
-
-  private long seqCounter;
+  private final Map<Slot, Long> latestSeq = new ConcurrentHashMap<>();
 
   public RenderLane(
       String name,
@@ -117,48 +131,52 @@ public final class RenderLane implements AutoCloseable {
     this.debounceNanos = debounceNanos;
   }
 
+  /** Un oyente con su ranura ({@code null} si es protegido) y su secuencia. */
+  private record Entry(Listener listener, Slot slot, long seq) {}
+
   private final class Job {
     final Renderer.Request request;
     final RenderKey key;
-    final boolean protectedJob;
-    final long seq;
+    final Slot slot;
     final CancellationToken token = CancellationToken.create();
-    final List<Listener> listeners = new CopyOnWriteArrayList<>();
+    final List<Entry> entries = new CopyOnWriteArrayList<>();
     volatile boolean superseded;
     final AtomicBoolean progressQueued = new AtomicBoolean();
     volatile long lastProgress = Long.MIN_VALUE / 2;
 
-    Job(Renderer.Request request, RenderKey key, boolean protectedJob, Listener l) {
+    Job(Renderer.Request request, RenderKey key, Slot slot) {
       this.request = request;
       this.key = key;
-      this.protectedJob = protectedJob;
-      this.seq = ++seqCounter;
-      listeners.add(l);
-    }
-
-    /** Quita {@code l}; si no queda ningún oyente, el trabajo se abandona. */
-    Ticket ticketFor(Listener l) {
-      return () -> {
-        synchronized (RenderLane.this) {
-          listeners.remove(l);
-          if (!listeners.isEmpty() || superseded) {
-            return;
-          }
-          supersede(this);
-          if (pendingInteractive == this) {
-            pendingInteractive = null;
-          }
-          pendingProtected.remove(this);
-        }
-      };
+      this.slot = slot;
     }
   }
 
-  /**
-   * Encola una petición; devuelve un ticket para abandonarla (solo para este oyente: otros que se
-   * hayan unido a la misma clave siguen recibiendo el resultado).
-   */
+  /** Quita un oyente; si no queda ninguno, el trabajo se abandona. */
+  private void removeEntry(Job job, Entry entry) {
+    job.entries.remove(entry);
+    if (job.entries.isEmpty() && !job.superseded) {
+      supersede(job);
+      if (job.slot != null && pendingBySlot.get(job.slot) == job) {
+        pendingBySlot.remove(job.slot);
+      }
+      pendingProtected.remove(job);
+    }
+  }
+
+  /** Petición interactiva en la ranura por defecto, o protegida. */
   public Ticket submit(Renderer.Request request, Listener listener, boolean protectedJob) {
+    return submitInternal(request, listener, protectedJob ? null : Slot.DEFAULT);
+  }
+
+  /**
+   * Petición interactiva en {@code slot}. Devuelve un ticket para abandonarla (solo para este
+   * oyente: otros unidos a la misma clave siguen recibiendo el resultado).
+   */
+  public Ticket submit(Renderer.Request request, Listener listener, Slot slot) {
+    return submitInternal(request, listener, Objects.requireNonNull(slot, "slot"));
+  }
+
+  private Ticket submitInternal(Renderer.Request request, Listener listener, Slot slot) {
     Objects.requireNonNull(request, "request");
     Objects.requireNonNull(listener, "listener");
     RenderKey key = renderer.keyOf(request);
@@ -166,26 +184,51 @@ public final class RenderLane implements AutoCloseable {
       if (closed) {
         throw new IllegalStateException("Carril " + name + " cerrado");
       }
-      Job join = findSameKey(key);
-      if (join != null) {
-        join.listeners.add(listener);
-        return join.ticketFor(listener);
+      if (slot != null) {
+        // Sustituye lo anterior de esta ranura (salvo que sea la misma clave: se une abajo).
+        dropSlot(running, slot, key);
+        dropSlot(pendingBySlot.get(slot), slot, key);
       }
-      Job job = new Job(request, key, protectedJob, listener);
-      if (protectedJob) {
-        pendingProtected.addLast(job);
-      } else {
-        if (pendingInteractive != null) {
-          supersede(pendingInteractive);
+      Job target = findSameKey(key);
+      long seq = ++seqCounter;
+      if (target == null) {
+        target = new Job(request, key, slot);
+        if (slot == null) {
+          pendingProtected.addLast(target);
+        } else {
+          pendingBySlot.put(slot, target);
         }
-        pendingInteractive = job;
-        latestInteractiveSeq = job.seq;
-        if (running != null && !running.protectedJob) {
-          supersede(running);
+      } else if (slot != null) {
+        // Misma clave y misma ranura: ambos oyentes son actuales, comparten secuencia.
+        for (Entry e : target.entries) {
+          if (slot.equals(e.slot())) {
+            seq = e.seq();
+          }
         }
       }
+      if (slot != null) {
+        latestSeq.put(slot, seq);
+      }
+      Entry entry = new Entry(listener, slot, seq);
+      target.entries.add(entry);
       scheduleStart();
-      return job.ticketFor(listener);
+      Job j = target;
+      return () -> {
+        synchronized (RenderLane.this) {
+          removeEntry(j, entry);
+        }
+      };
+    }
+  }
+
+  private void dropSlot(Job job, Slot slot, RenderKey newKey) {
+    if (job == null || job.key.equals(newKey)) {
+      return;
+    }
+    for (Entry e : job.entries) {
+      if (slot.equals(e.slot())) {
+        removeEntry(job, e);
+      }
     }
   }
 
@@ -193,8 +236,10 @@ public final class RenderLane implements AutoCloseable {
     if (running != null && !running.superseded && running.key.equals(key)) {
       return running;
     }
-    if (pendingInteractive != null && pendingInteractive.key.equals(key)) {
-      return pendingInteractive;
+    for (Job j : pendingBySlot.values()) {
+      if (j.key.equals(key)) {
+        return j;
+      }
     }
     for (Job j : pendingProtected) {
       if (j.key.equals(key)) {
@@ -213,7 +258,7 @@ public final class RenderLane implements AutoCloseable {
     if (closed || running != null || timer != null) {
       return;
     }
-    if (pendingProtected.isEmpty() && pendingInteractive == null) {
+    if (pendingProtected.isEmpty() && pendingBySlot.isEmpty()) {
       return;
     }
     long now = scheduler.nanoTime();
@@ -235,11 +280,16 @@ public final class RenderLane implements AutoCloseable {
   private void startNext(long now) {
     Job job = pendingProtected.pollFirst();
     if (job == null) {
-      job = pendingInteractive;
-      pendingInteractive = null;
-    }
-    if (job == null) {
-      return;
+      Slot best = null;
+      for (Slot s : pendingBySlot.keySet()) {
+        if (best == null || s.priority() > best.priority()) {
+          best = s;
+        }
+      }
+      if (best == null) {
+        return;
+      }
+      job = pendingBySlot.remove(best);
     }
     running = job;
     lastStart = now;
@@ -270,12 +320,13 @@ public final class RenderLane implements AutoCloseable {
       scheduleStart();
     }
     if (error != null) {
+      Throwable logged = error;
       LOG.log(
           job.superseded ? System.Logger.Level.DEBUG : System.Logger.Level.WARNING,
           () -> name + ": fallo en el render " + job.key,
-          error);
+          logged);
     }
-    if (isObsolete(job)) {
+    if (job.superseded) {
       return;
     }
     Renderer.Result r = result;
@@ -283,13 +334,18 @@ public final class RenderLane implements AutoCloseable {
     if (r == null && f == null) {
       return;
     }
-    List<Listener> targets = List.copyOf(job.listeners);
+    List<Entry> targets = new ArrayList<>();
+    for (Entry e : job.entries) {
+      if (isCurrent(e)) {
+        targets.add(e);
+      }
+    }
     Object[] prepared = new Object[targets.size()];
     RenderFailure[] prepareFailed = new RenderFailure[targets.size()];
     if (r != null) {
       for (int i = 0; i < targets.size(); i++) {
         try {
-          prepared[i] = targets.get(i).prepare(r);
+          prepared[i] = targets.get(i).listener().prepare(r);
         } catch (RuntimeException | Error e) {
           LOG.log(System.Logger.Level.WARNING, () -> name + ": fallo al preparar " + job.key, e);
           prepareFailed[i] = RenderFailure.of(e);
@@ -298,27 +354,25 @@ public final class RenderLane implements AutoCloseable {
     }
     publisher.execute(
         () -> {
-          if (isObsolete(job)) {
-            return;
-          }
           for (int i = 0; i < targets.size(); i++) {
-            Listener l = targets.get(i);
-            if (!job.listeners.contains(l)) {
-              continue; // abandonado con su ticket mientras tanto
+            Entry e = targets.get(i);
+            if (job.superseded || !job.entries.contains(e) || !isCurrent(e)) {
+              continue;
             }
             if (f != null) {
-              l.onFailed(f);
+              e.listener().onFailed(f);
             } else if (prepareFailed[i] != null) {
-              l.onFailed(prepareFailed[i]);
+              e.listener().onFailed(prepareFailed[i]);
             } else {
-              l.onDone(r, prepared[i]);
+              e.listener().onDone(r, prepared[i]);
             }
           }
         });
   }
 
-  private boolean isObsolete(Job job) {
-    return job.superseded || (!job.protectedJob && job.seq != latestInteractiveSeq);
+  /** ¿Sigue siendo la última petición de su ranura? (las protegidas siempre) */
+  private boolean isCurrent(Entry e) {
+    return e.slot() == null || Long.valueOf(e.seq()).equals(latestSeq.get(e.slot()));
   }
 
   private void progress(Job job, long done, long total) {
@@ -334,17 +388,20 @@ public final class RenderLane implements AutoCloseable {
     publisher.execute(
         () -> {
           job.progressQueued.set(false);
-          if (!isObsolete(job)) {
-            for (Listener l : job.listeners) {
-              l.onProgress(fraction);
+          if (job.superseded) {
+            return;
+          }
+          for (Entry e : job.entries) {
+            if (isCurrent(e)) {
+              e.listener().onProgress(fraction);
             }
           }
         });
   }
 
-  /** ¿Hay trabajo en curso o pendiente? (para tests y diagnóstico). */
+  /** ¿Sin trabajo en curso ni pendiente? (para tests y diagnóstico). */
   public synchronized boolean isIdle() {
-    return running == null && pendingInteractive == null && pendingProtected.isEmpty();
+    return running == null && pendingBySlot.isEmpty() && pendingProtected.isEmpty();
   }
 
   /** Deja de aceptar peticiones y cancela las pendientes y la que está en curso. */
@@ -362,10 +419,10 @@ public final class RenderLane implements AutoCloseable {
       if (running != null) {
         supersede(running);
       }
-      if (pendingInteractive != null) {
-        supersede(pendingInteractive);
-        pendingInteractive = null;
+      for (Job j : pendingBySlot.values()) {
+        supersede(j);
       }
+      pendingBySlot.clear();
       for (Job j : pendingProtected) {
         supersede(j);
       }
