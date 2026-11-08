@@ -24,6 +24,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Fase 3 — interfaz nueva: visor único con zoom hacia el cursor, cortina, lado a lado, inspector con histograma en vivo y avisos de recorte, Ajustes básicos, pila editable, catálogo de 15 filtros, recorte y geometría, avisos no bloqueantes, atajos y persistencia de la disposición.
 - Operaciones nuevas: `adjust.basic`, `blur.gaussian`, `detail.unsharp-mask` y `transform.*` (recortar, voltear, rotar, enderezar, redimensionar).
 - Módulo opcional `lab-plugin` con las operaciones didácticas, generador y blending.
+- Fase 4 — entrada y salida: módulo `imaging-io`; abrir JPEG, PNG, TIFF, WebP, BMP y GIF con perfiles ICC, orientación EXIF, CMYK, grises y 16 bits, con progreso y cancelación.
+- Exportar JPEG, PNG y TIFF: calidad, límite de lado y de peso, plantillas de nombre, estimación de tamaño, preajustes, tres políticas de metadatos y escritura atómica.
+- Aviso de cambios sin exportar, notificación con "Mostrar en carpeta" y `THIRD_PARTY_LICENSES.md`.
+
+### Fixed
+- Exportar a JPG una imagen con transparencia ya no falla.
+- Las imágenes en gris se abren sin aclararse.
 
 ### Removed
 - Interfaz antigua: pestañas, lista de 44 filtros y comparación 50/50.

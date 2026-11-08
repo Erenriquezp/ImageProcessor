@@ -26,6 +26,9 @@ Editor de fotos de escritorio, no destructivo, con ajustes en luz lineal y pila 
 - **Histograma en vivo** con avisos de luces y sombras recortadas, también sobre la foto.
 - **Recortar y rotar**: asas, regla de tercios, proporciones fijas, enderezar, voltear y redimensionar.
 - **Filtros**: 15 entradas con buscador.
+- **Abrir fotos reales**: JPEG, PNG, TIFF, WebP, BMP y GIF, con perfiles de color, orientación EXIF, CMYK, grises y 16 bits.
+- **Exportar**: JPEG, PNG y TIFF con calidad, límite de lado y de peso, plantillas de nombre, estimación de tamaño y escritura atómica.
+- **Privacidad**: por defecto se elimina la ubicación, y la miniatura incrustada no se copia nunca.
 - **Trabajo en segundo plano**: la interfaz no se bloquea con fotos de 24 MP.
 
 ## Requisitos
@@ -54,11 +57,22 @@ Abre o arrastra una foto, mueve los **Ajustes** de la derecha y compara con la *
 
 Los atajos y la arquitectura de la interfaz están en [docs/UI.md](docs/UI.md).
 
+## Formatos y privacidad
+
+| Formato | Abrir | Exportar |
+|---|---|---|
+| JPEG, PNG, TIFF | Sí | Sí |
+| WebP, BMP, GIF | Sí | No |
+| HEIC, HEIF, AVIF, RAW | No | No |
+
+Se edita en sRGB de 8 bits: los archivos de 16 bits o gamut ancho se convierten al abrirlos, y la aplicación lo avisa. Al exportar, un archivo existente no se sustituye sin confirmación, y los metadatos se filtran según tres modos: mantener, quitar la ubicación (por defecto) o quitar todo. Detalle en [docs/IO.md](docs/IO.md).
+
 ## Módulos
 
 | Módulo | Contenido |
 |---|---|
 | `core-imaging` | Núcleo puro, solo `java.base`: imagen, operaciones, recetas y render |
+| `imaging-io` | Abrir y exportar: códecs sobre `ImageIO`, color y metadatos |
 | `app` | Interfaz JavaFX y sesión de edición |
 | `lab-plugin` | Opcional, fuera del instalador: operaciones didácticas, generador, blending y código heredado de referencia |
 | `bench` | Benchmarks JMH (perfil `-Pbench`) |

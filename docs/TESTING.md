@@ -107,6 +107,21 @@ Las vistas no tienen tests unitarios: las cubren el humo, las capturas de `Snaps
 
 Los tests diferenciales con el legacy viven en `lab-plugin`, junto a ese código. Los tres reenvíos del paquete `service` (`AwtImg`, `ImageIOService`, `SourceFormat`) existen para no editarlos.
 
+## Entrada y salida (fase 4)
+
+| Test | Módulo | Qué comprueba |
+|---|---|---|
+| `PureIoTest`, `ExifCodecTest` | core | Orientación 1–8, aplanado en los 65536 pares (α, c), redondeo de 16 bits, nombres, búsqueda de calidad, detección de formato, EXIF con anomalías, política de metadatos |
+| `DecodeTest` | imaging-io | Gris exacto, 16 bits, paleta, CMYK/YCCK, ICC contra el cálculo analítico (≤ 2 niveles), orientación, WebP, multipágina, rutas con emojis, cancelación |
+| `ExportTest` | imaging-io | Ida y vuelta exacta en PNG y TIFF, PSNR de JPEG, aplanado, **escaneo de privacidad** en 18 combinaciones, oráculo independiente, escritura atómica con inyección de fallos, colisiones |
+| `RobustnessTest` | imaging-io | Truncados, cabeceras enormes, basura, EXIF y XMP malformados, sin temporales, todo con `assertTimeout` |
+| `IoMemoryTest` | imaging-io | 12 y 24 MP en JVM aparte con `-Xmx1536m`; informe en `imaging-io/target/io-memory-report.txt` |
+| `StudioViewModelTest` | app | Diálogo, presets, preferencias, estimación, cambios sin exportar, colisiones, cancelación |
+
+Los fixtures (ICC, EXIF, CMYK, 16 bits) se generan por código en `Fixtures`; los únicos binarios son dos WebP de menos de 200 bytes hechos aquí.
+
+Fuera de las pruebas automáticas: `tools/jlink-check.sh` y los archivos reales de cámara, que se comprueban a mano.
+
 ## Defectos conocidos verificados
 
-JPG con ARGB (reproducido; el test correcto está `@Disabled`, se corrige en la fase 4), Interpolación = Extrapolación, modos de Reducción 4 bits idénticos (incluido DECIMAL), marco de 1 px sin procesar en la convolución, Blending que deforma el fondo, Escala de grises por promedio y matrices de color sin offsets.
+Interpolación = Extrapolación, modos de Reducción 4 bits idénticos (incluido DECIMAL), marco de 1 px sin procesar en la convolución, Blending que deforma el fondo, Escala de grises por promedio y matrices de color sin offsets.
