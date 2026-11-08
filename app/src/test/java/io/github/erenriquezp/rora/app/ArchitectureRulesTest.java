@@ -24,6 +24,11 @@ class ArchitectureRulesTest {
     "io.github.erenriquezp.rora.app.ui",
     "io.github.erenriquezp.rora.app.fx"
   };
+  private static final String[] NEW_VIEWS = {
+    "io.github.erenriquezp.rora.app.view..", "io.github.erenriquezp.rora.app.shell.."
+  };
+  private static final String VIEW_MODEL = "io.github.erenriquezp.rora.app.viewmodel..";
+  private static final String MODEL = "io.github.erenriquezp.rora.app.model..";
   private static final String SESSION = "io.github.erenriquezp.rora.app.session";
   private static final String SERVICE = "io.github.erenriquezp.rora.service";
 
@@ -86,6 +91,59 @@ class ArchitectureRulesTest {
         .should()
         .dependOnClassesThat()
         .resideInAPackage("javafx..")
+        .check(classes);
+  }
+
+  @Test
+  void viewModelsDoNotUseNodesOrTheToolkit() {
+    noClasses()
+        .that()
+        .resideInAPackage(VIEW_MODEL)
+        .should()
+        .dependOnClassesThat()
+        .resideInAnyPackage("javafx.scene..", "javafx.stage..", "javafx.application..")
+        .check(classes);
+  }
+
+  @Test
+  void pureModelsDoNotUseJavaFx() {
+    noClasses()
+        .that()
+        .resideInAPackage(MODEL)
+        .should()
+        .dependOnClassesThat()
+        .resideInAPackage("javafx..")
+        .check(classes);
+  }
+
+  @Test
+  void newViewsOnlyTalkToViewModels() {
+    noClasses()
+        .that()
+        .resideInAnyPackage(NEW_VIEWS)
+        .should()
+        .dependOnClassesThat()
+        .resideInAnyPackage(SERVICE, "io.github.erenriquezp.rora.core.op..")
+        .check(classes);
+  }
+
+  @Test
+  void viewModelsDoNotProcessImagesThemselves() {
+    noClasses()
+        .that()
+        .resideInAPackage(VIEW_MODEL)
+        .should()
+        .dependOnClassesThat()
+        .areAssignableTo(Renderer.class)
+        .orShould()
+        .dependOnClassesThat()
+        .areAssignableTo(PointFusion.class)
+        .orShould()
+        .dependOnClassesThat()
+        .areAssignableTo(Downscale.class)
+        .orShould()
+        .dependOnClassesThat()
+        .areAssignableTo(TileExecutor.class)
         .check(classes);
   }
 

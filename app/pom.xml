@@ -146,7 +146,7 @@
                         <!-- Desde la raiz: ./mvnw install -DskipTests && ./mvnw -pl app javafx:run -->
                         <id>default-cli</id>
                         <configuration>
-                            <mainClass>io.github.erenriquezp.rora.app/io.github.erenriquezp.rora.app.ImageProcessorApp
+                            <mainClass>io.github.erenriquezp.rora.app/io.github.erenriquezp.rora.app.shell.Launcher
                             </mainClass>
                             <launcher>app</launcher>
                             <jlinkZipName>app</jlinkZipName>
