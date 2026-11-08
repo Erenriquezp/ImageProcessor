@@ -30,6 +30,15 @@ public interface Operation {
   }
 
   /**
+   * Promete que {@link #apply} devuelve <b>la misma instancia</b> de {@code src} con estos
+   * parámetros (p. ej. la ecualización con factor 0 y sin marcas). Por defecto, {@code false}. Lo
+   * usan la sesión (para propagar el formato de origen) y el renderer.
+   */
+  default boolean returnsInput(Params params) {
+    return false;
+  }
+
+  /**
    * Aplica la operación.
    *
    * @throws io.github.erenriquezp.rora.core.exec.CancelledException si se cancela el token

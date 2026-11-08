@@ -1,13 +1,12 @@
 package io.github.erenriquezp.rora.core.ops.tone;
 
 import io.github.erenriquezp.rora.core.exec.BandKernel;
-import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.op.OpMeta;
 import io.github.erenriquezp.rora.core.op.ParamDef.IntParam;
 import io.github.erenriquezp.rora.core.op.ParamDef.SelectionParam;
 import io.github.erenriquezp.rora.core.op.ParamSchema;
 import io.github.erenriquezp.rora.core.op.Params;
-import io.github.erenriquezp.rora.core.ops.SimpleBandOp;
+import io.github.erenriquezp.rora.core.ops.SimplePointOp;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -17,7 +16,7 @@ import java.util.Set;
  * Posterizado solo de los canales seleccionados. Port de {@code ArtisticFilters.retro2}. Con 255
  * niveles <b>no</b> es identidad (paso 255/254).
  */
-public final class PosterizeChannelsOp extends SimpleBandOp {
+public final class PosterizeChannelsOp extends SimplePointOp {
 
   public PosterizeChannelsOp() {
     super(
@@ -35,7 +34,7 @@ public final class PosterizeChannelsOp extends SimpleBandOp {
   }
 
   @Override
-  protected BandKernel prepare(Img src, Params params) {
+  public BandKernel pointKernel(Params params, int width, int height) {
     int[] lut = PosterizeOp.quantizeLut(params.getInt("levels"));
     Set<String> ch = params.getSelection("channels");
     boolean qr = ch.contains("r");

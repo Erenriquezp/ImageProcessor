@@ -1,20 +1,19 @@
 package io.github.erenriquezp.rora.core.ops.tone;
 
 import io.github.erenriquezp.rora.core.exec.BandKernel;
-import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.op.OpMeta;
 import io.github.erenriquezp.rora.core.op.ParamDef.IntParam;
 import io.github.erenriquezp.rora.core.op.ParamSchema;
 import io.github.erenriquezp.rora.core.op.Params;
 import io.github.erenriquezp.rora.core.ops.PixelOps;
-import io.github.erenriquezp.rora.core.ops.SimpleBandOp;
+import io.github.erenriquezp.rora.core.ops.SimplePointOp;
 import java.util.OptionalInt;
 
 /**
  * Posterizado de R, G y B a {@code levels} niveles ({@code ≥ 256} = identidad). Port de {@code
  * ArtisticFilters.retro1}.
  */
-public final class PosterizeOp extends SimpleBandOp {
+public final class PosterizeOp extends SimplePointOp {
 
   public PosterizeOp() {
     super(
@@ -25,7 +24,7 @@ public final class PosterizeOp extends SimpleBandOp {
   }
 
   @Override
-  protected BandKernel prepare(Img src, Params params) {
+  public BandKernel pointKernel(Params params, int width, int height) {
     int[] lut = quantizeLut(params.getInt("levels"));
     return (in, out, w, h, y0, y1) -> {
       for (int i = y0 * w, end = y1 * w; i < end; i++) {

@@ -1,19 +1,18 @@
 package io.github.erenriquezp.rora.core.ops.color;
 
 import io.github.erenriquezp.rora.core.exec.BandKernel;
-import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.op.OpMeta;
 import io.github.erenriquezp.rora.core.op.ParamDef.IntParam;
 import io.github.erenriquezp.rora.core.op.ParamSchema;
 import io.github.erenriquezp.rora.core.op.Params;
 import io.github.erenriquezp.rora.core.ops.PixelOps;
-import io.github.erenriquezp.rora.core.ops.SimpleBandOp;
+import io.github.erenriquezp.rora.core.ops.SimplePointOp;
 import java.util.OptionalInt;
 
 /**
  * Suma constante con recorte: {@code clamp(c + value)}. Port de {@code ColorFilters.brightness}.
  */
-public final class BrightnessOp extends SimpleBandOp {
+public final class BrightnessOp extends SimplePointOp {
 
   public BrightnessOp() {
     super(
@@ -24,7 +23,7 @@ public final class BrightnessOp extends SimpleBandOp {
   }
 
   @Override
-  protected BandKernel prepare(Img src, Params params) {
+  public BandKernel pointKernel(Params params, int width, int height) {
     int value = params.getInt("value");
     return (in, out, w, h, y0, y1) -> {
       for (int i = y0 * w, end = y1 * w; i < end; i++) {
