@@ -261,6 +261,65 @@ class RenderLaneTest {
   }
 
   @Test
+  void prepareRunsInTheWorkerAndItsValueIsPublished() {
+    List<String> seen = new ArrayList<>();
+    Thread[] prepareThread = new Thread[1];
+    RenderLane.Listener l =
+        new RenderLane.Listener() {
+          @Override
+          public void onDone(Renderer.Result r) {
+            throw new AssertionError("debe llamarse la variante con prepared");
+          }
+
+          @Override
+          public Object prepare(Renderer.Result r) {
+            prepareThread[0] = Thread.currentThread();
+            return "w" + r.image().width();
+          }
+
+          @Override
+          public void onDone(Renderer.Result r, Object prepared) {
+            seen.add((String) prepared);
+          }
+        };
+    lane.submit(bright(1), l, false);
+    assertThat(seen).isEmpty();
+    worker.runAll();
+    assertThat(prepareThread[0]).isSameAs(Thread.currentThread());
+    assertThat(seen).as("aún no publicado").isEmpty();
+    publisher.runAll();
+    assertThat(seen).containsExactly("w16");
+  }
+
+  @Test
+  void failureInPrepareIsReportedToThatListener() {
+    Recorder rec = new Recorder();
+    RenderLane.Listener bad =
+        new RenderLane.Listener() {
+          @Override
+          public void onDone(Renderer.Result r) {}
+
+          @Override
+          public Object prepare(Renderer.Result r) {
+            throw new IllegalStateException("conversión");
+          }
+
+          @Override
+          public void onFailed(RenderFailure f) {
+            rec.failed.add(f);
+          }
+        };
+    lane.submit(bright(1), bad, false);
+    lane.submit(bright(1), rec, false);
+    worker.runAll();
+    publisher.runAll();
+    assertThat(rec.failed)
+        .singleElement()
+        .satisfies(f -> assertThat(f.cause()).hasMessage("conversión"));
+    assertThat(rec.done).hasSize(1);
+  }
+
+  @Test
   void rejectsNegativeDebounce() {
     assertThatThrownBy(
             () ->

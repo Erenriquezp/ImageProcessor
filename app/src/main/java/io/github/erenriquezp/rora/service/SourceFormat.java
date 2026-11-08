@@ -121,10 +121,12 @@ public final class SourceFormat {
   }
 
   /**
-   * Imagen de entrada para la convolución legacy: el original si el formato es {@code native} y
-   * {@code img} es la fuente; si no, {@code img} reconstruida en el tipo del formato.
+   * {@code img} como el {@code BufferedImage} que tendría la cadena de la app con ese formato: el
+   * original si el formato es {@code native} y {@code img} es la fuente; si no, {@code img}
+   * reconstruida en el tipo del formato ({@code argb} = {@code TYPE_INT_ARGB}). La usan la entrada
+   * de la convolución legacy y la exportación (mismo tipo que guardaba la app).
    */
-  static BufferedImage materialize(Img img, String format, NativeSource nativeSource) {
+  public static BufferedImage materialize(Img img, String format, NativeSource nativeSource) {
     if (ARGB.equals(format)) {
       return AwtImg.toBufferedImage(img);
     }

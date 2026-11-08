@@ -31,8 +31,15 @@ final class SourceFormats {
     this.nativeTemplate = nativeTemplate;
   }
 
+  /**
+   * @param steps pasos activos con los formatos rellenos
+   * @param finalFormat formato del resultado (tipo del {@code BufferedImage} que tenía la app al
+   *     final de la cadena: lo usa la exportación)
+   */
+  record Effective(List<OpSpec> steps, String finalFormat) {}
+
   /** Pasos activos de {@code steps}, con los formatos rellenos. */
-  List<OpSpec> apply(List<OpSpec> steps) {
+  Effective apply(List<OpSpec> steps) {
     String fmt = initial;
     List<OpSpec> out = new ArrayList<>(steps.size());
     for (OpSpec s : steps) {
@@ -51,6 +58,6 @@ final class SourceFormats {
       }
       out.add(s);
     }
-    return out;
+    return new Effective(List.copyOf(out), fmt);
   }
 }

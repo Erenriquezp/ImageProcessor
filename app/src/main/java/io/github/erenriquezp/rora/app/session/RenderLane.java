@@ -42,6 +42,22 @@ public final class RenderLane implements AutoCloseable {
   public interface Listener {
     void onDone(Renderer.Result result);
 
+    /**
+     * Se ejecuta en el <b>worker</b>, tras el render y antes de publicar (p. ej. convertir a una
+     * imagen de JavaFX fuera del hilo FX). Su valor llega a {@link #onDone(Renderer.Result,
+     * Object)}. No se llama si el resultado ya es obsoleto.
+     */
+    default Object prepare(Renderer.Result result) {
+      return null;
+    }
+
+    /**
+     * Resultado y lo preparado en el worker; por defecto llama a {@link #onDone(Renderer.Result)}.
+     */
+    default void onDone(Renderer.Result result, Object prepared) {
+      onDone(result);
+    }
+
     default void onFailed(RenderFailure failure) {}
 
     /** Fracción completada en [0, 1], a ≤ 30 Hz. */
@@ -261,16 +277,35 @@ public final class RenderLane implements AutoCloseable {
     if (r == null && f == null) {
       return;
     }
+    List<Listener> targets = List.copyOf(job.listeners);
+    Object[] prepared = new Object[targets.size()];
+    RenderFailure[] prepareFailed = new RenderFailure[targets.size()];
+    if (r != null) {
+      for (int i = 0; i < targets.size(); i++) {
+        try {
+          prepared[i] = targets.get(i).prepare(r);
+        } catch (RuntimeException | Error e) {
+          LOG.log(System.Logger.Level.WARNING, () -> name + ": fallo al preparar " + job.key, e);
+          prepareFailed[i] = RenderFailure.of(e);
+        }
+      }
+    }
     publisher.execute(
         () -> {
           if (isObsolete(job)) {
             return;
           }
-          for (Listener l : job.listeners) {
-            if (f == null) {
-              l.onDone(r);
-            } else {
+          for (int i = 0; i < targets.size(); i++) {
+            Listener l = targets.get(i);
+            if (!job.listeners.contains(l)) {
+              continue; // abandonado con su ticket mientras tanto
+            }
+            if (f != null) {
               l.onFailed(f);
+            } else if (prepareFailed[i] != null) {
+              l.onFailed(prepareFailed[i]);
+            } else {
+              l.onDone(r, prepared[i]);
             }
           }
         });

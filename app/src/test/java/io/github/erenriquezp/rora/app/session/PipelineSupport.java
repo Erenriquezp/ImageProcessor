@@ -32,7 +32,8 @@ final class PipelineSupport {
     for (Step s : steps) {
       specs.of(s.type(), s.params()).ifPresent(recipe::add);
     }
-    List<OpSpec> effective = new SourceFormats(reg, src.format(), src.nativeImage()).apply(recipe);
+    List<OpSpec> effective =
+        new SourceFormats(reg, src.format(), src.nativeImage()).apply(recipe).steps();
     Renderer r = new Renderer(reg, new ResultCache(256L << 20), fusion);
     Img out =
         r.render(
