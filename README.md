@@ -7,8 +7,9 @@ Editor de imágenes de escritorio, no destructivo, con interfaz oscura inspirada
 [![Java](https://img.shields.io/badge/Java-21-orange)](https://openjdk.org/)
 [![JavaFX](https://img.shields.io/badge/JavaFX-21.0.6-1f8acb)](https://openjfx.io/)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
+[![CI](https://github.com/Erenriquezp/ImageProcessor/actions/workflows/ci.yml/badge.svg)](https://github.com/Erenriquezp/ImageProcessor/actions/workflows/ci.yml)
 
-![Captura de pantalla de ImageProcessor](Captura.png)
+![Captura de pantalla de ImageProcessor](docs/img/captura.png)
 
 </div>
 
@@ -31,15 +32,19 @@ Aplicación de escritorio en **Java 21 + JavaFX 21**. Aplica filtros de forma no
 - **Chrome de ventana sin bordes** (mover, maximizar, redimensionar).
 - **Exportación** por extensión: `png`, `jpg`, `bmp`, `gif`.
 
+## Estado del proyecto
+
+El proyecto nació como trabajo académico (versión conservada en el tag `v0.1.0-academic` y en la rama `legacy/academic-v0`) y está en transición hacia un editor de imágenes más completo. Hoy **solo existe lo descrito en este README**; lo demás es trabajo futuro y se registra en el [CHANGELOG](CHANGELOG.md). El nombre definitivo del producto y la licencia final están pendientes de decisión.
+
 ## Requisitos
 
 | Requisito | Versión |
 |---|---|
-| JDK | 23 o superior (compilar y ejecutar) |
-| Maven | 3.6+ o el wrapper `mvnw` incluido |
+| JDK | **21 o superior** (el bytecode apunta a Java 21; la compilación se verificó con Temurin 25) |
+| Maven | No hace falta instalarlo: el wrapper `mvnw` descarga **Maven 3.9.11** |
 | Sistema operativo | Windows, macOS o Linux con soporte OpenGL |
 
-El bytecode apunta a Java 21, pero `.mvn/jvm.config` activa `--sun-misc-unsafe-memory-access=allow` (opción de JDK 23), por lo que el JDK que ejecuta Maven debe ser **23+** (probado con OpenJDK 24). JavaFX se descarga automáticamente vía Maven.
+JavaFX y el resto de dependencias se descargan automáticamente vía Maven. Las versiones de Java y Maven se verifican con `maven-enforcer`.
 
 ## Inicio rápido
 
@@ -47,10 +52,12 @@ El bytecode apunta a Java 21, pero `.mvn/jvm.config` activa `--sun-misc-unsafe-m
 git clone https://github.com/Erenriquezp/ImageProcessor.git
 cd ImageProcessor
 
-./mvnw clean compile   # Windows: .\mvnw.cmd clean compile
-./mvnw javafx:run      # Windows: .\mvnw.cmd javafx:run
-./mvnw test            # Windows: .\mvnw.cmd test
+./mvnw clean compile   # Windows (PowerShell): .\mvnw.cmd clean compile
+./mvnw javafx:run      # Windows (PowerShell): .\mvnw.cmd javafx:run
+./mvnw verify          # compila, tests, Checkstyle y cobertura (JaCoCo)
 ```
+
+Comprobaciones opcionales: `./mvnw spotless:check` (formato; el código actual aún no está formateado) y `./mvnw compile spotbugs:check` (usar JDK 21). Para contribuir, consulta [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Uso
 
@@ -114,10 +121,15 @@ Principios: edición no destructiva (`originalImage` intacta), pipeline apilable
 | JavaFX | 21.0.6 | Interfaz de escritorio |
 | javafx-swing | 21.0.6 | Puente `BufferedImage ↔ Image` |
 | Ikonli (FontAwesome 6) | 12.4.0 | Iconos vectoriales |
-| Maven | 3.x | Build y dependencias |
+| Maven | 3.9.11 (wrapper) | Build y dependencias |
 | JUnit Jupiter | 5.12.1 | Tests unitarios |
 
 ## Licencia
 
-Distribuido bajo la licencia **MIT** — consulta el archivo [LICENSE](LICENSE).
+Distribuido bajo la licencia **MIT** (provisional) — consulta el archivo [LICENSE](LICENSE). Guía de contribución: [CONTRIBUTING.md](CONTRIBUTING.md). Arquitectura: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## English summary
+
+ImageProcessor is a desktop image editor built with Java 21 and JavaFX 21: non-destructive, stackable filters with undo/redo, live preview, histogram, blending and a gradient generator. Requires JDK 21+; use the bundled Maven wrapper (`./mvnw javafx:run`). The project is a work in progress and its name and license are provisional.
+
 
