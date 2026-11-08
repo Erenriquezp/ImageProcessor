@@ -14,6 +14,7 @@ module io.github.erenriquezp.rora.core {
   // Añadir una operación = 1 clase + 1 línea aquí.
   provides io.github.erenriquezp.rora.core.op.Operation with
       io.github.erenriquezp.rora.core.ops.accum.MotionAccumulationOp,
+      io.github.erenriquezp.rora.core.ops.adjust.AdjustBasicOp,
       io.github.erenriquezp.rora.core.ops.analysis.ExposureOp,
       io.github.erenriquezp.rora.core.ops.analysis.HistogramOp,
       io.github.erenriquezp.rora.core.ops.artistic.CircularFadeOp,

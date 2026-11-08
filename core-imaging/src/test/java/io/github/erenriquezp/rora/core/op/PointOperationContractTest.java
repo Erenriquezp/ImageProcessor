@@ -25,7 +25,7 @@ class PointOperationContractTest {
         pointOps.add(op.id());
       }
     }
-    assertThat(pointOps).isEqualTo(pointKind).hasSize(19);
+    assertThat(pointOps).isEqualTo(pointKind).hasSize(20);
   }
 
   @Test

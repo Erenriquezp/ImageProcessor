@@ -66,6 +66,7 @@ class RegistryPropertiesTest {
     assertThat(REGISTRY.ids())
         .containsExactly(
             "accum.motion",
+            "adjust.basic",
             "analysis.exposure",
             "analysis.histogram",
             "artistic.circular-fade",
