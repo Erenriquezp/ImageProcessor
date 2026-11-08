@@ -54,6 +54,24 @@ jobs:
             **/target/checkstyle-result.xml
           if-no-files-found: ignore
 
+  # Humo de la interfaz con el toolkit real; no bloquea mientras no tenga historial
+  ui-smoke:
+    name: Humo de la interfaz (xvfb)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Humo
+        run: xvfb-run -a ./mvnw -B -ntp -Pui-smoke -pl app -am test
+
   # Opcional y no bloqueante: formato (solo codigo cambiado) y SpotBugs
   quality-report:
     name: Informes de calidad (no bloquean)
