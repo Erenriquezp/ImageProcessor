@@ -92,7 +92,12 @@ class RegistryPropertiesTest {
             "raster.texture-sample",
             "tone.equalize",
             "tone.posterize",
-            "tone.posterize-channels");
+            "tone.posterize-channels",
+            "transform.crop",
+            "transform.flip",
+            "transform.resize",
+            "transform.rotate90",
+            "transform.straighten");
   }
 
   @TestFactory
