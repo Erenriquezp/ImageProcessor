@@ -1,6 +1,6 @@
 <div align="center">
 
-# ImageProcessor
+# Rora Studio
 
 Editor de imágenes de escritorio, no destructivo, con interfaz oscura inspirada en Adobe Lightroom y DaVinci Resolve.
 
@@ -9,7 +9,7 @@ Editor de imágenes de escritorio, no destructivo, con interfaz oscura inspirada
 [![Licencia](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
 [![CI](https://github.com/Erenriquezp/ImageProcessor/actions/workflows/ci.yml/badge.svg)](https://github.com/Erenriquezp/ImageProcessor/actions/workflows/ci.yml)
 
-![Captura de pantalla de ImageProcessor](docs/img/captura.png)
+![Captura de pantalla de Rora Studio](docs/img/captura.png)
 
 </div>
 
@@ -53,7 +53,8 @@ git clone https://github.com/Erenriquezp/ImageProcessor.git
 cd ImageProcessor
 
 ./mvnw clean compile   # Windows (PowerShell): .\mvnw.cmd clean compile
-./mvnw javafx:run      # Windows (PowerShell): .\mvnw.cmd javafx:run
+./mvnw install -DskipTests          # instala los módulos en el repositorio local
+./mvnw -pl app javafx:run           # Windows (PowerShell): .\mvnw.cmd -pl app javafx:run
 ./mvnw verify          # compila, tests, Checkstyle y cobertura (JaCoCo)
 ```
 
@@ -130,6 +131,6 @@ Distribuido bajo la licencia **MIT** (provisional) — consulta el archivo [LICE
 
 ## English summary
 
-ImageProcessor is a desktop image editor built with Java 21 and JavaFX 21: non-destructive, stackable filters with undo/redo, live preview, histogram, blending and a gradient generator. Requires JDK 21+; use the bundled Maven wrapper (`./mvnw javafx:run`). The project is a work in progress and its name and license are provisional.
+Rora Studio (formerly ImageProcessor) is a desktop image editor built with Java 21 and JavaFX 21: non-destructive, stackable filters with undo/redo, live preview, histogram, blending and a gradient generator. Requires JDK 21+; use the bundled Maven wrapper (`./mvnw install -DskipTests` then `./mvnw -pl app javafx:run`). The project is a work in progress and its name and license are provisional.
 
 

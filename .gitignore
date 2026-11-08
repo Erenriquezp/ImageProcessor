@@ -52,7 +52,6 @@ ehthumbs.db
 ### Empaquetado (jpackage / jlink / javafx-maven-plugin) ###
 /build/
 /dist/
-/app/
 /installer/
 *.msi
 *.exe
