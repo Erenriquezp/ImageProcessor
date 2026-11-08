@@ -42,7 +42,8 @@ class SpecialOperationsTest {
     assertThat(black.pctDark()).isEqualTo(100.0);
 
     // Umbrales: 240 cuenta como quemado, 239 no; 15 cuenta como oscuro, 16 no.
-    assertThat(ImageProcessor.diagnoseExposure(solid(2, 2, 0xFFF0F0F0)).pctBurned()).isEqualTo(100.0);
+    assertThat(ImageProcessor.diagnoseExposure(solid(2, 2, 0xFFF0F0F0)).pctBurned())
+        .isEqualTo(100.0);
     assertThat(ImageProcessor.diagnoseExposure(solid(2, 2, 0xFFEFEFEF)).pctBurned()).isEqualTo(0.0);
     assertThat(ImageProcessor.diagnoseExposure(solid(2, 2, 0xFF0F0F0F)).pctDark()).isEqualTo(100.0);
     assertThat(ImageProcessor.diagnoseExposure(solid(2, 2, 0xFF101010)).pctDark()).isEqualTo(0.0);
@@ -54,7 +55,8 @@ class SpecialOperationsTest {
   @Test
   @Tag("legacy-pin")
   void exposureDiagnosticOnOnePixelImage() {
-    assertThat(ImageProcessor.diagnoseExposure(solid(1, 1, 0xFFFFFFFF)).pctBurned()).isEqualTo(100.0);
+    assertThat(ImageProcessor.diagnoseExposure(solid(1, 1, 0xFFFFFFFF)).pctBurned())
+        .isEqualTo(100.0);
   }
 
   // ── Degradados (nivel B) ─────────────────────────────────────────────────
@@ -75,17 +77,20 @@ class SpecialOperationsTest {
   @Test
   @Tag("property")
   void linearGradientEndpointsMatchColors() {
-    BufferedImage g = ImageProcessor.generateGradient(GradientType.LEFT_TO_RIGHT, 16, 4, 0xFF0000, 0x0000FF);
+    BufferedImage g =
+        ImageProcessor.generateGradient(GradientType.LEFT_TO_RIGHT, 16, 4, 0xFF0000, 0x0000FF);
     assertThat(g.getRGB(0, 0) & 0xFFFFFF).isEqualTo(0xFF0000);
     assertThat(g.getRGB(15, 3) & 0xFFFFFF).isEqualTo(0x0000FF);
-    BufferedImage r = ImageProcessor.generateGradient(GradientType.RIGHT_TO_LEFT, 16, 4, 0xFF0000, 0x0000FF);
+    BufferedImage r =
+        ImageProcessor.generateGradient(GradientType.RIGHT_TO_LEFT, 16, 4, 0xFF0000, 0x0000FF);
     assertThat(r.getRGB(0, 0) & 0xFFFFFF).isEqualTo(0x0000FF);
   }
 
   @Test
   @Tag("property")
   void equalColorsGiveFlatImage() {
-    BufferedImage g = ImageProcessor.generateGradient(GradientType.RADIAL, 33, 17, 0x336699, 0x336699);
+    BufferedImage g =
+        ImageProcessor.generateGradient(GradientType.RADIAL, 33, 17, 0x336699, 0x336699);
     for (int y = 0; y < 17; y++) {
       for (int x = 0; x < 33; x++) {
         assertThat(g.getRGB(x, y) & 0xFFFFFF).isEqualTo(0x336699);

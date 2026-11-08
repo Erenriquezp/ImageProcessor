@@ -30,7 +30,8 @@ class OperationPropertiesTest {
     try {
       body.run();
     } catch (AssertionError e) {
-      throw new AssertionError(oc + " sobre " + TestImages.name(p, k, w, h) + ": " + e.getMessage(), e);
+      throw new AssertionError(
+          oc + " sobre " + TestImages.name(p, k, w, h) + ": " + e.getMessage(), e);
     }
   }
 
@@ -85,6 +86,12 @@ class OperationPropertiesTest {
   @MethodSource("neutralCombos")
   void neutralParametersAreIdentity(OpCase oc, Pattern p, Kind k, int w, int h) {
     BufferedImage in = TestImages.create(p, k, w, h);
-    ctx(oc, p, k, w, h, () -> ImageAssert.assertEqualWithin(oc.apply(in), in, oc.identityTolerance()));
+    ctx(
+        oc,
+        p,
+        k,
+        w,
+        h,
+        () -> ImageAssert.assertEqualWithin(oc.apply(in), in, oc.identityTolerance()));
   }
 }

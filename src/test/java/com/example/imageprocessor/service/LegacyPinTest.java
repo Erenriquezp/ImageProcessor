@@ -29,14 +29,7 @@ class LegacyPinTest {
 
   static Stream<Object[]> pins() {
     return OpCatalog.levelA().stream()
-        .flatMap(
-            oc ->
-                IMAGES.stream()
-                    .map(
-                        im ->
-                            new Object[] {
-                              oc, im[0], im[1], im[2], im[3]
-                            }));
+        .flatMap(oc -> IMAGES.stream().map(im -> new Object[] {oc, im[0], im[1], im[2], im[3]}));
   }
 
   @ParameterizedTest(name = "{0} sobre {1}-{2} {3}x{4}")

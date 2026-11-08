@@ -26,7 +26,10 @@ import java.util.List;
  */
 public final class OpCatalog {
 
-  /** Operaciones que alteran el alpha de la entrada (observado: promedian, convolucionan o descartan). */
+  /**
+   * Operaciones que alteran el alpha de la entrada (observado: promedian, convolucionan o
+   * descartan).
+   */
   private static final java.util.Set<String> ALPHA_CHANGING =
       java.util.Set.of(
           "bitmapPixelate", "bufferAccumulation", "convolution", "multisample", "textureSample");
@@ -38,7 +41,8 @@ public final class OpCatalog {
 
   private OpCatalog() {}
 
-  private static OpCase c(String op, String name, java.util.function.UnaryOperator<java.awt.image.BufferedImage> fn) {
+  private static OpCase c(
+      String op, String name, java.util.function.UnaryOperator<java.awt.image.BufferedImage> fn) {
     return OpCase.of(op, name, fn);
   }
 
@@ -123,14 +127,22 @@ public final class OpCatalog {
       l.add(c("convolution", k.name().toLowerCase(), i -> ImageProcessor.convolution(i, k)));
     }
     for (BufferAcumulacion_LOAD.Mode m : BufferAcumulacion_LOAD.Mode.values()) {
-      l.add(c("bufferAccumulation", m.name().toLowerCase(), i -> ImageProcessor.bufferAccumulation(i, m)));
+      l.add(
+          c(
+              "bufferAccumulation",
+              m.name().toLowerCase(),
+              i -> ImageProcessor.bufferAccumulation(i, m)));
     }
     for (DepthSource s : DepthSource.values()) {
       l.add(c("depthMap", s.name().toLowerCase(), i -> ImageProcessor.depthMap(i, s)));
     }
     for (TextureFilterMode m : TextureFilterMode.values()) {
       for (float sc : new float[] {0.25f, 1.5f, 4f}) {
-        l.add(c("textureSample", m.name().toLowerCase() + "-s" + sc, i -> ImageProcessor.textureSample(i, sc, m)));
+        l.add(
+            c(
+                "textureSample",
+                m.name().toLowerCase() + "-s" + sc,
+                i -> ImageProcessor.textureSample(i, sc, m)));
       }
     }
     for (FragmentBlendMode m : FragmentBlendMode.values()) {
@@ -143,10 +155,22 @@ public final class OpCatalog {
       }
     }
     for (EqualizeMode m : EqualizeMode.values()) {
-      OpCase neutral = c("histogramEqualize", m.name().toLowerCase() + "-f0", i -> ImageProcessor.histogramEqualize(i, m, 0f, false, false));
+      OpCase neutral =
+          c(
+              "histogramEqualize",
+              m.name().toLowerCase() + "-f0",
+              i -> ImageProcessor.histogramEqualize(i, m, 0f, false, false));
       l.add(neutral.neutral(1));
-      l.add(c("histogramEqualize", m.name().toLowerCase() + "-f1", i -> ImageProcessor.histogramEqualize(i, m, 1f, false, false)));
-      l.add(c("histogramEqualize", m.name().toLowerCase() + "-f1-marks", i -> ImageProcessor.histogramEqualize(i, m, 1f, true, true)));
+      l.add(
+          c(
+              "histogramEqualize",
+              m.name().toLowerCase() + "-f1",
+              i -> ImageProcessor.histogramEqualize(i, m, 1f, false, false)));
+      l.add(
+          c(
+              "histogramEqualize",
+              m.name().toLowerCase() + "-f1-marks",
+              i -> ImageProcessor.histogramEqualize(i, m, 1f, true, true)));
     }
     for (float d : new float[] {-180f, 0f, 30f, 180f}) {
       OpCase oc = c("hueRotate", "d" + d, i -> ImageProcessor.hueRotate(i, d));
@@ -167,9 +191,15 @@ public final class OpCatalog {
       l.add(c("stretch4Bits", m.name().toLowerCase(), i -> ImageProcessor.stretch4Bits(i, m)));
     }
     for (DepthSource s : DepthSource.values()) {
-      l.add(c("zBuffer", s.name().toLowerCase(), i -> ImageProcessor.zBuffer(i, s, 128, 10, 20, 30)));
-      l.add(c("wBuffer", s.name().toLowerCase(), i -> ImageProcessor.wBuffer(i, s, 128, 10, 20, 30)));
-      l.add(c("depthInterpolate", s.name().toLowerCase(), i -> ImageProcessor.depthInterpolate(i, s, 255, 0, 0, 0, 0, 255)));
+      l.add(
+          c("zBuffer", s.name().toLowerCase(), i -> ImageProcessor.zBuffer(i, s, 128, 10, 20, 30)));
+      l.add(
+          c("wBuffer", s.name().toLowerCase(), i -> ImageProcessor.wBuffer(i, s, 128, 10, 20, 30)));
+      l.add(
+          c(
+              "depthInterpolate",
+              s.name().toLowerCase(),
+              i -> ImageProcessor.depthInterpolate(i, s, 255, 0, 0, 0, 0, 255)));
     }
     for (int b : new int[] {2, 8, 64}) {
       l.add(c("rasterGrid", "b" + b, i -> ImageProcessor.rasterGrid(i, b)));
@@ -179,11 +209,18 @@ public final class OpCatalog {
     }
     for (boolean lum : new boolean[] {false, true}) {
       for (int t : new int[] {0, 128, 255}) {
-        l.add(c("alphaTest", (lum ? "lum" : "alpha") + "-t" + t, i -> ImageProcessor.alphaTest(i, t, lum)).changesAlpha());
+        l.add(
+            c(
+                    "alphaTest",
+                    (lum ? "lum" : "alpha") + "-t" + t,
+                    i -> ImageProcessor.alphaTest(i, t, lum))
+                .changesAlpha());
       }
     }
     for (StencilPattern p : StencilPattern.values()) {
-      l.add(c("stencilTest", p.name().toLowerCase(), i -> ImageProcessor.stencilTest(i, p, 128, 8)).changesAlpha());
+      l.add(
+          c("stencilTest", p.name().toLowerCase(), i -> ImageProcessor.stencilTest(i, p, 128, 8))
+              .changesAlpha());
     }
     for (LogicOpType o : LogicOpType.values()) {
       l.add(c("logicOp", o.name().toLowerCase(), i -> ImageProcessor.logicOp(i, o, 128)));
@@ -195,7 +232,11 @@ public final class OpCatalog {
       l.add(c("pointExtrapolate", "t" + t, i -> ImageProcessor.pointExtrapolate(i, t, 255, 0, 0)));
     }
     for (ColorSpaceType t : ColorSpaceType.values()) {
-      l.add(c("colorSpaceConvert", t.name().toLowerCase(), i -> ImageProcessor.colorSpaceConvert(i, t)));
+      l.add(
+          c(
+              "colorSpaceConvert",
+              t.name().toLowerCase(),
+              i -> ImageProcessor.colorSpaceConvert(i, t)));
     }
     return mark(l);
   }

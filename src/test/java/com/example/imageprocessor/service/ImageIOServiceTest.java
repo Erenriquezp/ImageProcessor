@@ -1,6 +1,5 @@
 package com.example.imageprocessor.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.imageprocessor.testsupport.ImageAssert;
@@ -77,7 +76,8 @@ class ImageIOServiceTest {
   /** Comportamiento CORRECTO esperado: la exportación produce un JPG válido. */
   @Test
   @Tag("known-issue")
-  @Disabled("known-issue: exportar ARGB a .jpg falla (ImageIO.write devuelve false). Se corrige en fase 4 (PROPUESTA_PRODUCTO.md §5.6/§6.3: aplanado de alpha en el encoder JPG)")
+  @Disabled(
+      "known-issue: exportar ARGB a .jpg falla (ImageIO.write devuelve false). Se corrige en fase 4 (PROPUESTA_PRODUCTO.md §5.6/§6.3: aplanado de alpha en el encoder JPG)")
   void jpgExportOfArgbImageProducesValidJpg() throws IOException {
     BufferedImage argb = TestImages.create(Pattern.GRADIENT, Kind.ARGB, 16, 16);
     File f = tmp.resolve("argb.jpg").toFile();

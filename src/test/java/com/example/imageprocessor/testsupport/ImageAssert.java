@@ -19,7 +19,8 @@ public final class ImageAssert {
   }
 
   /** Delta máximo por canal (A, R, G, B) menor o igual que la tolerancia. */
-  public static void assertEqualWithin(BufferedImage actual, BufferedImage expected, int tolerance) {
+  public static void assertEqualWithin(
+      BufferedImage actual, BufferedImage expected, int tolerance) {
     assertSameSize(actual, expected);
     int worst = 0;
     String where = "";

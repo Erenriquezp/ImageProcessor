@@ -35,7 +35,8 @@ class GoldenSupportTest {
 
   @Test
   void argbImagesHavePartialAlpha() {
-    BufferedImage img = TestImages.create(TestImages.Pattern.GRADIENT, TestImages.Kind.ARGB, 16, 16);
+    BufferedImage img =
+        TestImages.create(TestImages.Pattern.GRADIENT, TestImages.Kind.ARGB, 16, 16);
     assertThat(img.getRGB(0, 0) >>> 24).isEqualTo(255);
     assertThat(img.getRGB(15, 0) >>> 24).isBetween(1, 254);
   }
