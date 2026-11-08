@@ -88,10 +88,14 @@ public final class RenderLane implements AutoCloseable {
   private boolean closed;
 
   /**
-   * Última petición interactiva: una interactiva solo publica si sigue siéndolo (así un resultado
-   * ya terminado pero aún sin publicar no se muestra tras una petición más nueva).
+   * Secuencia de la última petición interactiva: una interactiva solo publica si sigue siéndolo
+   * (así un resultado ya terminado pero aún sin publicar no se muestra tras una petición más
+   * nueva). Es un número y no el trabajo, para no retener oyentes ni resultados de trabajos
+   * terminados.
    */
-  private volatile Job latestInteractive;
+  private volatile long latestInteractiveSeq;
+
+  private long seqCounter;
 
   public RenderLane(
       String name,
@@ -117,6 +121,7 @@ public final class RenderLane implements AutoCloseable {
     final Renderer.Request request;
     final RenderKey key;
     final boolean protectedJob;
+    final long seq;
     final CancellationToken token = CancellationToken.create();
     final List<Listener> listeners = new CopyOnWriteArrayList<>();
     volatile boolean superseded;
@@ -127,6 +132,7 @@ public final class RenderLane implements AutoCloseable {
       this.request = request;
       this.key = key;
       this.protectedJob = protectedJob;
+      this.seq = ++seqCounter;
       listeners.add(l);
     }
 
@@ -173,7 +179,7 @@ public final class RenderLane implements AutoCloseable {
           supersede(pendingInteractive);
         }
         pendingInteractive = job;
-        latestInteractive = job;
+        latestInteractiveSeq = job.seq;
         if (running != null && !running.protectedJob) {
           supersede(running);
         }
@@ -312,7 +318,7 @@ public final class RenderLane implements AutoCloseable {
   }
 
   private boolean isObsolete(Job job) {
-    return job.superseded || (!job.protectedJob && job != latestInteractive);
+    return job.superseded || (!job.protectedJob && job.seq != latestInteractiveSeq);
   }
 
   private void progress(Job job, long done, long total) {

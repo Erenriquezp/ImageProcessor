@@ -28,14 +28,20 @@ public final class LatestWins<I, O> implements AutoCloseable {
   private Job pending;
   private boolean closed;
 
-  /** Último trabajo pedido: solo él puede publicar (aunque otro ya haya terminado). */
-  private volatile Job latest;
+  /**
+   * Secuencia del último trabajo pedido: solo él puede publicar (aunque otro ya haya terminado). Un
+   * número, no el trabajo, para no retener entradas ni consumidores.
+   */
+  private volatile long latestSeq;
+
+  private long seqCounter;
 
   private final class Job {
     final I input;
     final Consumer<O> onResult;
     final Consumer<Throwable> onError;
     final CancellationToken token = CancellationToken.create();
+    final long seq = ++seqCounter;
     volatile boolean superseded;
 
     Job(I input, Consumer<O> onResult, Consumer<Throwable> onError) {
@@ -63,7 +69,7 @@ public final class LatestWins<I, O> implements AutoCloseable {
       throw new IllegalStateException(name + " cerrado");
     }
     Job job = new Job(input, onResult, onError);
-    latest = job;
+    latestSeq = job.seq;
     if (pending != null) {
       pending.supersede();
     }
@@ -110,14 +116,14 @@ public final class LatestWins<I, O> implements AutoCloseable {
           () -> name + ": fallo en segundo plano",
           e);
     }
-    if (job.superseded || job != latest || (out == null && error == null)) {
+    if (job.superseded || job.seq != latestSeq || (out == null && error == null)) {
       return;
     }
     O result = out;
     Throwable failure = error;
     publisher.execute(
         () -> {
-          if (job.superseded || job != latest) {
+          if (job.superseded || job.seq != latestSeq) {
             return;
           }
           if (failure == null) {
