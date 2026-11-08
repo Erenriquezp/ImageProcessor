@@ -60,7 +60,7 @@ No se escribe el campo `Software`. «Web» usa «Quitar todo».
 exiftool -a -G1 -s -gps:all -xmp:all salida.jpg
 ```
 
-No debe mostrar nada. Sin ExifTool, busca en el archivo exportado la cadena `GPS` o `ns.adobe.com/xap`: tampoco debe aparecer ninguna.
+No debe mostrar nada. Sin ExifTool, en Windows: clic derecho en el archivo, Propiedades, Detalles; no debe aparecer la sección GPS. Buscar la palabra `GPS` en el archivo no sirve: en EXIF son etiquetas binarias.
 
 ## Escritura de archivos
 
