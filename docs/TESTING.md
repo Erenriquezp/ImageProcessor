@@ -7,7 +7,7 @@ Las operaciones de imagen (`service/`, `domain/`) no dependen de JavaFX, así qu
 
 ```bash
 ./mvnw test                       # todos los tests (Windows PowerShell: .\mvnw.cmd test)
-./mvnw verify                     # tests + Checkstyle (informe) + JaCoCo (informe en target/site/jacoco/)
+./mvnw verify                     # tests + Checkstyle (informe) + JaCoCo (informe por módulo en <módulo>/target/site/jacoco/ y agregado en app/target/site/jacoco-aggregate/)
 ./mvnw test -Dgroups=property     # solo una etiqueta
 ./mvnw test -DexcludedGroups=known-issue
 ./mvnw test -Dtest=LegacyPinTest
@@ -26,7 +26,7 @@ JaCoCo no tiene umbral de bloqueo todavía.
 
 ## Goldens
 
-Los PNG de referencia están en `src/test/resources/golden/<operacion>/<caso>__<imagen>.png` (peso total < 2 MB).
+Los PNG de referencia están en `app/src/test/resources/golden/<operacion>/<caso>__<imagen>.png` (peso total < 2 MB).
 
 - Sin flags, un golden ausente **hace fallar** el test; nunca se crea en silencio.
 - Para regenerarlos, de forma deliberada: `./mvnw test -Dtest=LegacyPinTest -Dgolden.update=true`.
@@ -42,7 +42,7 @@ Los PNG de referencia están en `src/test/resources/golden/<operacion>/<caso>__<
 
 El detalle por operación (justificación y parámetros) está en el plan local de la fase 0.
 
-## Utilidades (`src/test/java/.../testsupport`)
+## Utilidades (`app/src/test/java/.../testsupport`)
 
 - `TestImages`: imágenes deterministas (degradado, tablero, ruido con semilla fija, bordes duros), RGB y ARGB con alpha parcial.
 - `ImageAssert`: igualdad exacta o con tolerancia por canal, dimensiones, alpha, rango.

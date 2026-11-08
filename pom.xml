@@ -38,6 +38,8 @@
         <spotless.ratchet>develop</spotless.ratchet>
         <!-- JaCoCo rellena argLine; el valor vacio evita un literal "@{argLine}" si se omite el agente -->
         <argLine></argLine>
+        <!-- Permite -Dtest=Clase desde la raiz aunque un modulo no tenga esa clase -->
+        <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     </properties>
 
     <dependencyManagement>

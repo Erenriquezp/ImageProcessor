@@ -38,7 +38,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-${{ matrix.os }}-jdk${{ matrix.java }}
-          path: target/site/jacoco/
+          path: |
+            **/target/site/jacoco/
+            app/target/site/jacoco-aggregate/
           if-no-files-found: ignore
 
       - name: Subir resultados de surefire
@@ -47,8 +49,8 @@ jobs:
         with:
           name: surefire-${{ matrix.os }}-jdk${{ matrix.java }}
           path: |
-            target/surefire-reports/
-            target/checkstyle-result.xml
+            **/target/surefire-reports/
+            **/target/checkstyle-result.xml
           if-no-files-found: ignore
 
   # Opcional y no bloqueante: formato (solo codigo cambiado) y SpotBugs con JDK 21
@@ -94,5 +96,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: spotbugs-report
-          path: target/spotbugsXml.xml
+          path: "**/target/spotbugsXml.xml"
           if-no-files-found: ignore
