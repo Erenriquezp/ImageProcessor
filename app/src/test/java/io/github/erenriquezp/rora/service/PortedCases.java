@@ -4,6 +4,7 @@ import io.github.erenriquezp.rora.core.op.Params;
 import io.github.erenriquezp.rora.domain.DepthSource;
 import io.github.erenriquezp.rora.domain.EqualizeMode;
 import io.github.erenriquezp.rora.domain.FragmentBlendMode;
+import io.github.erenriquezp.rora.domain.TextureFilterMode;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +48,7 @@ final class PortedCases {
     List<Case> l = new ArrayList<>();
     pilots(l);
     pointOps(l);
+    neighborhoodOps(l);
     return l;
   }
 
@@ -392,6 +394,59 @@ final class PortedCases {
           "raster.depth-map",
           p -> p.set("source", CoreBridge.enumId(s)),
           false);
+    }
+  }
+
+  // -- Lote 2: vecindad y con estado -----------------------------------------
+
+  private static void neighborhoodOps(List<Case> l) {
+    for (BufferAcumulacion_LOAD.Mode m : BufferAcumulacion_LOAD.Mode.values()) {
+      String id =
+          switch (m) {
+            case ADD -> "add";
+            case ACUM -> "accum";
+            case MULT -> "mult";
+          };
+      // Parametros de la fachada (25, 8): legacy, fachada y nucleo.
+      add(
+          l,
+          "bufferAccumulation",
+          m + ",samples=25,disp=8",
+          i -> BufferAcumulacion_LOAD.applyAccumulation(i, m, 25, 8),
+          i -> ImageProcessor.bufferAccumulation(i, m),
+          "accum.motion",
+          p -> p.set("mode", id).set("samples", 25).set("displacement", 8),
+          true);
+      // Otros parametros del nucleo (incluidos los minimos que recorta el legacy): la fachada no
+      // los expone, asi que su camino se compara con el legacy a 25/8 solo en el caso anterior.
+      int[][] sd = {{0, 0}, {2, 1}, {3, 100}, {64, 1}, {7, 3}};
+      for (int[] v : sd) {
+        add(
+            l,
+            "bufferAccumulation",
+            m + ",samples=" + v[0] + ",disp=" + v[1],
+            i -> BufferAcumulacion_LOAD.applyAccumulation(i, m, v[0], v[1]),
+            null,
+            "accum.motion",
+            p -> p.set("mode", id).set("samples", v[0]).set("displacement", v[1]),
+            false);
+      }
+    }
+
+    for (TextureFilterMode m :
+        new TextureFilterMode[] {TextureFilterMode.NEAREST, TextureFilterMode.BILINEAR, null}) {
+      for (float s : new float[] {0.25f, 1f, 1.5f, 4f, 0.01f, -2f, 0.3f, Float.NaN}) {
+        String filter = m == TextureFilterMode.BILINEAR ? "bilinear" : "nearest";
+        add(
+            l,
+            "textureSample",
+            (m == null ? "null" : m.name()) + ",scale=" + s,
+            i -> RasterPipelineFilters.textureSample(i, s, m),
+            i -> ImageProcessor.textureSample(i, s, m),
+            "raster.texture-sample",
+            p -> p.set("scale", s).set("filter", filter),
+            m != null && s == 1.5f);
+      }
     }
   }
 

@@ -61,7 +61,9 @@ class CoreEquivalenceTest {
     boolean coreApplicable = coreApplicable(c);
     for (Sample s : samples) {
       BufferedImage expected = c.legacy().apply(s.image());
-      check(c, s, "fachada", expected, c.facade());
+      if (c.facade() != null) {
+        check(c, s, "fachada", expected, c.facade());
+      }
       if (coreApplicable) {
         check(c, s, "1 hilo", expected, core(c, OpContext.sequential()));
         check(c, s, "7 hilos", expected, core(c, OpContext.of(SEVEN)));

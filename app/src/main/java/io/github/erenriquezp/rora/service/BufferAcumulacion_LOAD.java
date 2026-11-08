@@ -17,6 +17,8 @@ public class BufferAcumulacion_LOAD {
      * @param displacement desplazamiento en píxeles entre muestras sucesivas
      * @return imagen procesada
      */
+    // Portado al nucleo (accum.motion): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     public static BufferedImage applyAccumulation(BufferedImage original, Mode mode, int samples, int displacement) {
         return switch (mode) {
             case ADD -> aplicarADD(original, samples, displacement);
@@ -30,6 +32,8 @@ public class BufferAcumulacion_LOAD {
      * promediando uniformemente. Produce un efecto de motion blur lineal.
      * Cada muestra contribuye con peso igual (1/N).
      */
+    // Portado al nucleo (accum.motion): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     public static BufferedImage aplicarADD(BufferedImage imagen, int samples, int displacement) {
         int ancho = imagen.getWidth();
         int alto = imagen.getHeight();
@@ -85,6 +89,8 @@ public class BufferAcumulacion_LOAD {
      * La primera muestra (i=0) tiene peso 1.0, las siguientes se atenúan.
      * El resultado se normaliza por la suma total de pesos.
      */
+    // Portado al nucleo (accum.motion): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     public static BufferedImage aplicarACUM(BufferedImage imagen, int samples, int displacement) {
         int ancho = imagen.getWidth();
         int alto = imagen.getHeight();
@@ -145,6 +151,8 @@ public class BufferAcumulacion_LOAD {
      * donde los píxeles desplazados no son blancos, creando un efecto de
      * viñeteo/sombra acumulativo.
      */
+    // Portado al nucleo (accum.motion): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     public static BufferedImage aplicarMULT(BufferedImage imagen, int samples, int displacement) {
         int ancho = imagen.getWidth();
         int alto = imagen.getHeight();

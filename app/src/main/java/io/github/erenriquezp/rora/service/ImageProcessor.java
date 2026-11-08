@@ -110,7 +110,14 @@ public final class ImageProcessor {
     }
 
     public static BufferedImage bufferAccumulation(BufferedImage original, BufferAcumulacion_LOAD.Mode mode) {
-        return BufferAcumulacion_LOAD.applyAccumulation(original, mode, 25, 8);
+        // Como el legacy: un modo null lanza NullPointerException en el switch.
+        String modeId = switch (mode) {
+            case ADD -> "add";
+            case ACUM -> "accum";
+            case MULT -> "mult";
+        };
+        return CoreBridge.apply("accum.motion", original,
+                p -> p.set("mode", modeId).set("samples", 25).set("displacement", 8));
     }
 
     // ── Histogram ─────────────────────────────────────────────────────────────
@@ -167,7 +174,10 @@ public final class ImageProcessor {
     }
 
     public static BufferedImage textureSample(BufferedImage original, float scale, TextureFilterMode mode) {
-        return RasterPipelineFilters.textureSample(original, scale, mode);
+        // Como el legacy: cualquier modo distinto de BILINEAR (incluido null) es vecino mas cercano.
+        String filter = mode == TextureFilterMode.BILINEAR ? "bilinear" : "nearest";
+        return CoreBridge.apply("raster.texture-sample", original,
+                p -> p.set("scale", scale).set("filter", filter));
     }
 
     public static BufferedImage depthInterpolate(BufferedImage original, DepthSource source,

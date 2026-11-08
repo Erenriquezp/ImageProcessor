@@ -13,6 +13,7 @@ module io.github.erenriquezp.rora.core {
 
   // Añadir una operación = 1 clase + 1 línea aquí.
   provides io.github.erenriquezp.rora.core.op.Operation with
+      io.github.erenriquezp.rora.core.ops.accum.MotionAccumulationOp,
       io.github.erenriquezp.rora.core.ops.artistic.CircularFadeOp,
       io.github.erenriquezp.rora.core.ops.color.BrightnessOp,
       io.github.erenriquezp.rora.core.ops.color.GrayscaleAverageOp,
@@ -31,6 +32,7 @@ module io.github.erenriquezp.rora.core {
       io.github.erenriquezp.rora.core.ops.point.SoftThresholdOp,
       io.github.erenriquezp.rora.core.ops.raster.DepthMapOp,
       io.github.erenriquezp.rora.core.ops.raster.PixelateOp,
+      io.github.erenriquezp.rora.core.ops.raster.TextureSampleOp,
       io.github.erenriquezp.rora.core.ops.tone.EqualizeOp,
       io.github.erenriquezp.rora.core.ops.tone.PosterizeChannelsOp,
       io.github.erenriquezp.rora.core.ops.tone.PosterizeOp;

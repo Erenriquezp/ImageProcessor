@@ -144,6 +144,8 @@ final class RasterPipelineFilters {
      * Trata la imagen como textura y la remuestrea con UV escaladas
      * (nearest o bilinear), pixel a pixel.
      */
+    // Portado al nucleo (raster.texture-sample): solo lo usan los tests diferenciales; se elimina en la fase 3.
+    @Deprecated(forRemoval = true, since = "fase-1")
     static BufferedImage textureSample(BufferedImage original, float scale, TextureFilterMode mode) {
         int w = original.getWidth();
         int h = original.getHeight();
