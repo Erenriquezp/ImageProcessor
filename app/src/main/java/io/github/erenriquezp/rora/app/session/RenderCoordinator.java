@@ -63,7 +63,8 @@ public final class RenderCoordinator implements AutoCloseable {
             publisher,
             PREVIEW_DEBOUNCE_NANOS);
     RenderLane f = new RenderLane("full", renderer, fullTiles, fullWorker, scheduler, publisher, 0);
-    RenderLane x = new RenderLane("aux", renderer, previewTiles, auxWorker, scheduler, publisher, 0);
+    RenderLane x =
+        new RenderLane("aux", renderer, previewTiles, auxWorker, scheduler, publisher, 0);
     AutoCloseable res =
         () -> {
           previewWorker.shutdownNow();
@@ -78,7 +79,8 @@ public final class RenderCoordinator implements AutoCloseable {
     return new RenderCoordinator(p, f, x, res);
   }
 
-  static ExecutorService singleThread(String name, int priority) {
+  /** Ejecutor de un hilo daemon con nombre (workers de carriles y paneles). */
+  public static ExecutorService singleThread(String name, int priority) {
     return Executors.newSingleThreadExecutor(
         r -> {
           Thread t = new Thread(r, name);
@@ -102,8 +104,7 @@ public final class RenderCoordinator implements AutoCloseable {
   }
 
   /** FULL interactivo, último gana dentro de su propósito ({@code slot}). */
-  public RenderLane.Ticket full(
-      Renderer.Request req, RenderLane.Listener l, RenderLane.Slot slot) {
+  public RenderLane.Ticket full(Renderer.Request req, RenderLane.Listener l, RenderLane.Slot slot) {
     return full.submit(req, l, slot);
   }
 

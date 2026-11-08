@@ -2,6 +2,7 @@ package io.github.erenriquezp.rora.app.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.erenriquezp.rora.core.exec.CancellationToken;
 import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.op.OpSpec;
 import io.github.erenriquezp.rora.core.op.Operation;
@@ -9,6 +10,7 @@ import io.github.erenriquezp.rora.core.op.Params;
 import io.github.erenriquezp.rora.core.op.Renderer;
 import io.github.erenriquezp.rora.domain.ConvolutionKernel;
 import io.github.erenriquezp.rora.domain.FilterType;
+import io.github.erenriquezp.rora.service.ImageBridge;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.File;
@@ -184,6 +186,49 @@ class SessionMemoryTest {
       report.forEach(System.out::println);
     }
     assertThat(maxLive).as("meta del roadmap: < 1,5 GB").isLessThan(1536 * MB);
+  }
+
+  /**
+   * Decisión 3 de la fase 2: heap vivo del panel de blending con 24 MP, publicando a la interfaz la
+   * imagen completa o una copia de 4 MP. Las {@code WritableImage} se emulan con {@code int[]} del
+   * mismo tamaño (el {@code FramePool} retiene hasta 3 por vista).
+   */
+  @Test
+  @Timeout(600)
+  void blendingPanelDisplayCopy() throws Exception {
+    BufferedImage fg = ImageBridge.toBufferedImage(ImageBridge.toImg(synthetic24mp()));
+    BufferedImage bg = synthetic24mp();
+    long full = blendLive(fg, bg, 0);
+    long copy = blendLive(fg, bg, PaneWork.DISPLAY_MAX_PIXELS);
+    long xmx = Runtime.getRuntime().maxMemory();
+    List<String> lines =
+        List.of(
+            "blending 24 MP, imagen completa en la UI: " + full / MB + " MB vivos",
+            "blending 24 MP, copia de 4 MP en la UI:   " + copy / MB + " MB vivos",
+            "25 % del heap (umbral de la decisión 3):  " + xmx / 4 / MB + " MB");
+    Path target = Path.of(System.getProperty("user.dir"), "target", "memory-blend-report.txt");
+    Files.createDirectories(target.getParent());
+    Files.write(target, lines);
+    lines.forEach(System.out::println);
+    assertThat(copy).as("la copia reduce la memoria").isLessThan(full);
+  }
+
+  private long blendLive(BufferedImage fg, BufferedImage bg, long maxPixels) {
+    long max = 0;
+    int[][] fx = new int[3][];
+    BufferedImage exact = null;
+    for (int tick = 0; tick < 4; tick++) {
+      exact = PaneWork.blend(fg, bg, 0.2f + tick * 0.1f);
+      Img shown = PaneWork.displayCopy(exact, maxPixels, CancellationToken.none());
+      fx[tick % 3] = shown.toArray();
+      System.gc();
+      System.gc();
+      Runtime rt = Runtime.getRuntime();
+      max = Math.max(max, rt.totalMemory() - rt.freeMemory());
+    }
+    assertThat(exact.getWidth()).isEqualTo(6000);
+    assertThat(fx[0]).isNotNull();
+    return max;
   }
 
   private static List<OpSpec> tenSteps(EditSession<Img> s, FilterParams p) {

@@ -47,6 +47,8 @@ public final class FramePool<T> {
       }
     }
     created++;
+    // Otro tamaño: las libres de tamaños anteriores ya no sirven (no retener esa memoria).
+    free.clear();
     return factory.apply(w, h);
   }
 
@@ -84,6 +86,11 @@ public final class FramePool<T> {
     while (free.size() > 2) {
       free.removeFirst();
     }
+  }
+
+  /** (FX) ¿Queda alguna retirada esperando pulsos? La escena debe pedir otro pulso. */
+  public synchronized boolean hasRetired() {
+    return !retired.isEmpty();
   }
 
   synchronized long createdCount() {

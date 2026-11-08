@@ -16,8 +16,8 @@ import java.io.UncheckedIOException;
 
 /**
  * Trabajo de los paneles de blending, histograma y degradado, para ejecutar en sus {@link
- * LatestWins} (nunca en el hilo FX). Son las mismas llamadas a la fachada que hacían los paneles: la
- * interfaz no depende de ella directamente.
+ * LatestWins} (nunca en el hilo FX). Son las mismas llamadas a la fachada que hacían los paneles:
+ * la interfaz no depende de ella directamente.
  */
 public final class PaneWork {
 

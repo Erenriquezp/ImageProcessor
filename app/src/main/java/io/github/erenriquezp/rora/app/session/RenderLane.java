@@ -69,7 +69,9 @@ public final class RenderLane implements AutoCloseable {
       return null;
     }
 
-    /** Resultado y lo preparado en el worker; por defecto llama a {@link #onDone(Renderer.Result)}. */
+    /**
+     * Resultado y lo preparado en el worker; por defecto llama a {@link #onDone(Renderer.Result)}.
+     */
     default void onDone(Renderer.Result result, Object prepared) {
       onDone(result);
     }

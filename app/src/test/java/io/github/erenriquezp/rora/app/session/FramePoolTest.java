@@ -46,4 +46,25 @@ class FramePoolTest {
     pool.discard(b);
     assertThat(pool.freeCount()).isEqualTo(2);
   }
+
+  @Test
+  void aNewSizeDropsFreeImagesOfOldSizes() {
+    Fake a = pool.acquire(10, 10);
+    pool.discard(a);
+    assertThat(pool.freeCount()).isEqualTo(1);
+    pool.acquire(20, 20);
+    assertThat(pool.freeCount()).isZero();
+  }
+
+  @Test
+  void hasRetiredUntilTheImageIsFreed() {
+    Fake a = pool.acquire(10, 10);
+    pool.displayed(a);
+    assertThat(pool.hasRetired()).isFalse();
+    pool.displayed(pool.acquire(10, 10));
+    assertThat(pool.hasRetired()).isTrue();
+    pool.pulse();
+    pool.pulse();
+    assertThat(pool.hasRetired()).isFalse();
+  }
 }
