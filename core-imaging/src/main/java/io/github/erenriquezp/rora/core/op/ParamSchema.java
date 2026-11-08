@@ -77,6 +77,17 @@ public final class ParamSchema {
     return Optional.of(b.build());
   }
 
+  /** Igualdad estructural: la misma lista de definiciones (todas son records). */
+  @Override
+  public boolean equals(Object o) {
+    return o instanceof ParamSchema s && s.params.equals(params);
+  }
+
+  @Override
+  public int hashCode() {
+    return params.hashCode();
+  }
+
   @Override
   public String toString() {
     return "ParamSchema" + params.stream().map(ParamDef::key).toList();
