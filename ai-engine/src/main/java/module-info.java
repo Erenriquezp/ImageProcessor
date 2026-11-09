@@ -5,4 +5,5 @@ module io.github.erenriquezp.rora.ai {
 
   exports io.github.erenriquezp.rora.ai.api;
   exports io.github.erenriquezp.rora.ai.tile;
+  exports io.github.erenriquezp.rora.ai.store;
 }
