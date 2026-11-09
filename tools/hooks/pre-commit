@@ -9,8 +9,7 @@ staged=$(git diff --cached --name-only --diff-filter=ACM)
 
 bad=$(printf '%s\n' "$staged" | grep -E '(^|/)(\.idea|target|\.planning|\.claude)/|\.iml$|(^|/)CLAUDE(\.local)?\.md$|\.local\.md$|\.onnx$|\.pt$|\.pth$|\.pem$|\.key$|(^|/)\.env(\.|$)')
 # Excepciones aprobadas (fase 5, igual que .gitignore): el modelo incluido y los sinteticos de prueba
-bad=$(printf '%s
-' "$bad" | grep -Ev '^ai-engine/src/main/resources/io/github/erenriquezp/rora/ai/models/realesr-general-x4v3.onnx$|^ai-engine/src/test/resources/models/[^/]*.onnx$')
+bad=$(printf '%s\n' "$bad" | grep -Ev '^ai-engine/src/main/resources/io/github/erenriquezp/rora/ai/models/realesr-general-x4v3\.onnx$|^ai-engine/src/test/resources/models/[^/]*\.onnx$')
 if [ -n "$bad" ]; then
   echo "" >&2
   echo "ERROR: hay archivos en el commit que no deben versionarse:" >&2
