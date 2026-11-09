@@ -4,4 +4,5 @@ module io.github.erenriquezp.rora.ai {
   requires com.microsoft.onnxruntime;
 
   exports io.github.erenriquezp.rora.ai.api;
+  exports io.github.erenriquezp.rora.ai.tile;
 }
