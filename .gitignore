@@ -67,6 +67,9 @@ ehthumbs.db
 *.safetensors
 # Entorno de exportacion de modelos (fase 5)
 /tools/models/.venv/
+# Excepciones: el modelo incluido con la app (decision A1) y los modelos sinteticos de prueba
+!/ai-engine/src/main/resources/io/github/erenriquezp/rora/ai/models/realesr-general-x4v3.onnx
+!/ai-engine/src/test/resources/models/*.onnx
 
 ### Imágenes de prueba personales ###
 samples-private/

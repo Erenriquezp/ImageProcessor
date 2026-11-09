@@ -1,0 +1,5 @@
+/** Motor de IA local de Rora Studio. ONNX Runtime no sale de este módulo. */
+module io.github.erenriquezp.rora.ai {
+  requires io.github.erenriquezp.rora.core;
+  requires com.microsoft.onnxruntime;
+}

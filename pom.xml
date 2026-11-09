@@ -13,6 +13,7 @@
     <modules>
         <module>core-imaging</module>
         <module>imaging-io</module>
+        <module>ai-engine</module>
         <module>app</module>
         <module>lab-plugin</module>
     </modules>
@@ -24,6 +25,21 @@
             <modules>
                 <module>bench</module>
             </modules>
+        </profile>
+        <!-- Plataforma de los nativos de ONNX Runtime; por defecto, win-x64 -->
+        <profile>
+            <id>ort-linux-x64</id>
+            <activation>
+                <os><name>linux</name><arch>amd64</arch></os>
+            </activation>
+            <properties><ort.platform>linux-x64</ort.platform></properties>
+        </profile>
+        <profile>
+            <id>ort-osx-aarch64</id>
+            <activation>
+                <os><family>mac</family><arch>aarch64</arch></os>
+            </activation>
+            <properties><ort.platform>osx-aarch64</ort.platform></properties>
         </profile>
     </profiles>
 
@@ -50,6 +66,13 @@
         <license-plugin.version>2.8.0</license-plugin.version>
         <assertj.version>3.27.3</assertj.version>
         <javafx-plugin.version>0.0.8</javafx-plugin.version>
+        <dependency-plugin.version>3.7.0</dependency-plugin.version>
+        <!-- MIT. SHA-256 del JAR fijado: d3f903af31fe8f01300adb6b2b67297aa5bee7895909afc32e76ef29a3921149
+             (lo comprueba tools/jlink-check.sh; los nativos, OrtNative) -->
+        <onnxruntime.version>1.31.0</onnxruntime.version>
+        <ort.platform>win-x64</ort.platform>
+        <ort.unpack.dir>${maven.multiModuleProjectDirectory}/ai-engine/target/ort-native</ort.unpack.dir>
+        <ort.native.dir>${ort.unpack.dir}/ai/onnxruntime/native/${ort.platform}</ort.native.dir>
         <!-- Spotless solo comprueba el codigo cambiado desde esta referencia (ratchet).
              Local: develop. En CI se sobrescribe con -Dspotless.ratchet=origin/develop -->
         <spotless.ratchet>develop</spotless.ratchet>
@@ -70,6 +93,16 @@
                 <groupId>io.github.erenriquezp</groupId>
                 <artifactId>rora-imaging-io</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.erenriquezp</groupId>
+                <artifactId>rora-ai-engine</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.microsoft.onnxruntime</groupId>
+                <artifactId>onnxruntime</artifactId>
+                <version>${onnxruntime.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.twelvemonkeys.imageio</groupId>

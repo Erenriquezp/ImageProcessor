@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.erenriquezp</groupId>
+        <artifactId>rora-parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>rora-ai-engine</artifactId>
+    <name>Rora Studio - motor de IA local</name>
+    <description>Inferencia local con ONNX Runtime, por tiles. Sin red y sin JavaFX.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.erenriquezp</groupId>
+            <artifactId>rora-core-imaging</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.onnxruntime</groupId>
+            <artifactId>onnxruntime</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <properties>
+        <!-- Los modelos reales no entran en verify: -Dgroups=ai-real -DexcludedGroups= los activa -->
+        <excludedGroups>ai-real</excludedGroups>
+    </properties>
+
+    <build>
+        <plugins>
+            <!-- Los nativos se desempaquetan aqui para que ORT nunca los extraiga a %TEMP% -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>${dependency-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>ort-native</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.microsoft.onnxruntime</groupId>
+                                    <artifactId>onnxruntime</artifactId>
+                                    <version>${onnxruntime.version}</version>
+                                    <includes>ai/onnxruntime/native/${ort.platform}/*</includes>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${ort.unpack.dir}</outputDirectory>
+                            <overWriteSnapshots>true</overWriteSnapshots>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>@{argLine} -Dfile.encoding=UTF-8 --enable-native-access=com.microsoft.onnxruntime -Donnxruntime.native.path=${ort.native.dir}</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
