@@ -65,6 +65,8 @@ ehthumbs.db
 *.pt
 *.pth
 *.safetensors
+# Entorno de exportacion de modelos (fase 5)
+/tools/models/.venv/
 
 ### Imágenes de prueba personales ###
 samples-private/
