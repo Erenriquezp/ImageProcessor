@@ -108,6 +108,7 @@ public final class Catalog {
           "analysis.exposure",
           "analysis.histogram",
           "adjust.basic",
+          "ai.enhance",
           "transform.crop",
           "transform.flip",
           "transform.resize",

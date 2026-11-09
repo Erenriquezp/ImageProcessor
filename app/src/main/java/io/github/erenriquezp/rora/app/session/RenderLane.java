@@ -305,7 +305,9 @@ public final class RenderLane implements AutoCloseable {
     if (!job.superseded) {
       try {
         Progress progress = (done, total) -> progress(job, done, total);
-        result = renderer.render(job.request, new OpContext(tiles, job.token, progress));
+        result =
+            renderer.render(
+                job.request, new OpContext(tiles, job.token, progress, renderer.artifacts()));
       } catch (CancelledException e) {
         // Sustituido o abandonado: nada que publicar.
       } catch (OutOfMemoryError e) {

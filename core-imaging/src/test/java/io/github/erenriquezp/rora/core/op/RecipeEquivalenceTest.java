@@ -113,7 +113,7 @@ class RecipeEquivalenceTest {
       steps.add(OpSpec.of(sat, Params.builder(sat.schema()).set("factor", tick / 10f).build()));
       Renderer.Result res =
           r.render(
-              new Renderer.Request(source, steps, head.size(), RenderLevel.FULL),
+              new Renderer.Request(source, steps, (int) head.stream().filter(OpSpec::enabled).count(), RenderLevel.FULL),
               OpContext.sequential());
       assertThat(res.image().sameContent(sequential(src, steps))).isTrue();
       if (tick > 0) {

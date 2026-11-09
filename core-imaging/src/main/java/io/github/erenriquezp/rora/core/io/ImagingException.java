@@ -83,17 +83,23 @@ public abstract sealed class ImagingException extends Exception {
 
     /** Causa, para elegir el mensaje. */
     public enum Reason {
-      ENGINE_UNAVAILABLE,
-      MODEL_CORRUPT,
-      SHAPE_MISMATCH,
-      OUT_OF_MEMORY,
-      FAILURE
+      ENGINE_UNAVAILABLE("io.error.ai_unavailable"),
+      MODEL_CORRUPT("io.error.ai_model_corrupt"),
+      SHAPE_MISMATCH("io.error.ai_shape"),
+      OUT_OF_MEMORY("io.error.ai_memory"),
+      FAILURE("io.error.ai_failure");
+
+      private final String key;
+
+      Reason(String key) {
+        this.key = key;
+      }
     }
 
     private final Reason reason;
 
     public AiFailure(Reason reason, String technical, Throwable cause) {
-      super("ai.error." + reason.name().toLowerCase(java.util.Locale.ROOT), technical, cause);
+      super(reason.key, technical, cause);
       this.reason = reason;
     }
 

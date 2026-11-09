@@ -67,6 +67,7 @@ class RegistryPropertiesTest {
         .containsExactly(
             "accum.motion",
             "adjust.basic",
+            "ai.enhance",
             "analysis.exposure",
             "analysis.histogram",
             "artistic.circular-fade",
