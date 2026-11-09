@@ -3,11 +3,18 @@ package io.github.erenriquezp.rora.app.session;
 import io.github.erenriquezp.rora.app.imaging.SourceFormat;
 import io.github.erenriquezp.rora.app.lab.LabBundle;
 import io.github.erenriquezp.rora.app.lab.LabBundles;
+import io.github.erenriquezp.rora.app.session.ai.AiJobService;
+import io.github.erenriquezp.rora.app.session.ai.AiResolver;
+import io.github.erenriquezp.rora.app.session.ai.ArtifactKey;
+import io.github.erenriquezp.rora.core.exec.Progress;
+import io.github.erenriquezp.rora.core.exec.TileExecutor;
 import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.image.ProxyPolicy;
 import io.github.erenriquezp.rora.core.image.ProxyPolicy.Size;
+import io.github.erenriquezp.rora.core.op.ArtifactLookup;
 import io.github.erenriquezp.rora.core.op.EditRecipe;
 import io.github.erenriquezp.rora.core.op.ExposureStats;
+import io.github.erenriquezp.rora.core.op.OpContext;
 import io.github.erenriquezp.rora.core.op.OpRegistry;
 import io.github.erenriquezp.rora.core.op.OpSpec;
 import io.github.erenriquezp.rora.core.op.Operation;
@@ -72,6 +79,8 @@ public final class EditSession<F> implements AutoCloseable {
   private static final RenderLane.Slot SLOT_CURRENT = new RenderLane.Slot("current", 1);
   private static final RenderLane.Slot SLOT_DIAGNOSTIC = new RenderLane.Slot("diagnostic", 1);
 
+  private final AiJobService ai;
+  private final AiResolver aiResolver;
   private final OpRegistry registry;
   private final Renderer renderer;
   private final RenderCoordinator coordinator;
@@ -113,6 +122,20 @@ public final class EditSession<F> implements AutoCloseable {
       long cacheBytes,
       boolean fusion,
       Function<Renderer, RenderCoordinator> coordinatorFactory) {
+    this(toFrame, policy, cacheBytes, fusion, coordinatorFactory, null);
+  }
+
+  /**
+   * @param ai mejora con IA; {@code null} si esta sesión no la ofrece
+   */
+  public EditSession(
+      Function<Img, F> toFrame,
+      ProxyPolicy policy,
+      long cacheBytes,
+      boolean fusion,
+      Function<Renderer, RenderCoordinator> coordinatorFactory,
+      AiJobService ai) {
+    this.ai = ai;
     this.toFrame = Objects.requireNonNull(toFrame, "toFrame");
     this.policy = Objects.requireNonNull(policy, "policy");
     SourceFormat.NativeSource ns =
@@ -134,7 +157,13 @@ public final class EditSession<F> implements AutoCloseable {
       ops.addAll(bundle.operations(ns));
     }
     this.registry = OpRegistry.of(ops);
-    this.renderer = new Renderer(registry, new ResultCache(cacheBytes), fusion);
+    this.renderer =
+        new Renderer(
+            registry,
+            new ResultCache(cacheBytes),
+            fusion,
+            ai != null ? ai : ArtifactLookup.NONE);
+    this.aiResolver = ai != null ? new AiResolver(renderer, ai) : null;
     this.coordinator = Objects.requireNonNull(coordinatorFactory.apply(renderer), "coordinator");
   }
 
@@ -144,7 +173,97 @@ public final class EditSession<F> implements AutoCloseable {
     long mb = Long.getLong("rora.cache.mb", -1L);
     long bytes = mb > 0 ? mb << 20 : ResultCache.defaultBudget();
     return new EditSession<>(
-        toFrame, ProxyPolicy.DEFAULT, bytes, fusion, r -> RenderCoordinator.create(r, publisher));
+        toFrame,
+        ProxyPolicy.DEFAULT,
+        bytes,
+        fusion,
+        r -> RenderCoordinator.create(r, publisher),
+        AiJobService.create(publisher, Scheduler.system()));
+  }
+
+  /** Servicio de mejora con IA, si esta sesión lo ofrece. */
+  public Optional<AiJobService> ai() {
+    return Optional.ofNullable(ai);
+  }
+
+  /** Paso de mejora activo de la receta actual, si lo hay. */
+  public Optional<AiResolver.Located> enhanceStep() {
+    if (aiResolver == null || current == null) {
+      return Optional.empty();
+    }
+    return aiResolver.locate(current.asRenderSource(), baseSteps(pending, List.of()));
+  }
+
+  /** Tamaño de la imagen que entraría al motor: tras la geometría. */
+  public Size sizeBeforeEnhance() {
+    SessionSource s = Objects.requireNonNull(current, "Sin imagen");
+    Size size = new Size(s.width(), s.height());
+    for (OpSpec step : visibleSteps()) {
+      if (step.opId().equals(AiResolver.ENHANCE)) {
+        break;
+      }
+      if (step.enabled()) {
+        Operation op = registry.require(step.opId());
+        size = op.outputSize(size, step.params().withSchema(op.schema()));
+      }
+    }
+    return size;
+  }
+
+  /**
+   * Lanza la mejora del paso activo. Es lo único que ejecuta el motor, y solo responde a una orden
+   * explícita.
+   *
+   * @return si se ha lanzado
+   */
+  public boolean startEnhance() {
+    Optional<AiResolver.Located> found = enhanceStep();
+    if (found.isEmpty()) {
+      return false;
+    }
+    AiResolver.Located located = found.get();
+    Renderer.SourceImage source = current.asRenderSource();
+    List<OpSpec> prefix = located.prefix();
+    OpSpec step = baseSteps(pending, List.of()).get(located.index());
+    boolean fullIntensity = step.params().getDouble("intensity") >= 100;
+    return ai.start(
+        located.key(),
+        fullIntensity,
+        token ->
+            renderer
+                .render(
+                    new Renderer.Request(source, prefix, prefix.size(), RenderLevel.FULL),
+                    new OpContext(TileExecutor.sequential(), token, Progress.NONE))
+                .image());
+  }
+
+  private List<OpSpec> baseSteps(OpSpec pendingStep, List<OpSpec> tail) {
+    SessionSource s = Objects.requireNonNull(current, "Sin imagen");
+    List<OpSpec> steps = visibleSteps();
+    if (pendingStep != null) {
+      steps.add(pendingStep);
+    }
+    steps.addAll(tail);
+    return new SourceFormats(registry, s.format(), s.nativeImage()).apply(steps).steps();
+  }
+
+  private boolean hasActiveEnhance() {
+    for (OpSpec s : visibleSteps()) {
+      if (s.enabled() && s.opId().equals(AiResolver.ENHANCE)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Tras cambiar la receta: un trabajo sobre otra entrada deja de valer. */
+  private void syncAi() {
+    if (ai == null || current == null) {
+      return;
+    }
+    Optional<ArtifactKey> key = enhanceStep().map(AiResolver.Located::key);
+    ai.keyChanged(key);
+    ai.retain(key.map(Set::of).orElse(Set.of()));
   }
 
   public void addListener(Listener<F> l) {
@@ -172,6 +291,9 @@ public final class EditSession<F> implements AutoCloseable {
     current = source;
     if (old != null) {
       renderer.cache().invalidateSource(old.id());
+      if (ai != null) {
+        ai.clear();
+      }
     }
     history.reset(EditRecipe.EMPTY);
     pending = null;
@@ -416,6 +538,12 @@ public final class EditSession<F> implements AutoCloseable {
     ProxyPolicy.Decision d = policy.decide(source, vw, vh, dpi, zoom * crop, proxy);
     proxy = d.proxy();
     fullNeeded = d.fullNeeded();
+    if (proxy.isEmpty() && hasActiveEnhance()) {
+      // Sin proxy, cada tick de un slider renderizaría la salida ampliada entera. La resolución
+      // completa solo se pide con zoom: es cuando se ve el detalle.
+      proxy = Optional.of(source);
+      fullNeeded = zoom > 1.0;
+    }
   }
 
   // ── Peticiones ────────────────────────────────────────────────────────────
@@ -428,7 +556,13 @@ public final class EditSession<F> implements AutoCloseable {
       steps.add(pendingStep);
     }
     steps.addAll(tail);
-    return new SourceFormats(registry, s.format(), s.nativeImage()).apply(steps);
+    SourceFormats.Effective eff =
+        new SourceFormats(registry, s.format(), s.nativeImage()).apply(steps);
+    if (aiResolver == null) {
+      return eff;
+    }
+    return new SourceFormats.Effective(
+        aiResolver.apply(s.asRenderSource(), eff.steps()), eff.finalFormat());
   }
 
   private Renderer.Request request(OpSpec pendingStep, List<OpSpec> tail, RenderLevel level) {
@@ -646,6 +780,7 @@ public final class EditSession<F> implements AutoCloseable {
 
   /** Lo que depende de la receta efectiva deja de valer: se llama tras cada cambio de estado. */
   private void stateChanged() {
+    syncAi();
     stateVersion++;
     currentImage = null;
     if (currentTicket != null) {
@@ -793,5 +928,8 @@ public final class EditSession<F> implements AutoCloseable {
   @Override
   public void close() {
     coordinator.close();
+    if (ai != null) {
+      ai.close();
+    }
   }
 }
