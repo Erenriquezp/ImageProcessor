@@ -77,6 +77,31 @@ public abstract sealed class ImagingException extends Exception {
     }
   }
 
+  /** Fallo del motor de IA local; siempre recuperable. */
+  public static final class AiFailure extends ImagingException {
+    private static final long serialVersionUID = 1L;
+
+    /** Causa, para elegir el mensaje. */
+    public enum Reason {
+      ENGINE_UNAVAILABLE,
+      MODEL_CORRUPT,
+      SHAPE_MISMATCH,
+      OUT_OF_MEMORY,
+      FAILURE
+    }
+
+    private final Reason reason;
+
+    public AiFailure(Reason reason, String technical, Throwable cause) {
+      super("ai.error." + reason.name().toLowerCase(java.util.Locale.ROOT), technical, cause);
+      this.reason = reason;
+    }
+
+    public Reason reason() {
+      return reason;
+    }
+  }
+
   /** No se pudo codificar la salida. */
   public static final class EncodingFailure extends ImagingException {
     private static final long serialVersionUID = 1L;
