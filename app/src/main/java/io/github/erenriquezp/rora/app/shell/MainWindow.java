@@ -597,11 +597,14 @@ final class MainWindow {
         b.setDefaultButton(true);
       }
       b.setOnAction(e -> c.action().run());
+      // Los textos largos ensanchan el diálogo en vez de cortarse.
+      b.setMinWidth(Region.USE_PREF_SIZE);
       buttons.getChildren().add(b);
     }
+    body.setPrefWidth(440);
     VBox box = new VBox(20, body, buttons);
     box.getStyleClass().add("prompt");
-    box.setPrefWidth(480);
+    box.setMinWidth(480);
     Scene s = new Scene(box);
     Theme.apply(s);
     dialog.setScene(s);
