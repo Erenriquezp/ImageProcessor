@@ -170,7 +170,9 @@ class AiRealTest {
         canceller.join();
         latencies[i] = (end - cancelledAt[0]) / 1e6;
       }
-      assertThat(r.run(in, 256, 256, CancellationToken.none())).containsExactly(first);
+      // Arrays.mismatch es lineal; containsExactly es cuadratico y con 3 M de valores no termina.
+      assertThat(Arrays.mismatch(r.run(in, 256, 256, CancellationToken.none()), first))
+          .isEqualTo(-1);
     }
     Arrays.sort(latencies);
     System.out.printf(
