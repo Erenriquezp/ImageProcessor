@@ -194,6 +194,12 @@ public final class AiJobService implements ArtifactLookup, AutoCloseable {
   }
 
   private static AiLimits.Memory systemMemory() {
+    com.sun.management.OperatingSystemMXBean os =
+        ManagementFactory.getPlatformMXBean(com.sun.management.OperatingSystemMXBean.class);
+    SampledPhysicalMemory physical =
+        new SampledPhysicalMemory(
+            os::getFreeMemorySize, r -> Thread.ofVirtual().start(r), System::nanoTime);
+    physical.freeBytes();
     return new AiLimits.Memory() {
       @Override
       public long freeHeapBytes() {
@@ -203,8 +209,7 @@ public final class AiJobService implements ArtifactLookup, AutoCloseable {
 
       @Override
       public long freePhysicalBytes() {
-        return ManagementFactory.getPlatformMXBean(com.sun.management.OperatingSystemMXBean.class)
-            .getFreeMemorySize();
+        return physical.freeBytes();
       }
     };
   }
