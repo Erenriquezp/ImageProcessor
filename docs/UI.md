@@ -7,7 +7,7 @@ Editor con un único visor, inspector fijo y pila de ajustes visible. El criteri
 | Zona | Contenido |
 |---|---|
 | Barra superior | Abrir, Exportar, deshacer, rehacer, Restablecer, modo de comparación, zoom |
-| Riel izquierdo | Ajustes, Filtros, Recortar (y Lab con `--lab`) |
+| Riel izquierdo | Ajustes, Filtros, Recortar, Mejorar (y Lab con `--lab`). Mejorar: ver [AI.md](AI.md) |
 | Cajón izquierdo | Catálogo con buscador, o la herramienta de recorte. Flota sobre el visor por debajo de 1280 px |
 | Visor | Zoom y pan únicos, cortina, lado a lado, superposición de recorte |
 | Inspector | Histograma, zona contextual (Ajustes básicos o parámetros del paso) y pila |

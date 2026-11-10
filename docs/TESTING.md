@@ -32,6 +32,7 @@ JaCoCo no tiene umbral de bloqueo todavía.
 | `exhaustive` | Equivalencia sobre los **2^24 colores RGB** (HSB, operaciones puntuales y cadenas fusionadas). Incluida en `verify`; tarda ~2 min. |
 | `memory` | Fase 2. `SessionMemoryTest`: 24 MP en un JVM aparte con `-Xmx1536m`. Ejecución propia de surefire dentro de `verify`; informes en `app/target/memory-*.txt` y log de GC en `app/target/memory-gc.log`. Se salta con `-Dskip.memory=true`. |
 | `golden` | Fase 3. Goldens exactos de las operaciones nuevas, que no tienen referencia heredada. |
+| `ai-real` | Fase 5. Modelo real de IA; excluida por defecto (`-Dgroups=ai-real -DexcludedGroups=`). |
 | `known-deviation` | Fase 2. Diferencia conocida y aceptada con la cadena anterior, fijada con su tamaño exacto. Hoy: convolución→convolución sobre gris de 8 bits. |
 
 ## Goldens
@@ -121,6 +122,20 @@ Los tests diferenciales con el legacy viven en `lab-plugin`, junto a ese código
 Los fixtures (ICC, EXIF, CMYK, 16 bits) se generan por código en `Fixtures`; los únicos binarios son dos WebP de menos de 200 bytes hechos aquí.
 
 Fuera de las pruebas automáticas: `tools/jlink-check.sh` y los archivos reales de cámara, que se comprueban a mano.
+
+## Motor de IA (fase 5)
+
+| Test | Módulo | Qué comprueba |
+|---|---|---|
+| `TilerTest`, `OnnxEngineTest`, `OrtNativeTest` | ai-engine | Tiles idénticos bit a bit a la imagen completa con modelos sintéticos, costuras, errores de forma y de modelo, cancelación, nativos que fallan cerrado |
+| `ArtifactStoreTest` | ai-engine | Caché acotada, expulsión, en uso, borrado y huérfanos |
+| `AiEngineArchitectureTest`, `AiArchitectureRulesTest` | ai-engine, app | Sin `java.net`; ORT solo en `ai.onnx`; el motor solo desde `app.session.ai` |
+| `AiJobServiceTest`, `SampledPhysicalMemoryTest` | app | Un trabajo a la vez, estados, ETA, límites, memoria leída fuera del hilo FX |
+| `EnhanceIntegrationTest`, `EnhanceViewModelTest` | app | El motor nunca arranca solo; insignias, obsoleto y deshacer; pregunta al exportar; marca de procedencia |
+| `ProvenanceXmpTest`, `ProvenanceExportTest` | core, imaging-io | La marca en JPEG, PNG y TIFF con cada política; con "Quitar todo" no queda rastro |
+| `AiRealTest` (`ai-real`) | ai-engine | Modelo real: tiempo, memoria, costuras y cancelación. Fuera de `verify`; ver [AI.md](AI.md) |
+
+Los modelos sintéticos los genera `tools/models/make_test_models.py`, con su hash en `SHA256SUMS`.
 
 ## Defectos conocidos verificados
 
