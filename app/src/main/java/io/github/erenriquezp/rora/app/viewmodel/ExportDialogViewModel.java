@@ -50,6 +50,8 @@ public final class ExportDialogViewModel<F> {
 
     String sourceBaseName();
 
+    boolean hasEnhance();
+
     void export(ExportSettings settings, Path folder, String fileName, Collision collision);
   }
 
@@ -85,6 +87,8 @@ public final class ExportDialogViewModel<F> {
   private final StringProperty folder = new SimpleStringProperty("");
   private final StringProperty template = new SimpleStringProperty("{nombre}_editada");
   private final ObjectProperty<Collision> collision = new SimpleObjectProperty<>(Collision.ASK);
+  private final BooleanProperty provenance = new SimpleBooleanProperty(true);
+  private final BooleanProperty provenanceShown = new SimpleBooleanProperty(false);
 
   private final StringProperty previewName = new SimpleStringProperty("");
   private final StringProperty estimate = new SimpleStringProperty("");
@@ -159,6 +163,7 @@ public final class ExportDialogViewModel<F> {
     folder.set(store.get("export.folder", ""));
     template.set(store.get("export.template", "{nombre}_editada"));
     collision.set(parse(Collision.class, store.get("export.collision", ""), Collision.ASK));
+    provenance.set(Boolean.parseBoolean(store.get("export.provenance", "true")));
     applying = false;
   }
 
@@ -196,6 +201,12 @@ public final class ExportDialogViewModel<F> {
     prefs.put("export.folder", folder.get());
     prefs.put("export.template", template.get());
     prefs.put("export.collision", collision.get().name());
+    prefs.put("export.provenance", Boolean.toString(provenance.get()));
+  }
+
+  /** Fecha de la marca de procedencia: sin hora ni zona, para no revelar más de lo necesario. */
+  java.time.LocalDate today() {
+    return clock.get().toLocalDate();
   }
 
   /** Abre el diálogo, con {@code defaultFolder} si aún no hay carpeta elegida. */
@@ -203,6 +214,7 @@ public final class ExportDialogViewModel<F> {
     if (folder.get().isBlank()) {
       folder.set(defaultFolder);
     }
+    provenanceShown.set(host.hasEnhance());
     visible.set(true);
     changed();
   }
@@ -481,6 +493,16 @@ public final class ExportDialogViewModel<F> {
 
   public ObjectProperty<Collision> collisionProperty() {
     return collision;
+  }
+
+  /** Indicar en el archivo que se usó IA. */
+  public BooleanProperty provenanceProperty() {
+    return provenance;
+  }
+
+  /** La casilla solo aparece si la receta tiene un paso de mejora activo. */
+  public BooleanProperty provenanceShownProperty() {
+    return provenanceShown;
   }
 
   public StringProperty previewNameProperty() {

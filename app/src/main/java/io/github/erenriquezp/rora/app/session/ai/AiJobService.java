@@ -221,6 +221,16 @@ public final class AiJobService implements ArtifactLookup, AutoCloseable {
     return info;
   }
 
+  /** Identificador del modelo, para la procedencia; la interfaz no ve el motor. */
+  public String modelId() {
+    return info.id();
+  }
+
+  /** Versión del modelo, para la procedencia. */
+  public String modelVersion() {
+    return info.version();
+  }
+
   /** Hilos de la próxima sesión del motor. */
   public int threads() {
     return threads;

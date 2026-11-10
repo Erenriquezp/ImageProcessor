@@ -104,6 +104,22 @@ public final class ExportDialog {
             vm.metadataProperty(),
             List.of(MetadataPolicy.REMOVE_LOCATION, MetadataPolicy.REMOVE_ALL, MetadataPolicy.KEEP),
             this::metadataLabel));
+    CheckBox provenance = new CheckBox(m.get("ui.export.provenance"));
+    provenance.selectedProperty().bindBidirectional(vm.provenanceProperty());
+    Label provenanceOff = new Label(m.get("ui.export.provenance.off"));
+    provenanceOff.getStyleClass().add("hint");
+    provenanceOff.setWrapText(true);
+    Node[] provenanceRow = row("", new VBox(2, provenance, provenanceOff));
+    subs.add(
+        vm.metadataProperty()
+            .subscribe(
+                p -> {
+                  boolean none = p == MetadataPolicy.REMOVE_ALL;
+                  provenance.setDisable(none);
+                  provenanceOff.setVisible(none);
+                  provenanceOff.setManaged(none);
+                }));
+    subs.add(vm.provenanceShownProperty().subscribe(shown -> show(shown, provenanceRow)));
     row(
         "ui.export.profile",
         combo(vm.profileProperty(), List.of(ProfilePolicy.values()), this::profileLabel));

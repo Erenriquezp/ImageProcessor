@@ -261,3 +261,10 @@
 .prompt { -fx-background-color: -token-bg; -fx-padding: 22; }
 .prompt-body { -fx-text-fill: -token-text; -fx-font-size: 14px; }
 .export-dialog .color-picker .color-picker-label { -fx-content-display: graphic-only; }
+
+/* Mejorar con IA */
+.stack-badge { -fx-text-fill: -token-text-2; -fx-font-size: 11px; -fx-padding: 0 4 0 6; }
+.enhance-limit { -fx-text-fill: -token-text; -fx-font-size: 12px; }
+.enhance-notice { -fx-text-fill: -token-accent; -fx-font-size: 12px; }
+.enhance-legal { -fx-text-fill: -token-text-2; -fx-font-size: 11px; -fx-graphic-text-gap: 6; }
+.enhance-legal .ikonli-font-icon { -fx-icon-color: -token-text-2; -fx-icon-size: 12; }

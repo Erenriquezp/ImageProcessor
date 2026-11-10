@@ -15,6 +15,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TitledPane;
+import javafx.scene.control.Tooltip;
 import javafx.css.PseudoClass;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DragEvent;
@@ -213,6 +214,7 @@ public final class InspectorView extends VBox {
     private final Button toggle = Icons.iconButton("fas-eye", m.get("ui.action.toggle"), "stack-icon-button");
     private final Label name = new Label();
     private final Label summary = new Label();
+    private final Label badge = new Label();
     private final Button delete = Icons.iconButton("fas-trash-alt", m.get("ui.action.delete"), "stack-icon-button");
     private final HBox row;
 
@@ -222,9 +224,11 @@ public final class InspectorView extends VBox {
       name.getStyleClass().add("stack-name");
       name.setMinWidth(Region.USE_PREF_SIZE);
       summary.getStyleClass().add("stack-summary");
+      badge.getStyleClass().add("stack-badge");
+      badge.setMinWidth(Region.USE_PREF_SIZE);
       Region spacer = new Region();
       HBox.setHgrow(spacer, Priority.ALWAYS);
-      row = new HBox(grip, toggle, name, spacer, summary, delete);
+      row = new HBox(grip, toggle, name, spacer, summary, badge, delete);
       row.getStyleClass().add("stack-row");
       delete.setVisible(false);
       row.hoverProperty().addListener((o, a, hover) -> delete.setVisible(hover));
@@ -247,6 +251,10 @@ public final class InspectorView extends VBox {
       name.setText(item.title());
       name.pseudoClassStateChanged(OFF, !item.enabled());
       summary.setText(item.summary());
+      badge.setText(item.badge());
+      badge.setVisible(!item.badge().isEmpty());
+      badge.setManaged(!item.badge().isEmpty());
+      badge.setTooltip(item.badgeHint().isEmpty() ? null : new Tooltip(item.badgeHint()));
       grip.setVisible(item.movable());
       ((FontIcon) toggle.getGraphic()).setIconLiteral(item.enabled() ? "fas-eye" : "fas-eye-slash");
       toggle.getStyleClass().remove("stack-toggle-on");

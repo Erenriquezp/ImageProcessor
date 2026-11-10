@@ -9,6 +9,7 @@ import io.github.erenriquezp.rora.core.io.DecodedImage;
 import io.github.erenriquezp.rora.core.io.ExportSettings;
 import io.github.erenriquezp.rora.core.io.ImageMetadata;
 import io.github.erenriquezp.rora.core.io.ImagingException;
+import io.github.erenriquezp.rora.core.io.ProvenanceXmp;
 import io.github.erenriquezp.rora.imaging.io.Codecs;
 import io.github.erenriquezp.rora.imaging.io.Exporter;
 import java.io.IOException;
@@ -56,10 +57,14 @@ public final class StudioIo {
         : TargetState.EXISTS;
   }
 
+  /**
+   * @param provenance marca de IA; se ignora si la política de metadatos es quitarlo todo
+   */
   public static Exported export(
       Img image,
       ImageMetadata metadata,
       ExportSettings settings,
+      Optional<ProvenanceXmp.Provenance> provenance,
       ExportTarget target,
       CancellationToken token,
       Progress progress)
@@ -74,7 +79,15 @@ public final class StudioIo {
             target.original());
     Exporter.Result r =
         new Exporter()
-            .export(image, metadata, settings, request, TileExecutor.sequential(), token, progress);
+            .export(
+                image,
+                metadata,
+                settings,
+                provenance,
+                request,
+                TileExecutor.sequential(),
+                token,
+                progress);
     return new Exported(r.file(), r.width(), r.height(), r.bytes(), r.quality());
   }
 

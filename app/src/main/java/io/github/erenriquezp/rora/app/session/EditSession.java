@@ -80,6 +80,7 @@ public final class EditSession<F> implements AutoCloseable {
   private static final RenderLane.Slot SLOT_DIAGNOSTIC = new RenderLane.Slot("diagnostic", 1);
 
   private final AiJobService ai;
+  private int shownArtifact;
   private final AiResolver aiResolver;
   private final OpRegistry registry;
   private final Renderer renderer;
@@ -164,6 +165,15 @@ public final class EditSession<F> implements AutoCloseable {
             fusion,
             ai != null ? ai : ArtifactLookup.NONE);
     this.aiResolver = ai != null ? new AiResolver(renderer, ai) : null;
+    if (ai != null) {
+      ai.addListener(
+          new AiJobService.Listener() {
+            @Override
+            public void stateChanged() {
+              aiChanged();
+            }
+          });
+    }
     this.coordinator = Objects.requireNonNull(coordinatorFactory.apply(renderer), "coordinator");
   }
 
@@ -264,6 +274,19 @@ public final class EditSession<F> implements AutoCloseable {
     Optional<ArtifactKey> key = enhanceStep().map(AiResolver.Located::key);
     ai.keyChanged(key);
     ai.retain(key.map(Set::of).orElse(Set.of()));
+    shownArtifact = currentArtifact();
+  }
+
+  private int currentArtifact() {
+    return enhanceStep().map(l -> ai.artifactFor(l.key())).orElse(0);
+  }
+
+  /** Ha llegado o desaparecido el resultado de la mejora: lo que se ve deja de ser actual. */
+  private void aiChanged() {
+    if (current != null && currentArtifact() != shownArtifact) {
+      stateChanged();
+      requestPreview();
+    }
   }
 
   public void addListener(Listener<F> l) {

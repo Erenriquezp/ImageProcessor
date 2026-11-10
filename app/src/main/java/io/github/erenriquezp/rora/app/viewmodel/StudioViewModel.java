@@ -8,6 +8,7 @@ import io.github.erenriquezp.rora.app.session.RenderFailure;
 import io.github.erenriquezp.rora.app.session.RenderLane;
 import io.github.erenriquezp.rora.app.session.SessionSource;
 import io.github.erenriquezp.rora.app.session.StudioIo;
+import io.github.erenriquezp.rora.app.session.ai.AiJobService;
 import io.github.erenriquezp.rora.core.exec.CancellationToken;
 import io.github.erenriquezp.rora.core.exec.Progress;
 import io.github.erenriquezp.rora.core.image.Img;
@@ -16,9 +17,11 @@ import io.github.erenriquezp.rora.core.io.DecodedImage;
 import io.github.erenriquezp.rora.core.io.ExportSettings;
 import io.github.erenriquezp.rora.core.io.ImageMetadata;
 import io.github.erenriquezp.rora.core.io.ImagingException;
+import io.github.erenriquezp.rora.core.io.ProvenanceXmp;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -38,7 +41,8 @@ public final class StudioViewModel<F> implements AutoCloseable {
   public enum Tool {
     ADJUST,
     FILTERS,
-    CROP
+    CROP,
+    ENHANCE
   }
 
   private static final long SHOW_PROGRESS_AFTER_NANOS = 300_000_000L;
@@ -53,6 +57,8 @@ public final class StudioViewModel<F> implements AutoCloseable {
   private final StackViewModel<F> stack;
   private final CatalogViewModel<F> catalog;
   private final CropViewModel<F> crop;
+  private final EnhanceViewModel<F> enhance;
+  private final AiJobService.Listener aiListener;
   private final NotificationsViewModel<F> notifications;
   private final IoProgressViewModel<F> ioProgress;
   private final ExportDialogViewModel<F> exportDialog;
@@ -102,6 +108,11 @@ public final class StudioViewModel<F> implements AutoCloseable {
               }
 
               @Override
+              public boolean hasEnhance() {
+                return enhance.hasStep();
+              }
+
+              @Override
               public void export(
                   ExportSettings settings, Path folder, String name, Collision collision) {
                 startExport(settings, folder, name, collision);
@@ -114,6 +125,27 @@ public final class StudioViewModel<F> implements AutoCloseable {
     this.params = new ParamPanelViewModel<>(env, gesture);
     this.catalog = new CatalogViewModel<>(env, stack);
     this.crop = new CropViewModel<>(env, gesture, () -> tool.set(Tool.ADJUST));
+    this.enhance = new EnhanceViewModel<>(env, gesture, prompt::set, this::problem);
+    stack.onEnhanceSelected(() -> tool.set(Tool.ENHANCE));
+    this.aiListener =
+        new AiJobService.Listener() {
+          @Override
+          public void stateChanged() {
+            stack.sync(env.session().recipe());
+            enhance.stateChanged();
+          }
+
+          @Override
+          public void progress(AiJobService.Progress p) {
+            enhance.progress(p);
+          }
+
+          @Override
+          public void failed(ImagingException.AiFailure failure) {
+            enhance.failed(failure);
+          }
+        };
+    env.session().ai().ifPresent(ai -> ai.addListener(aiListener));
     this.restingStatus = m.get("ui.status.start");
     this.status.set(restingStatus);
 
@@ -127,6 +159,9 @@ public final class StudioViewModel<F> implements AutoCloseable {
             crop.activate();
           } else if (was == Tool.CROP) {
             crop.cancel();
+          }
+          if (now == Tool.ENHANCE) {
+            enhance.refresh();
           }
         });
 
@@ -183,6 +218,10 @@ public final class StudioViewModel<F> implements AutoCloseable {
 
   public CropViewModel<F> crop() {
     return crop;
+  }
+
+  public EnhanceViewModel<F> enhance() {
+    return enhance;
   }
 
   public NotificationsViewModel<F> notifications() {
@@ -249,6 +288,7 @@ public final class StudioViewModel<F> implements AutoCloseable {
     basic.sync(recipe);
     params.show(stack.selectedProperty().get());
     crop.sync(recipe);
+    enhance.sync(recipe);
     markRenderStart();
   }
 
@@ -451,6 +491,47 @@ public final class StudioViewModel<F> implements AutoCloseable {
     if (!env.session().hasImage()) {
       return;
     }
+    Runnable proceed = () -> checkTarget(settings, folder, name, collision);
+    if (enhance.needsDecision()) {
+      askEnhance(proceed);
+    } else {
+      proceed.run();
+    }
+  }
+
+  /** El paso de mejora no está listo: nunca se ejecuta el motor sin que el usuario lo elija. */
+  private void askEnhance(Runnable proceed) {
+    boolean canRun = enhance.canRunForExport();
+    List<Prompt.Choice> choices = new ArrayList<>();
+    if (canRun) {
+      choices.add(
+          new Prompt.Choice(
+              enhance.exportChoiceLabel(),
+              true,
+              () -> {
+                prompt.set(null);
+                enhance.runThen(proceed, this::enhanceAbandoned);
+              }));
+    }
+    choices.add(
+        new Prompt.Choice(
+            m.get("ui.enhance.export.classic"),
+            !canRun,
+            () -> {
+              prompt.set(null);
+              proceed.run();
+            }));
+    choices.add(new Prompt.Choice(m.get("ui.action.cancel"), false, this::cancelPrompt));
+    prompt.set(new Prompt(m.get("ui.enhance.export.title"), m.get("ui.enhance.export.body"), choices));
+  }
+
+  private void enhanceAbandoned() {
+    afterExport = null;
+    notifications.warning(m.get("ui.enhance.export.abandoned"));
+  }
+
+  private void checkTarget(
+      ExportSettings settings, Path folder, String name, Collision collision) {
     Optional<Path> original = env.session().source().flatMap(SessionSource::origin);
     run(
         () -> StudioIo.targetState(folder.resolve(name), original),
@@ -523,6 +604,7 @@ public final class StudioViewModel<F> implements AutoCloseable {
     ImageMetadata metadata =
         env.session().source().map(SessionSource::metadata).orElse(ImageMetadata.EMPTY);
     CancellationToken token = CancellationToken.create();
+    Optional<ProvenanceXmp.Provenance> provenance = provenance();
     String name = target.fileName();
     setStatus(m.format("ui.status.exporting", name));
     RenderLane.Ticket[] ticket = {null};
@@ -543,7 +625,13 @@ public final class StudioViewModel<F> implements AutoCloseable {
                     run(
                         () ->
                             StudioIo.export(
-                                image, metadata, settings, target, token, progressPublisher()),
+                                image,
+                                metadata,
+                                settings,
+                                provenance,
+                                target,
+                                token,
+                                progressPublisher()),
                         this::exported,
                         error -> exportFailed(name, error)),
                 failure -> {
@@ -551,6 +639,19 @@ public final class StudioViewModel<F> implements AutoCloseable {
                   setStatus(m.get("ui.status.ready"));
                   notifications.error(m.format("ui.error.export", name), failure.message());
                 });
+  }
+
+  /** Marca de procedencia: solo si la salida lleva de verdad píxeles del modelo. */
+  private Optional<ProvenanceXmp.Provenance> provenance() {
+    if (!enhance.applied() || !exportDialog.provenanceProperty().get()) {
+      return Optional.empty();
+    }
+    return env.session()
+        .ai()
+        .map(
+            ai ->
+                new ProvenanceXmp.Provenance(
+                    ai.modelId(), ai.modelVersion(), exportDialog.today()));
   }
 
   private void exported(StudioIo.Exported e) {
@@ -614,6 +715,7 @@ public final class StudioViewModel<F> implements AutoCloseable {
   @Override
   public void close() {
     env.session().removeListener(listener);
+    env.session().ai().ifPresent(ai -> ai.removeListener(aiListener));
     histogram.close();
   }
 }
