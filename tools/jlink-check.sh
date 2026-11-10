@@ -83,4 +83,76 @@ jlink --module-path "${JMODS}${MP}${SEP}probe/classes" \
 echo "Tamano de la imagen: $(du -sh image | cut -f1)"
 image/bin/java -Djava.awt.headless=true -m t.probe/t.Probe \
   ../../src/test/resources/io/gradient-lossless.webp
+
+# --- Motor de IA: ONNX Runtime es un modulo automatico y su JAR lleva los nativos de todas las
+# plataformas. Se le quitan, se le inyecta module-info y solo se copia win-x64 a la imagen.
+# Requisito previo: ./mvnw -q -B -DskipTests -pl ai-engine -am package
+ORT_SHA=d3f903af31fe8f01300adb6b2b67297aa5bee7895909afc32e76ef29a3921149
+mkdir -p ort/libs ort/x ort/gen ort/mi ort/probe/src/t.ai/t ort/probe/classes
+cd "$ROOT"
+./mvnw -q -B -pl ai-engine dependency:copy-dependencies \
+  -DincludeScope=runtime -DincludeGroupIds=com.microsoft.onnxruntime \
+  -DoutputDirectory="$OUT/ort/libs"
+cd "$OUT/ort"
+ORT_JAR=$(ls libs/*.jar)
+[ "$(sha256sum "$ORT_JAR" | cut -d' ' -f1)" = "$ORT_SHA" ] || { echo "SHA-256 inesperado en $ORT_JAR"; exit 1; }
+
+(cd x && jar xf "../$ORT_JAR")
+rm -rf x/ai/onnxruntime/native
+# Con su manifiesto: de ahi sale el nombre com.microsoft.onnxruntime.
+jar --create --file libs/ort.jar --manifest x/META-INF/MANIFEST.MF -C x .
+rm "$ORT_JAR"
+jdeps --ignore-missing-deps --generate-module-info gen libs/ort.jar >/dev/null
+ORT_MOD=$(module_of libs/ort.jar)
+javac -nowarn --release 21 -d "mi" --module-path libs --patch-module "$ORT_MOD=libs/ort.jar" \
+  "$(find "gen/$ORT_MOD" -name module-info.java | head -1)"
+jar uf libs/ort.jar -C mi module-info.class
+
+cat > probe/src/t.ai/module-info.java <<'EOF'
+module t.ai {
+  requires io.github.erenriquezp.rora.ai;
+  requires io.github.erenriquezp.rora.core;
+}
+EOF
+cat > probe/src/t.ai/t/Probe.java <<'EOF'
+package t;
+
+import io.github.erenriquezp.rora.ai.api.AiEngines;
+import io.github.erenriquezp.rora.ai.api.ModelSource;
+import io.github.erenriquezp.rora.ai.api.TileRunner;
+import io.github.erenriquezp.rora.core.exec.CancellationToken;
+
+public class Probe {
+  public static void main(String[] a) throws Exception {
+    ModelSource m = AiEngines.bundledModel();
+    float[] in = new float[3 * 32 * 32];
+    java.util.Arrays.fill(in, 0.5f);
+    try (TileRunner r = AiEngines.onnx().open(m, 2)) {
+      float[] out = r.run(in, 32, 32, CancellationToken.none());
+      System.out.println(m.info().id() + " ejecutado: salida de " + out.length + " valores");
+    }
+  }
+}
+EOF
+
+ROOTREL=../../../..
+AIMP="$ROOTREL/core-imaging/target/classes${SEP}$ROOTREL/ai-engine/target/classes${SEP}libs"
+# shellcheck disable=SC2046
+javac -d probe/classes/t.ai --module-path "$AIMP" $(find probe/src/t.ai -name '*.java')
+jlink --module-path "${JMODS}${AIMP}${SEP}probe/classes" \
+  --add-modules "t.ai,$ORT_MOD" \
+  --add-options="--enable-native-access=$ORT_MOD" \
+  --strip-debug --no-man-pages --no-header-files \
+  --output image
+
+NATIVE="$ROOT/ai-engine/target/ort-native/ai/onnxruntime/native/win-x64"
+mkdir -p image/ort-native
+cp "$NATIVE/onnxruntime.dll" "$NATIVE/onnxruntime4j_jni.dll" image/ort-native/
+echo "Imagen con el motor: $(du -sh image | cut -f1)"
+if ! find image -name '*.so' -o -name '*.dylib' | grep -q .; then
+  echo "Sin nativos de otras plataformas"
+else
+  echo "Hay nativos de otras plataformas en la imagen"; exit 1
+fi
+image/bin/java -m t.ai/t.Probe
 echo "jlink-check OK"
