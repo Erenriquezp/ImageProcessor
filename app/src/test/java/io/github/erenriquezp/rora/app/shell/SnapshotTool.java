@@ -4,6 +4,7 @@ import io.github.erenriquezp.rora.app.catalog.Catalog;
 import io.github.erenriquezp.rora.app.session.ExportTarget;
 import io.github.erenriquezp.rora.app.viewmodel.ControlState;
 import io.github.erenriquezp.rora.app.viewmodel.ExportDialogViewModel;
+import io.github.erenriquezp.rora.app.viewmodel.NotificationsViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.ViewerViewModel.CompareMode;
 import io.github.erenriquezp.rora.core.io.ExportSettings;
@@ -30,6 +31,9 @@ import javax.imageio.ImageIO;
 public class SnapshotTool extends StudioApp {
 
   private static final double SETTLE_SECONDS = 1.6;
+
+  /** Prefijo de las capturas que esperan a que termine la mejora en curso. */
+  private static final String WAIT_FOR_ENHANCE = "espera:";
 
   private record Shot(String name, double width, double height, Runnable action) {}
 
@@ -231,6 +235,7 @@ public class SnapshotTool extends StudioApp {
               }
               vm.open(g16);
             }));
+    addEnhanceShots(vm, image, w, h);
     if (args.contains("--lab")) {
       shots.add(
           new Shot(
@@ -258,6 +263,100 @@ public class SnapshotTool extends StudioApp {
     next();
   }
 
+  /** Estados de Mejorar con el modelo real: el arnés mide las pausas del hilo FX durante estos. */
+  private void addEnhanceShots(StudioViewModel<WritableImage> vm, File image, double w, double h) {
+    shots.add(
+        new Shot(
+            "21-mejorar-listo",
+            w,
+            h,
+            () -> {
+              vm.notifications().notices().clear();
+              vm.open(image);
+              vm.toolProperty().set(StudioViewModel.Tool.ENHANCE);
+            }));
+    shots.add(new Shot("22-mejorar-ejecutando", w, h, () -> vm.enhance().start()));
+    shots.add(
+        new Shot(
+            WAIT_FOR_ENHANCE + "23-mejorar-resultado-cortina",
+            w,
+            h,
+            () -> vm.viewer().compareModeProperty().set(CompareMode.CURTAIN)));
+    shots.add(
+        new Shot(
+            "24-mejorar-intensidad",
+            w,
+            h,
+            () -> {
+              vm.viewer().compareModeProperty().set(CompareMode.RESULT);
+              for (double v = 95; v >= 50; v -= 5) {
+                vm.enhance().intensity().userSet(v);
+              }
+              vm.enhance().intensity().endGesture();
+            }));
+    shots.add(new Shot("25-mejorar-obsoleto", w, h, () -> vm.crop().rotate(true)));
+    shots.add(new Shot("26-mejorar-de-nuevo", w, h, () -> vm.enhance().start()));
+    shots.add(new Shot("27-mejorar-cancelado", w, h, () -> vm.enhance().cancel()));
+    shots.add(
+        new Shot(
+            WAIT_FOR_ENHANCE + "28-mejorar-error",
+            w,
+            h,
+            () ->
+                vm.notifications()
+                    .notices()
+                    .add(
+                        new NotificationsViewModel.Notice(
+                            NotificationsViewModel.Kind.ERROR,
+                            vm.messages()
+                                .format(
+                                    "ui.error.titled",
+                                    vm.messages().get("ui.enhance.failed"),
+                                    vm.messages().get("io.error.ai_failure")),
+                            "captura simulada",
+                            null))));
+    File big = new File(output, "6mp.png");
+    shots.add(
+        new Shot(
+            "29-mejorar-limite",
+            w,
+            h,
+            () -> {
+              vm.notifications().notices().clear();
+              try {
+                ImageIO.write(new BufferedImage(3000, 2000, BufferedImage.TYPE_INT_RGB), "png", big);
+              } catch (java.io.IOException ex) {
+                throw new java.io.UncheckedIOException(ex);
+              }
+              vm.open(big);
+            }));
+    shots.add(new Shot("30-mejorar-ventana-estrecha", 1100, 700, () -> {}));
+    // Pregunta antes solo si la estimación de este equipo supera los 120 s.
+    shots.add(new Shot("31-mejorar-grande", w, h, () -> vm.enhance().start()));
+    shots.add(
+        new Shot(
+            WAIT_FOR_ENHANCE + "32-mejorar-sin-ejecutar",
+            w,
+            h,
+            () -> {
+              if (vm.promptProperty().get() != null) {
+                vm.promptProperty().get().choices().get(0).action().run();
+              }
+              vm.enhance().cancel();
+            }));
+    shots.add(
+        new Shot(
+            "33-exportar-no-listo",
+            w,
+            h,
+            () ->
+                vm.startExport(
+                    ExportSettings.defaults(FormatId.JPEG),
+                    output.toPath(),
+                    "no-listo.jpg",
+                    ExportTarget.Collision.NUMBER)));
+  }
+
   private void next() {
     Shot shot = shots.poll();
     if (shot == null) {
@@ -272,7 +371,10 @@ public class SnapshotTool extends StudioApp {
 
   /** Abrir una foto tarda segundos: espera a que termine antes de dejar asentar la vista. */
   private void waitUntilLoaded(Shot shot) {
-    if (viewModel().statusProperty().get().startsWith("Abriendo")) {
+    boolean enhancing =
+        shot.name().startsWith(WAIT_FOR_ENHANCE)
+            && viewModel().enhance().runningProperty().get();
+    if (enhancing || viewModel().statusProperty().get().startsWith("Abriendo")) {
       PauseTransition poll = new PauseTransition(Duration.millis(100));
       poll.setOnFinished(e -> waitUntilLoaded(shot));
       poll.play();
@@ -281,7 +383,7 @@ public class SnapshotTool extends StudioApp {
     PauseTransition settle = new PauseTransition(Duration.seconds(SETTLE_SECONDS));
     settle.setOnFinished(
         e -> {
-          save(shot.name());
+          save(shot.name().replace(WAIT_FOR_ENHANCE, ""));
           next();
         });
     settle.play();

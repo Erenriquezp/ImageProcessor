@@ -6,6 +6,7 @@
 rora-parent (pom raíz: versiones, plugins, calidad)
 ├── core-imaging   módulo ...rora.core — solo requiere java.base (ni JavaFX ni AWT); --release 21
 ├── imaging-io     módulo ...rora.imaging.io — códecs sobre ImageIO; --release 21, sin JavaFX
+├── ai-engine      módulo ...rora.ai — ONNX Runtime por tiles, modelo incluido y caché; sin JavaFX ni red
 ├── app            módulo ...rora.app  — JavaFX 25: interfaz, sesión, puente AWT; --release 25
 ├── lab-plugin     módulo ...rora.lab  — opcional: didácticas, generador, blending y código heredado
 └── bench          benchmarks JMH (perfil -Pbench, fuera del build por defecto, no se distribuye)
@@ -36,6 +37,12 @@ Paquetes de interfaz en [`docs/UI.md`](UI.md).
 ### `imaging-io`
 
 `ImageIoDecoder`, `JpegEncoder`, `PngEncoder`, `TiffEncoder`, `Exporter` (reducción, peso objetivo, metadatos y publicación atómica) y `Codecs` (elige lector y escritor por clase y publica el SPI). La interfaz solo llega aquí a través de `app.session.StudioIo`; ArchUnit lo comprueba. Detalle en [`docs/IO.md`](IO.md).
+
+### `ai-engine`
+
+Exporta `ai.api` (`AiEngine`, `TileRunner`, `ModelSource`, `AiEngines`), `ai.tile` (`Tiler`, tiles fijos con costuras recortadas) y `ai.store` (`ArtifactStore`, que implementa `ArtifactLookup` del núcleo). `ai.onnx` no se exporta: es lo único que ve ONNX Runtime, y `OrtNative` fija y verifica los nativos antes de cargar ninguna clase de ORT.
+
+En `app`, solo `app.session.ai` (`AiJobService`, `AiResolver`, `AiLimits`) depende del módulo. La receta lleva el paso `ai.enhance` (en el núcleo), y `AiResolver` escribe el identificador del resultado solo en la copia que se ejecuta. Así, la receta del usuario nunca contiene un artefacto. ArchUnit impide `java.net` en la IA y tipos de ORT fuera de `ai.onnx`. Detalle en [`docs/AI.md`](AI.md).
 
 ### `lab-plugin`
 

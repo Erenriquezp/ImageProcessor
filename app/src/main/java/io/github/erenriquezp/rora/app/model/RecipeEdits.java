@@ -18,6 +18,7 @@ public final class RecipeEdits {
   public static final String STRAIGHTEN = "transform.straighten";
   public static final String CROP = "transform.crop";
   public static final String RESIZE = "transform.resize";
+  public static final String ENHANCE = "ai.enhance";
 
   private static final List<String> GEOMETRY_ORDER =
       List.of(ROTATE, FLIP, STRAIGHTEN, CROP, RESIZE);
@@ -32,10 +33,25 @@ public final class RecipeEdits {
   public static int geometryEnd(EditRecipe recipe) {
     List<OpSpec> steps = recipe.steps();
     int i = 0;
-    while (i < steps.size() && isGeometry(steps.get(i).opId())) {
+    while (i < steps.size()
+        && (isGeometry(steps.get(i).opId()) || ENHANCE.equals(steps.get(i).opId()))) {
       i++;
     }
     return i;
+  }
+
+  /** Coloca la mejora justo tras la geometría (o la actualiza): los ajustes no la invalidan. */
+  public static EditRecipe putEnhance(EditRecipe recipe, OpSpec step) {
+    int existing = indexOf(recipe, step.opId());
+    if (existing >= 0) {
+      return recipe.replace(existing, step);
+    }
+    List<OpSpec> steps = recipe.steps();
+    int at = 0;
+    while (at < steps.size() && isGeometry(steps.get(at).opId())) {
+      at++;
+    }
+    return recipe.insert(at, step);
   }
 
   /** Índice del primer paso con {@code opId}, o {@code -1}. */

@@ -23,6 +23,10 @@
             <artifactId>rora-imaging-io</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.github.erenriquezp</groupId>
+            <artifactId>rora-ai-engine</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
         </dependency>
@@ -121,7 +125,9 @@
                             <noHeaderFiles>true</noHeaderFiles>
                             <options>
                                 <!-- Silencia: java.lang.System::load (NativeLibLoader en javafx.graphics) -->
-                                <option>--enable-native-access=javafx.graphics</option>
+                                <option>--enable-native-access=javafx.graphics,com.microsoft.onnxruntime</option>
+                                <!-- Nativos ya desempaquetados: ORT no debe extraer nada a %TEMP% -->
+                                <option>-Donnxruntime.native.path=${ort.native.dir}</option>
                             </options>
                         </configuration>
                     </execution>

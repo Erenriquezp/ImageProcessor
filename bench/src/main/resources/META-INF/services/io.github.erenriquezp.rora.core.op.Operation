@@ -33,3 +33,4 @@ io.github.erenriquezp.rora.core.ops.geometry.FlipOp
 io.github.erenriquezp.rora.core.ops.geometry.ResizeOp
 io.github.erenriquezp.rora.core.ops.geometry.Rotate90Op
 io.github.erenriquezp.rora.core.ops.geometry.StraightenOp
+io.github.erenriquezp.rora.core.ops.ai.EnhanceOp

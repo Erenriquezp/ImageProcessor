@@ -4,6 +4,8 @@ import io.github.erenriquezp.rora.app.catalog.Catalog;
 import io.github.erenriquezp.rora.app.i18n.Messages;
 import io.github.erenriquezp.rora.app.model.ControlSpec;
 import io.github.erenriquezp.rora.app.model.RecipeEdits;
+import io.github.erenriquezp.rora.app.session.ai.AiJobService;
+import io.github.erenriquezp.rora.app.session.ai.AiResolver;
 import io.github.erenriquezp.rora.core.op.EditRecipe;
 import io.github.erenriquezp.rora.core.op.OpSpec;
 import io.github.erenriquezp.rora.core.op.Operation;
@@ -11,6 +13,7 @@ import io.github.erenriquezp.rora.core.op.Params;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -22,15 +25,29 @@ import javafx.collections.ObservableList;
 /** La pila de ajustes: lo que se ve de la receta y lo que se puede hacer con cada paso. */
 public final class StackViewModel<F> {
 
-  /** Fila de la pila; el índice es el del paso en la receta. */
-  public record Row(int index, String title, String summary, boolean enabled, boolean movable) {}
+  /**
+   * Fila de la pila; el índice es el del paso en la receta.
+   *
+   * @param badge estado de la mejora con IA; vacío en los demás pasos
+   * @param badgeHint explicación de la insignia; vacía si no hace falta
+   */
+  public record Row(
+      int index,
+      String title,
+      String summary,
+      boolean enabled,
+      boolean movable,
+      String badge,
+      String badgeHint) {}
 
   private static final int MAX_SUMMARY_PARAMS = 2;
+  private static final String[] NO_BADGE = {"", ""};
 
   private final Env<F> env;
   private final ObservableList<Row> rows = FXCollections.observableArrayList();
   private final IntegerProperty selected = new SimpleIntegerProperty(-1);
   private final StringProperty header = new SimpleStringProperty("");
+  private Runnable openEnhance = () -> {};
 
   StackViewModel(Env<F> env) {
     this.env = env;
@@ -49,14 +66,22 @@ public final class StackViewModel<F> {
     return header;
   }
 
+  /** Qué hacer al pulsar el paso de mejora: tiene panel propio. */
+  void onEnhanceSelected(Runnable action) {
+    openEnhance = action;
+  }
+
   /** Selecciona un paso; {@code adjust.basic} no se abre aparte: es el panel de Ajustes. */
   public void select(int index) {
     EditRecipe recipe = env.session().recipe();
-    boolean isAdjust =
-        index >= 0
-            && index < recipe.size()
-            && recipe.steps().get(index).opId().equals(RecipeEdits.ADJUST);
-    selected.set(isAdjust ? -1 : index);
+    String opId =
+        index >= 0 && index < recipe.size() ? recipe.steps().get(index).opId() : "";
+    if (opId.equals(RecipeEdits.ENHANCE)) {
+      selected.set(-1);
+      openEnhance.run();
+      return;
+    }
+    selected.set(opId.equals(RecipeEdits.ADJUST) ? -1 : index);
   }
 
   public void clearSelection() {
@@ -101,13 +126,17 @@ public final class StackViewModel<F> {
     List<OpSpec> steps = recipe.steps();
     for (int i = 0; i < steps.size(); i++) {
       OpSpec s = steps.get(i);
+      boolean enhance = s.opId().equals(RecipeEdits.ENHANCE);
+      String[] badge = enhance && s.enabled() ? enhanceBadge() : NO_BADGE;
       next.add(
           new Row(
               i,
               titleOf(s, env.messages()),
               summaryOf(s),
               s.enabled(),
-              !RecipeEdits.isGeometry(s.opId())));
+              !RecipeEdits.isGeometry(s.opId()) && !enhance,
+              badge[0],
+              badge[1]));
     }
     // Solo cambian las filas distintas: la lista no parpadea mientras se arrastra un control.
     for (int i = 0; i < next.size(); i++) {
@@ -124,6 +153,22 @@ public final class StackViewModel<F> {
       selected.set(-1);
     }
     updateHeader();
+  }
+
+  private String[] enhanceBadge() {
+    Messages m = env.messages();
+    Optional<AiJobService> service = env.session().ai();
+    Optional<AiResolver.Located> step = env.session().enhanceStep();
+    if (service.isEmpty() || step.isEmpty()) {
+      return NO_BADGE;
+    }
+    String classic = m.get("ui.stack.enhance.classic");
+    return switch (service.get().state(step.get().key())) {
+      case NOT_RUN -> new String[] {m.get("ui.stack.enhance.notRun"), classic};
+      case RUNNING -> new String[] {m.get("ui.stack.enhance.running"), classic};
+      case READY -> new String[] {m.get("ui.stack.enhance.ready"), ""};
+      case STALE -> new String[] {m.get("ui.stack.enhance.stale"), classic};
+    };
   }
 
   private void updateHeader() {
@@ -166,6 +211,9 @@ public final class StackViewModel<F> {
     }
     if (step.opId().equals(RecipeEdits.CROP)) {
       return "";
+    }
+    if (step.opId().equals(RecipeEdits.ENHANCE)) {
+      return m.get("op.ai.enhance.scale." + params.getEnum("scale"));
     }
     Set<String> hidden =
         Catalog.ENTRIES.stream()

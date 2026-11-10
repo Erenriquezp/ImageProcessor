@@ -8,6 +8,7 @@ import io.github.erenriquezp.rora.app.theme.Theme;
 import io.github.erenriquezp.rora.app.ui.WindowBar;
 import io.github.erenriquezp.rora.app.ui.WindowResizer;
 import io.github.erenriquezp.rora.app.view.DrawerViews;
+import io.github.erenriquezp.rora.app.view.EnhanceView;
 import io.github.erenriquezp.rora.app.view.ExportDialog;
 import io.github.erenriquezp.rora.app.view.InspectorView;
 import io.github.erenriquezp.rora.app.view.IoProgressView;
@@ -128,7 +129,8 @@ final class MainWindow {
 
     VBox catalog = DrawerViews.catalog(vm.catalog(), m, subs);
     VBox crop = DrawerViews.crop(vm.crop(), m, subs);
-    drawerHost.getChildren().addAll(catalog, crop);
+    VBox enhance = EnhanceView.build(vm.enhance(), m, subs);
+    drawerHost.getChildren().addAll(catalog, crop, enhance);
     drawerHost.setMaxWidth(Region.USE_PREF_SIZE);
     subs.add(
         vm.toolProperty()
@@ -136,6 +138,7 @@ final class MainWindow {
                 tool -> {
                   catalog.setVisible(tool == Tool.FILTERS);
                   crop.setVisible(tool == Tool.CROP);
+                  enhance.setVisible(tool == Tool.ENHANCE);
                   updateDrawer();
                 }));
 
@@ -386,7 +389,8 @@ final class MainWindow {
         new VBox(
             toolButton(group, Tool.ADJUST, "ui.tool.adjust", "fas-sliders-h"),
             toolButton(group, Tool.FILTERS, "ui.tool.filters", "fas-magic"),
-            toolButton(group, Tool.CROP, "ui.tool.crop", "fas-crop-alt"));
+            toolButton(group, Tool.CROP, "ui.tool.crop", "fas-crop-alt"),
+            toolButton(group, Tool.ENHANCE, "ui.tool.enhance", "fas-expand-arrows-alt"));
     rail.getStyleClass().add("tool-rail");
     if (openLab != null) {
       Button lab = new Button(m.get("ui.tool.lab"), new FontIcon("fas-flask"));
@@ -426,7 +430,9 @@ final class MainWindow {
     b.setUserData(tool);
     b.setToggleGroup(group);
     b.getStyleClass().add("tool-button");
-    if (tool != Tool.ADJUST) {
+    if (tool == Tool.ENHANCE) {
+      b.disableProperty().bind(vm.hasImageProperty().not().or(vm.enhance().availableProperty().not()));
+    } else if (tool != Tool.ADJUST) {
       b.disableProperty().bind(vm.hasImageProperty().not());
     }
     return b;
@@ -591,11 +597,14 @@ final class MainWindow {
         b.setDefaultButton(true);
       }
       b.setOnAction(e -> c.action().run());
+      // Los textos largos ensanchan el diálogo en vez de cortarse.
+      b.setMinWidth(Region.USE_PREF_SIZE);
       buttons.getChildren().add(b);
     }
+    body.setPrefWidth(440);
     VBox box = new VBox(20, body, buttons);
     box.getStyleClass().add("prompt");
-    box.setPrefWidth(480);
+    box.setMinWidth(480);
     Scene s = new Scene(box);
     Theme.apply(s);
     dialog.setScene(s);

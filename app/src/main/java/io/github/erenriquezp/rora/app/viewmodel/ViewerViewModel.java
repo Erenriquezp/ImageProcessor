@@ -184,6 +184,8 @@ public final class ViewerViewModel<F> {
             .append(':')
             .append(current.pixels().width())
             .append(':')
+            .append(current.fullWidth())
+            .append(':')
             .append(fullResolution);
     for (OpSpec s : env.session().recipe().steps()) {
       if (s.enabled() && s.opId().startsWith("transform.")) {

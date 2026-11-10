@@ -9,6 +9,7 @@ import io.github.erenriquezp.rora.core.io.ImageEncoder;
 import io.github.erenriquezp.rora.core.io.ImageMetadata;
 import io.github.erenriquezp.rora.core.io.ImageMetadata.ExifTag;
 import io.github.erenriquezp.rora.core.io.ImagingException;
+import io.github.erenriquezp.rora.core.io.ProvenanceXmp;
 import io.github.erenriquezp.rora.core.io.SrgbProfile;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -32,6 +33,9 @@ import javax.imageio.stream.MemoryCacheImageOutputStream;
 
 /** TIFF sin pérdida. De los metadatos solo se escriben las etiquetas base de texto. */
 public final class TiffEncoder implements ImageEncoder {
+
+  /** Etiqueta 700: XMP, según la especificación de XMP para TIFF. */
+  private static final TIFFTag XMP_TAG = new TIFFTag("XMP", 700, 1 << TIFFTag.TIFF_BYTE);
 
   private static final Map<Integer, Integer> BASE_TAGS =
       Map.of(
@@ -185,6 +189,11 @@ public final class TiffEncoder implements ImageEncoder {
               new TIFFField(tags.getTag(id), TIFFTag.TIFF_ASCII, 1, new String[] {text}));
         }
       }
+    }
+    // Solo la marca de IA: el XMP de un TIFF sin mejora sigue sin escribirse.
+    if (m.xmp().filter(ProvenanceXmp::isMarked).isPresent()) {
+      byte[] xmp = m.xmp().get();
+      dir.addTIFFField(new TIFFField(XMP_TAG, TIFFTag.TIFF_BYTE, xmp.length, xmp));
     }
     if (s.profile() == ExportSettings.ProfilePolicy.EMBED_SRGB) {
       byte[] icc = SrgbProfile.bytes();

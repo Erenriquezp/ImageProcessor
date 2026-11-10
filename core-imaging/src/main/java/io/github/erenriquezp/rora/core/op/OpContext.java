@@ -5,13 +5,20 @@ import io.github.erenriquezp.rora.core.exec.Progress;
 import io.github.erenriquezp.rora.core.exec.TileExecutor;
 import java.util.Objects;
 
-/** Entorno de ejecución de una operación: hilos, cancelación y progreso. */
-public record OpContext(TileExecutor executor, CancellationToken token, Progress progress) {
+/** Entorno de ejecución de una operación: hilos, cancelación, progreso y artefactos. */
+public record OpContext(
+    TileExecutor executor, CancellationToken token, Progress progress, ArtifactLookup artifacts) {
 
   public OpContext {
     Objects.requireNonNull(executor, "executor");
     Objects.requireNonNull(token, "token");
     Objects.requireNonNull(progress, "progress");
+    Objects.requireNonNull(artifacts, "artifacts");
+  }
+
+  /** Sin artefactos. */
+  public OpContext(TileExecutor executor, CancellationToken token, Progress progress) {
+    this(executor, token, progress, ArtifactLookup.NONE);
   }
 
   /** Un hilo (el llamante), sin cancelación ni progreso. */

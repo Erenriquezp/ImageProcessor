@@ -4,6 +4,7 @@ Dependencias de ejecución de Rora Studio. Archivo generado: `./mvnw -B -DskipTe
 
 | Dependencia | Versión | Licencia |
 |---|---|---|
+| com.microsoft.onnxruntime:onnxruntime | 1.31.0 | MIT License |
 | com.twelvemonkeys.common:common-image | 3.15.3 | BSD-3-Clause |
 | com.twelvemonkeys.common:common-io | 3.15.3 | BSD-3-Clause |
 | com.twelvemonkeys.common:common-lang | 3.15.3 | BSD-3-Clause |
@@ -17,3 +18,12 @@ Dependencias de ejecución de Rora Studio. Archivo generado: `./mvnw -B -DskipTe
 | org.openjfx:javafx-base | 25.0.5 | GPLv2+CE |
 | org.openjfx:javafx-controls | 25.0.5 | GPLv2+CE |
 | org.openjfx:javafx-graphics | 25.0.5 | GPLv2+CE |
+
+## Motor de IA y modelo incluido
+
+Sección fija de la plantilla: regenerar el archivo no la borra.
+
+| Componente | Versión | Licencia | Notas |
+|---|---|---|---|
+| ONNX Runtime (Java y nativos win-x64) | 1.31.0 | MIT | Microsoft. JAR con SHA-256 `d3f903af31fe8f01300adb6b2b67297aa5bee7895909afc32e76ef29a3921149`; el instalador solo lleva los nativos de win-x64 |
+| Modelo `realesr-general-x4v3` (Real-ESRGAN) | v0.2.5.0 | BSD-3-Clause | Copyright (c) 2021, Xintao Wang. Convertido a ONNX con `tools/models/export_realesrgan.py`; procedencia y hashes en `MODEL_NOTICE.md`. El proyecto original no indica la licencia de sus datos de entrenamiento (DF2K y OST) |

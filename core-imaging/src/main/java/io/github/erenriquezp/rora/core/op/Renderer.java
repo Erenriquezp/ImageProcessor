@@ -61,11 +61,23 @@ public final class Renderer {
   private final OpRegistry registry;
   private final ResultCache cache;
   private final boolean fusion;
+  private final ArtifactLookup artifacts;
 
   public Renderer(OpRegistry registry, ResultCache cache, boolean fusion) {
+    this(registry, cache, fusion, ArtifactLookup.NONE);
+  }
+
+  public Renderer(
+      OpRegistry registry, ResultCache cache, boolean fusion, ArtifactLookup artifacts) {
     this.registry = Objects.requireNonNull(registry, "registry");
     this.cache = Objects.requireNonNull(cache, "cache");
     this.fusion = fusion;
+    this.artifacts = Objects.requireNonNull(artifacts, "artifacts");
+  }
+
+  /** Artefactos disponibles para los renders de este renderer. */
+  public ArtifactLookup artifacts() {
+    return artifacts;
   }
 
   public ResultCache cache() {
@@ -89,7 +101,9 @@ public final class Renderer {
       Operation op = registry.require(s.opId());
       Params p = s.params().withSchema(op.schema());
       double scale = Math.min(1.0, (double) preview.width() / full.width());
-      Params executed = scale < 1 ? op.forPreview(p, scale, full, preview) : p;
+      // Siempre en preview, aunque la escala sea 1: ai.enhance no debe ampliar en un preview.
+      Params executed =
+          req.level() instanceof RenderLevel.Preview ? op.forPreview(p, scale, full, preview) : p;
       out.add(new OpSpec(s.opId(), executed, true));
       full = op.outputSize(full, p);
       preview = op.outputSize(preview, executed);
@@ -231,6 +245,6 @@ public final class Renderer {
     Progress p =
         (done, total) ->
             outer.update(step * scale + (total > 0 ? done * scale / total : 0), steps * scale);
-    return new OpContext(ctx.executor(), ctx.token(), p);
+    return new OpContext(ctx.executor(), ctx.token(), p, ctx.artifacts());
   }
 }

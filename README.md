@@ -28,6 +28,7 @@ Editor de fotos de escritorio, no destructivo, con ajustes en luz lineal y pila 
 - **Filtros**: 15 entradas con buscador.
 - **Abrir fotos reales**: JPEG, PNG, TIFF, WebP, BMP y GIF, con perfiles de color, orientación EXIF, CMYK, grises y 16 bits.
 - **Exportar**: JPEG, PNG y TIFF con calidad, límite de lado y de peso, plantillas de nombre, estimación de tamaño y escritura atómica.
+- **Mejorar con IA**: ampliación ×2 o ×4 con un modelo local (Real-ESRGAN), sin red y solo cuando lo pides. Al exportar, el archivo puede indicar que se usó IA. Ver [docs/AI.md](docs/AI.md).
 - **Privacidad**: por defecto se elimina la ubicación, y la miniatura incrustada no se copia nunca.
 - **Trabajo en segundo plano**: la interfaz no se bloquea con fotos de 24 MP.
 
@@ -53,7 +54,7 @@ cd ImageProcessor
 
 ## Uso
 
-Abre o arrastra una foto, mueve los **Ajustes** de la derecha y compara con la **Cortina**. Para añadir efectos, abre **Filtros** en el riel izquierdo: cada uno entra en la pila y se puede editar después. **Exportar** guarda en PNG; JPG llegará con la exportación avanzada.
+Abre o arrastra una foto, mueve los **Ajustes** de la derecha y compara con la **Cortina**. Para añadir efectos, abre **Filtros** en el riel izquierdo: cada uno entra en la pila y se puede editar después. **Mejorar** amplía la foto con IA. **Exportar** guarda en JPEG, PNG o TIFF.
 
 Los atajos y la arquitectura de la interfaz están en [docs/UI.md](docs/UI.md).
 
@@ -73,6 +74,7 @@ Se edita en sRGB de 8 bits: los archivos de 16 bits o gamut ancho se convierten 
 |---|---|
 | `core-imaging` | Núcleo puro, solo `java.base`: imagen, operaciones, recetas y render |
 | `imaging-io` | Abrir y exportar: códecs sobre `ImageIO`, color y metadatos |
+| `ai-engine` | Inferencia local con ONNX Runtime por tiles, el modelo incluido y la caché de resultados |
 | `app` | Interfaz JavaFX y sesión de edición |
 | `lab-plugin` | Opcional, fuera del instalador: operaciones didácticas, generador, blending y código heredado de referencia |
 | `bench` | Benchmarks JMH (perfil `-Pbench`) |
@@ -81,7 +83,7 @@ Más detalle en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/TESTING.md](
 
 ## Stack
 
-Java 25 · JavaFX 25 LTS · AtlantaFX 2.1.0 · Ikonli 12.4.0 · IBM Plex Sans · JUnit 5 · ArchUnit · JMH.
+Java 25 · JavaFX 25 LTS · AtlantaFX 2.1.0 · Ikonli 12.4.0 · ONNX Runtime 1.31.0 · IBM Plex Sans · JUnit 5 · ArchUnit · JMH.
 
 ## Estado del proyecto
 

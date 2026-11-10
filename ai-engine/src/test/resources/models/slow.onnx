@@ -1,0 +1,1814 @@
+rora-test-models1:á¼
+L
+input
+wn0"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+I
+n0
+wn1"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+I
+n1
+wn2"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+I
+n2
+wn3"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+I
+n3
+wn4"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+I
+n4
+wn5"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+I
+n5
+wn6"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+I
+n6
+wn7"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+I
+n7
+wn8"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+I
+n8
+wn9"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+J
+n9
+wn10"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n10
+wn11"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n11
+wn12"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n12
+wn13"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n13
+wn14"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n14
+wn15"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n15
+wn16"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n16
+wn17"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n17
+wn18"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n18
+wn19"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n19
+wn20"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n20
+wn21"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n21
+wn22"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n22
+wn23"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n23
+wn24"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n24
+wn25"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n25
+wn26"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n26
+wn27"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n27
+wn28"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n28
+wn29"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n29
+wn30"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n30
+wn31"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n31
+wn32"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n32
+wn33"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n33
+wn34"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n34
+wn35"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n35
+wn36"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n36
+wn37"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n37
+wn38"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n38
+wn39"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n39
+wn40"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n40
+wn41"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n41
+wn42"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n42
+wn43"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n43
+wn44"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n44
+wn45"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n45
+wn46"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n46
+wn47"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n47
+wn48"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n48
+wn49"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n49
+wn50"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n50
+wn51"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n51
+wn52"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n52
+wn53"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n53
+wn54"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n54
+wn55"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n55
+wn56"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n56
+wn57"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n57
+wn58"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n58
+wn59"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n59
+wn60"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n60
+wn61"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n61
+wn62"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n62
+wn63"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n63
+wn64"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n64
+wn65"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n65
+wn66"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n66
+wn67"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n67
+wn68"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n68
+wn69"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n69
+wn70"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n70
+wn71"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n71
+wn72"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n72
+wn73"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n73
+wn74"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n74
+wn75"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n75
+wn76"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n76
+wn77"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n77
+wn78"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n78
+wn79"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n79
+wn80"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n80
+wn81"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n81
+wn82"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n82
+wn83"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n83
+wn84"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n84
+wn85"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n85
+wn86"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n86
+wn87"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n87
+wn88"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n88
+wn89"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n89
+wn90"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n90
+wn91"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n91
+wn92"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n92
+wn93"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n93
+wn94"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n94
+wn95"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n95
+wn96"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n96
+wn97"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n97
+wn98"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+K
+n98
+wn99"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+L
+n99
+wn100"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n100
+wn101"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n101
+wn102"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n102
+wn103"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n103
+wn104"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n104
+wn105"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n105
+wn106"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n106
+wn107"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n107
+wn108"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n108
+wn109"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n109
+wn110"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n110
+wn111"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n111
+wn112"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n112
+wn113"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n113
+wn114"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n114
+wn115"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n115
+wn116"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n116
+wn117"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n117
+wn118"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n118
+wn119"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n119
+wn120"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n120
+wn121"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n121
+wn122"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n122
+wn123"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n123
+wn124"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n124
+wn125"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n125
+wn126"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n126
+wn127"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n127
+wn128"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n128
+wn129"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n129
+wn130"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n130
+wn131"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n131
+wn132"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n132
+wn133"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n133
+wn134"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n134
+wn135"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n135
+wn136"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n136
+wn137"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n137
+wn138"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n138
+wn139"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n139
+wn140"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n140
+wn141"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n141
+wn142"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n142
+wn143"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n143
+wn144"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n144
+wn145"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n145
+wn146"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n146
+wn147"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n147
+wn148"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n148
+wn149"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n149
+wn150"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n150
+wn151"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n151
+wn152"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n152
+wn153"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n153
+wn154"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n154
+wn155"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n155
+wn156"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n156
+wn157"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n157
+wn158"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n158
+wn159"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n159
+wn160"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n160
+wn161"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n161
+wn162"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n162
+wn163"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n163
+wn164"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n164
+wn165"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n165
+wn166"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n166
+wn167"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n167
+wn168"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n168
+wn169"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n169
+wn170"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n170
+wn171"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n171
+wn172"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n172
+wn173"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n173
+wn174"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n174
+wn175"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n175
+wn176"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n176
+wn177"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n177
+wn178"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n178
+wn179"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n179
+wn180"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n180
+wn181"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n181
+wn182"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n182
+wn183"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n183
+wn184"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n184
+wn185"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n185
+wn186"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n186
+wn187"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n187
+wn188"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n188
+wn189"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n189
+wn190"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n190
+wn191"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n191
+wn192"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n192
+wn193"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n193
+wn194"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n194
+wn195"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n195
+wn196"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n196
+wn197"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n197
+wn198"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n198
+wn199"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n199
+wn200"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n200
+wn201"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n201
+wn202"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n202
+wn203"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n203
+wn204"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n204
+wn205"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n205
+wn206"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n206
+wn207"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n207
+wn208"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n208
+wn209"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n209
+wn210"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n210
+wn211"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n211
+wn212"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n212
+wn213"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n213
+wn214"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n214
+wn215"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n215
+wn216"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n216
+wn217"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n217
+wn218"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n218
+wn219"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n219
+wn220"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n220
+wn221"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n221
+wn222"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n222
+wn223"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n223
+wn224"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n224
+wn225"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n225
+wn226"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n226
+wn227"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n227
+wn228"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n228
+wn229"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n229
+wn230"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n230
+wn231"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n231
+wn232"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n232
+wn233"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n233
+wn234"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n234
+wn235"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n235
+wn236"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n236
+wn237"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n237
+wn238"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n238
+wn239"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n239
+wn240"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n240
+wn241"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n241
+wn242"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n242
+wn243"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n243
+wn244"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n244
+wn245"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n245
+wn246"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n246
+wn247"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n247
+wn248"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n248
+wn249"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n249
+wn250"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n250
+wn251"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n251
+wn252"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n252
+wn253"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n253
+wn254"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n254
+wn255"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n255
+wn256"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n256
+wn257"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n257
+wn258"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n258
+wn259"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n259
+wn260"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n260
+wn261"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n261
+wn262"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n262
+wn263"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n263
+wn264"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n264
+wn265"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n265
+wn266"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n266
+wn267"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n267
+wn268"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n268
+wn269"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n269
+wn270"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n270
+wn271"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n271
+wn272"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n272
+wn273"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n273
+wn274"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n274
+wn275"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n275
+wn276"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n276
+wn277"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n277
+wn278"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n278
+wn279"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n279
+wn280"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n280
+wn281"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n281
+wn282"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n282
+wn283"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n283
+wn284"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n284
+wn285"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n285
+wn286"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n286
+wn287"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n287
+wn288"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n288
+wn289"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n289
+wn290"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n290
+wn291"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n291
+wn292"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n292
+wn293"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n293
+wn294"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n294
+wn295"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n295
+wn296"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n296
+wn297"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+M
+n297
+wn298"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ 
+O
+n298
+woutput"Conv*
+group *
+kernel_shape@@ *
+pads@@@@ slow*Ü"Ì/§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§</§<BwZ!
+input
+
+
+
+h
+wb
+output
+
+
+
+ 
+ B
+ 

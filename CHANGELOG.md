@@ -27,6 +27,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Fase 4 — entrada y salida: módulo `imaging-io`; abrir JPEG, PNG, TIFF, WebP, BMP y GIF con perfiles ICC, orientación EXIF, CMYK, grises y 16 bits, con progreso y cancelación.
 - Exportar JPEG, PNG y TIFF: calidad, límite de lado y de peso, plantillas de nombre, estimación de tamaño, preajustes, tres políticas de metadatos y escritura atómica.
 - Aviso de cambios sin exportar, notificación con "Mostrar en carpeta" y `THIRD_PARTY_LICENSES.md`.
+- Fase 5 — Mejorar con IA: módulo `ai-engine` con ONNX Runtime 1.31.0 y el modelo `realesr-general-x4v3` incluido, por tiles y solo en CPU, sin red.
+- Panel Mejorar (×2/×4, intensidad, estimación, cancelación y aviso sobre lo que hace la IA), insignias del paso en la pila y pregunta al exportar sin resultado. El motor solo se ejecuta cuando el usuario lo pide.
+- Marca XMP de procedencia en JPEG, PNG y TIFF, opcional y nunca con "Quitar todo".
+- `tools/jlink-check.sh` comprueba el motor en una imagen jlink solo con los nativos de win-x64.
 
 ### Fixed
 - Exportar a JPG una imagen con transparencia ya no falla.
@@ -38,6 +42,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ### Changed
 - La aplicación requiere JDK 25 y JavaFX 25; `core-imaging` sigue en Java 21.
 - Exportar guarda en PNG hasta que llegue la exportación avanzada.
+- Las preguntas modales se ensanchan en vez de cortar las opciones largas.
 - Restablecer ahora se puede deshacer.
 - Proyecto renombrado a **Rora Studio**: groupId `io.github.erenriquezp`, paquete base `io.github.erenriquezp.rora`, módulo JPMS `io.github.erenriquezp.rora.app`.
 - Estructura Maven multimódulo: `rora-parent` en la raíz, `core-imaging`, `app` (código anterior, movido con historial) y `bench`. Para lanzar la app: `./mvnw install -DskipTests && ./mvnw -pl app javafx:run`.
