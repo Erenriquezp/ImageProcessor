@@ -121,6 +121,12 @@ public final class EnhanceViewModel<F> implements ControlState.Sink {
     refresh();
   }
 
+  /** Otra imagen: lo elegido para la anterior no se arrastra. */
+  void resetChoices() {
+    scale.set(X2);
+    intensity.sync(100.0);
+  }
+
   /** Botón Mejorar. Si se prevé una espera larga, pregunta antes. */
   public void start() {
     if (!canStart.get()) {

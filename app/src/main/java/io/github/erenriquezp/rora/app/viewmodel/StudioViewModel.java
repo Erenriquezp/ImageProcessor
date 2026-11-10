@@ -462,6 +462,7 @@ public final class StudioViewModel<F> implements AutoCloseable {
     stack.clearSelection();
     viewer.pushViewport();
     latestPixels = null;
+    enhance.resetChoices();
     env.session().load(source);
     hasImage.set(true);
     fileName.set(name);

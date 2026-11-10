@@ -347,6 +347,17 @@ class EnhanceViewModelTest {
     assertThat(vm.stack().selectedProperty().get()).isEqualTo(-1);
   }
 
+  @Test
+  void anotherImageStartsFromTheDefaults() throws Exception {
+    enhance.setScale(EnhanceViewModel.X4);
+    enhance.intensity().userSet(40.0);
+    enhance.intensity().endGesture();
+    vm.open(png());
+    drain();
+    assertThat(enhance.scaleProperty().get()).isEqualTo(EnhanceViewModel.X2);
+    assertThat(enhance.intensity().value()).isEqualTo(100.0);
+  }
+
   // ── Límites y estimación ──────────────────────────────────────────────────
 
   @Test
