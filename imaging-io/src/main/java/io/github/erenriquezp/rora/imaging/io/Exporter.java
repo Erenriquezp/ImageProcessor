@@ -10,6 +10,7 @@ import io.github.erenriquezp.rora.core.io.ImageEncoder;
 import io.github.erenriquezp.rora.core.io.ImageMetadata;
 import io.github.erenriquezp.rora.core.io.ImagingException;
 import io.github.erenriquezp.rora.core.io.MetadataPolicyApplier;
+import io.github.erenriquezp.rora.core.io.ProvenanceXmp;
 import io.github.erenriquezp.rora.core.io.QualitySearch;
 import io.github.erenriquezp.rora.core.op.OpContext;
 import io.github.erenriquezp.rora.core.op.OpRegistry;
@@ -94,9 +95,27 @@ public final class Exporter {
       CancellationToken token,
       Progress progress)
       throws ImagingException {
+    return export(image, source, settings, Optional.empty(), request, executor, token, progress);
+  }
+
+  /**
+   * @param provenance marca de IA; con {@code REMOVE_ALL} no se escribe nada
+   */
+  public Result export(
+      Img image,
+      ImageMetadata source,
+      ExportSettings settings,
+      Optional<ProvenanceXmp.Provenance> provenance,
+      Request request,
+      TileExecutor executor,
+      CancellationToken token,
+      Progress progress)
+      throws ImagingException {
     EncoderSupport.throwIfCancelled(token);
     Img output = limited(image, settings.maxLongSide(), executor, token);
-    ImageMetadata metadata = MetadataPolicyApplier.apply(source, settings.metadata());
+    ImageMetadata metadata =
+        withProvenance(
+            MetadataPolicyApplier.apply(source, settings.metadata()), settings, provenance);
     ImageEncoder encoder = Codecs.encoder(settings.format());
     Path target = request.folder().resolve(request.fileName());
     Path tmp = AtomicWriter.temporary(request.folder());
@@ -157,6 +176,15 @@ public final class Exporter {
     double scale =
         ((double) targetWidth * targetHeight) / ((double) preview.width() * preview.height());
     return Math.round(bytes * scale);
+  }
+
+  private static ImageMetadata withProvenance(
+      ImageMetadata metadata,
+      ExportSettings settings,
+      Optional<ProvenanceXmp.Provenance> provenance) {
+    return provenance
+        .map(p -> ProvenanceXmp.apply(metadata, settings.metadata(), p))
+        .orElse(metadata);
   }
 
   private static long sizeOf(Path file) throws ImagingException {
