@@ -18,8 +18,11 @@ public record FillSpec(Kind kind, double strength, int solidArgb) {
     SOLID
   }
 
-  /** Oscurecimiento por defecto (punto de partida; se afina con una hoja de contacto). */
-  public static final double DEFAULT_STRENGTH = 0.35;
+  /**
+   * Oscurecimiento por defecto. Hojas ciegas del 2026-11-13 (6 fotos): 0,50 preferido en 3, 0,35 en
+   * 2 y 0,20 en 1; el degradado se marcó como "no lo usaría" en las 6.
+   */
+  public static final double DEFAULT_STRENGTH = 0.50;
 
   public FillSpec {
     Objects.requireNonNull(kind, "kind");
