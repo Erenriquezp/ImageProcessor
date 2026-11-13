@@ -5,7 +5,9 @@
 module io.github.erenriquezp.rora.wallpapers {
   requires io.github.erenriquezp.rora.core;
 
+  exports io.github.erenriquezp.rora.wallpapers.frame;
   exports io.github.erenriquezp.rora.wallpapers.geom;
   exports io.github.erenriquezp.rora.wallpapers.preset;
   exports io.github.erenriquezp.rora.wallpapers.render;
+  exports io.github.erenriquezp.rora.wallpapers.subject;
 }
