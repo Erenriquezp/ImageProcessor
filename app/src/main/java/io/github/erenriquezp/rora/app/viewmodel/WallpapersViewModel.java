@@ -241,6 +241,7 @@ public final class WallpapersViewModel<F> implements FrameEditor {
       p.addListener((o, a, b) -> refreshNamePreview());
     }
     restorePrefs();
+    updateExportState();
   }
 
   /** Dónde se recuerdan la selección y los ajustes (lo aporta la ventana). */

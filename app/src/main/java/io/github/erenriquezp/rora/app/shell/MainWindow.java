@@ -157,9 +157,14 @@ final class MainWindow {
     Node strip = WallpapersView.strip(vm.wallpapers(), m, subs);
     BorderPane viewerWithStrip = new BorderPane(centerStack);
     viewerWithStrip.setMinSize(0, 0);
-    subs.add(
-        vm.toolProperty()
-            .subscribe(t -> viewerWithStrip.setBottom(t == Tool.WALLPAPERS ? strip : null)));
+    Runnable placeStrip =
+        () ->
+            viewerWithStrip.setBottom(
+                vm.toolProperty().get() == Tool.WALLPAPERS && vm.hasImageProperty().get()
+                    ? strip
+                    : null);
+    subs.add(vm.toolProperty().subscribe(t -> placeStrip.run()));
+    subs.add(vm.hasImageProperty().subscribe(h -> placeStrip.run()));
     workArea = new BorderPane();
     workArea.setCenter(viewerWithStrip);
     workArea.setLeft(toolRail());

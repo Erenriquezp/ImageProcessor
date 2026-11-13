@@ -57,16 +57,17 @@ public final class WallpapersView {
             customRow(vm, m),
             new javafx.scene.control.Separator(),
             none(vm, m),
-            current(vm, m, subs),
-            suggestion(vm),
-            exportRow(vm, m));
+            current(vm, m, subs));
     body.setPadding(new Insets(0, 0, 8, 0));
     ScrollPane scroll = new ScrollPane(body);
     scroll.setFitToWidth(true);
     scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
     scroll.getStyleClass().add("context-scroll");
     VBox.setVgrow(scroll, Priority.ALWAYS);
-    VBox box = new VBox(title, scroll);
+    // Sugerencia y Exportar quedan fijas abajo: son lo que hay que ver sin desplazarse.
+    VBox footer = new VBox(8, suggestion(vm), exportRow(vm, m));
+    footer.getStyleClass().add("wallpapers-footer");
+    VBox box = new VBox(title, scroll, footer);
     box.getStyleClass().addAll("drawer", "wallpapers-drawer");
     return box;
   }
@@ -148,16 +149,17 @@ public final class WallpapersView {
     name.setPromptText(m.get("ui.wallpapers.custom.name"));
     TextField w = new TextField();
     w.setPromptText(m.get("ui.wallpapers.custom.width"));
-    w.setPrefColumnCount(5);
+    w.setPrefColumnCount(4);
     TextField h = new TextField();
     h.setPromptText(m.get("ui.wallpapers.custom.height"));
-    h.setPrefColumnCount(5);
+    h.setPrefColumnCount(4);
     Label error = new Label();
     error.getStyleClass().add("enhance-limit");
     error.setWrapText(true);
     error.visibleProperty().bind(error.textProperty().isNotEmpty());
     error.managedProperty().bind(error.visibleProperty());
     Button add = new Button(m.get("ui.wallpapers.custom.add"));
+    add.setMinWidth(Region.USE_PREF_SIZE);
     add.setOnAction(
         e -> {
           Optional<String> problem;
@@ -340,6 +342,7 @@ public final class WallpapersView {
   private static Label text(ObservableStringValue value) {
     Label l = new Label();
     l.setWrapText(true);
+    l.setMinHeight(Region.USE_PREF_SIZE);
     l.textProperty().bind(value);
     return l;
   }
@@ -363,6 +366,7 @@ public final class WallpapersView {
     detail.setMaxWidth(Double.MAX_VALUE);
     HBox.setHgrow(detail, Priority.ALWAYS);
     Button cancel = new Button(m.get("ui.action.cancel"));
+    cancel.setMinWidth(Region.USE_PREF_SIZE);
     cancel.setOnAction(e -> vm.cancelExport());
     HBox line = new HBox(8, detail, cancel);
     line.setAlignment(Pos.CENTER_LEFT);
@@ -385,8 +389,8 @@ public final class WallpapersView {
     scroll.setFitToHeight(true);
     scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
     scroll.getStyleClass().add("wallpapers-strip");
-    scroll.setPrefHeight(150);
-    scroll.setMinHeight(150);
+    scroll.setPrefHeight(176);
+    scroll.setMinHeight(176);
     return scroll;
   }
 
@@ -394,10 +398,11 @@ public final class WallpapersView {
       WallpapersViewModel<? extends Image> vm, Messages m, Thumb<? extends Image> t) {
     ImageView view = new ImageView(t.image());
     view.setPreserveRatio(true);
-    view.setFitHeight(96);
-    view.setFitWidth(120);
+    view.setFitHeight(84);
+    view.setFitWidth(116);
     StackPane frame = new StackPane(view);
-    frame.setPrefSize(124, 100);
+    frame.setPrefSize(122, 88);
+    frame.setMaxSize(122, 88);
     frame.getStyleClass().add("wallpapers-thumb");
     if (t.current()) {
       frame.getStyleClass().add("current");

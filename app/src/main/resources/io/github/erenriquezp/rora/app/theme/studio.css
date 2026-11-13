@@ -285,3 +285,4 @@
 .wallpapers-anchor { -fx-background-color: -token-surface-3; -fx-background-radius: 2; -fx-padding: 0; }
 .wallpapers-anchor:hover { -fx-background-color: -token-accent-fill; }
 .wallpapers-suggestion { -fx-background-color: -token-surface-2; -fx-border-color: -token-warn; -fx-border-width: 0 0 0 3; -fx-padding: 8; }
+.wallpapers-footer { -fx-padding: 10 0 4 0; -fx-border-color: -token-border transparent transparent transparent; }
