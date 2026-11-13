@@ -31,6 +31,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Panel Mejorar (×2/×4, intensidad, estimación, cancelación y aviso sobre lo que hace la IA), insignias del paso en la pila y pregunta al exportar sin resultado. El motor solo se ejecuta cuando el usuario lo pide.
 - Marca XMP de procedencia en JPEG, PNG y TIFF, opcional y nunca con "Quitar todo".
 - `tools/jlink-check.sh` comprueba el motor en una imagen jlink solo con los nativos de win-x64.
+- Fase 6 — Wallpapers: herramienta que exporta la foto editada con la resolución exacta de varios dispositivos a la vez, en carpetas por grupo, con una sola pregunta por colisiones y un informe final.
+- Módulo `wallpapers` (lógica pura): 35 presets con fuente y fecha, tamaños propios en la carpeta de datos, remuestreo exacto en luz lineal, rellenos (desenfoque, espejo, color) con tramado determinista en PNG, insignias de calidad y sugerencia de mejora con IA.
+- Encuadre automático que no corta caras, con el detector YuNet (OpenCV Zoo, MIT) incluido en `ai-engine`; validado con hojas ciegas.
+- Zonas seguras orientativas del móvil, "Mi pantalla" por monitor y ajuste manual del encuadre con anclajes.
 
 ### Fixed
 - Exportar a JPG una imagen con transparencia ya no falla.
