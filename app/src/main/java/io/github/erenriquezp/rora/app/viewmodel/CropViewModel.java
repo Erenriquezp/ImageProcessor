@@ -1,10 +1,8 @@
 package io.github.erenriquezp.rora.app.viewmodel;
 
-import io.github.erenriquezp.rora.app.model.FrameOverlayState;
-import javafx.beans.property.ReadOnlyObjectProperty;
-
 import io.github.erenriquezp.rora.app.model.ControlSpec;
 import io.github.erenriquezp.rora.app.model.CropModel;
+import io.github.erenriquezp.rora.app.model.FrameOverlayState;
 import io.github.erenriquezp.rora.app.model.RecipeEdits;
 import io.github.erenriquezp.rora.core.image.ProxyPolicy.Size;
 import io.github.erenriquezp.rora.core.op.EditRecipe;
@@ -14,6 +12,7 @@ import io.github.erenriquezp.rora.core.op.Params;
 import java.util.List;
 import java.util.Set;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
 /**
@@ -67,7 +66,8 @@ public final class CropViewModel<F> implements ControlState.Sink, FrameEditor {
             new RatioOption(env.messages().format("ui.stack.ratio", 4, 3), 4.0 / 3),
             new RatioOption(env.messages().format("ui.stack.ratio", 3, 2), 3.0 / 2),
             new RatioOption(env.messages().format("ui.stack.ratio", 16, 9), 16.0 / 9));
-    crop.addListener((o, was, now) -> overlay.set(now == null ? null : FrameOverlayState.editable(now)));
+    crop.addListener(
+        (o, was, now) -> overlay.set(now == null ? null : FrameOverlayState.editable(now)));
   }
 
   @Override
