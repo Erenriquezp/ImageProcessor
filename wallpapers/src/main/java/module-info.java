@@ -7,6 +7,7 @@ module io.github.erenriquezp.rora.wallpapers {
 
   exports io.github.erenriquezp.rora.wallpapers.frame;
   exports io.github.erenriquezp.rora.wallpapers.geom;
+  exports io.github.erenriquezp.rora.wallpapers.plan;
   exports io.github.erenriquezp.rora.wallpapers.preset;
   exports io.github.erenriquezp.rora.wallpapers.render;
   exports io.github.erenriquezp.rora.wallpapers.subject;
