@@ -1,5 +1,8 @@
 package io.github.erenriquezp.rora.app.viewmodel;
 
+import io.github.erenriquezp.rora.app.model.FrameOverlayState;
+import javafx.beans.property.ReadOnlyObjectProperty;
+
 import io.github.erenriquezp.rora.app.model.ControlSpec;
 import io.github.erenriquezp.rora.app.model.CropModel;
 import io.github.erenriquezp.rora.app.model.RecipeEdits;
@@ -17,7 +20,7 @@ import javafx.beans.property.SimpleObjectProperty;
  * Herramienta de recorte y geometría. Mientras está abierta, el recorte existente no se aplica en
  * la vista, para poder editarlo sobre la imagen entera; Enter lo confirma y Esc lo descarta.
  */
-public final class CropViewModel<F> implements ControlState.Sink {
+public final class CropViewModel<F> implements ControlState.Sink, FrameEditor {
 
   /** Proporción ofrecida; {@code ratio 0} = libre y {@code -1} = la de la imagen. */
   public record RatioOption(String label, double ratio) {}
@@ -30,6 +33,7 @@ public final class CropViewModel<F> implements ControlState.Sink {
   private final Env<F> env;
   private final GestureTracker gesture;
   private final ObjectProperty<CropModel> crop = new SimpleObjectProperty<>();
+  private final ObjectProperty<FrameOverlayState> overlay = new SimpleObjectProperty<>();
   private final ControlState straighten;
   private final List<RatioOption> ratios;
   private final Runnable onClosed;
@@ -63,6 +67,17 @@ public final class CropViewModel<F> implements ControlState.Sink {
             new RatioOption(env.messages().format("ui.stack.ratio", 4, 3), 4.0 / 3),
             new RatioOption(env.messages().format("ui.stack.ratio", 3, 2), 3.0 / 2),
             new RatioOption(env.messages().format("ui.stack.ratio", 16, 9), 16.0 / 9));
+    crop.addListener((o, was, now) -> overlay.set(now == null ? null : FrameOverlayState.editable(now)));
+  }
+
+  @Override
+  public ReadOnlyObjectProperty<FrameOverlayState> overlayProperty() {
+    return overlay;
+  }
+
+  @Override
+  public void setFrame(CropModel frame) {
+    setCrop(frame);
   }
 
   public ObjectProperty<CropModel> cropProperty() {

@@ -112,7 +112,7 @@ final class MainWindow {
         new ViewerView(
             vm.viewer(),
             vm.histogram(),
-            vm.crop(),
+            java.util.List.of(vm.crop()),
             afterPool,
             beforePool,
             overlayPool,

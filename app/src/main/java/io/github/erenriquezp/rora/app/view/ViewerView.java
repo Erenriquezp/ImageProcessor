@@ -3,10 +3,11 @@ package io.github.erenriquezp.rora.app.view;
 import io.github.erenriquezp.rora.app.i18n.Messages;
 import io.github.erenriquezp.rora.app.model.CropModel;
 import io.github.erenriquezp.rora.app.model.Curtain;
+import io.github.erenriquezp.rora.app.model.FrameOverlayState;
 import io.github.erenriquezp.rora.app.model.ViewTransform;
 import io.github.erenriquezp.rora.app.session.EditSession;
 import io.github.erenriquezp.rora.app.session.FramePool;
-import io.github.erenriquezp.rora.app.viewmodel.CropViewModel;
+import io.github.erenriquezp.rora.app.viewmodel.FrameEditor;
 import io.github.erenriquezp.rora.app.viewmodel.HistogramViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.ViewerViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.ViewerViewModel.CompareMode;
@@ -32,7 +33,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.transform.Scale;
@@ -46,11 +46,9 @@ import org.kordamp.ikonli.javafx.FontIcon;
 public final class ViewerView extends StackPane {
 
   private static final double SIDE_GAP = 8;
-  private static final double CROP_HANDLE_RADIUS = 5;
-  private static final double CROP_GRAB = 12;
 
   private final ViewerViewModel<WritableImage> vm;
-  private final CropViewModel<WritableImage> crop;
+  private final java.util.List<? extends FrameEditor> editors;
   private final FramePool<WritableImage> afterPool;
   private final FramePool<WritableImage> beforePool;
   private final FramePool<WritableImage> overlayPool;
@@ -74,7 +72,7 @@ public final class ViewerView extends StackPane {
   private final StackPane curtainHandle = new StackPane(new FontIcon("fas-arrows-alt-h"));
   private final Label beforeLabel;
   private final Label afterLabel;
-  private final Pane cropLayer = new Pane();
+  private final FrameOverlay cropLayer = new FrameOverlay();
   private final VBox dropZone = new VBox();
   private final VBox clipLegend = new VBox();
 
@@ -88,7 +86,7 @@ public final class ViewerView extends StackPane {
   public ViewerView(
       ViewerViewModel<WritableImage> vm,
       HistogramViewModel<WritableImage> histogram,
-      CropViewModel<WritableImage> crop,
+      java.util.List<? extends FrameEditor> editors,
       FramePool<WritableImage> afterPool,
       FramePool<WritableImage> beforePool,
       FramePool<WritableImage> overlayPool,
@@ -96,7 +94,7 @@ public final class ViewerView extends StackPane {
       Runnable onOpen,
       Subscriptions subs) {
     this.vm = vm;
-    this.crop = crop;
+    this.editors = editors;
     this.afterPool = afterPool;
     this.beforePool = beforePool;
     this.overlayPool = overlayPool;
@@ -125,7 +123,6 @@ public final class ViewerView extends StackPane {
     beforeLabel = badge(m.get("ui.compare.before"));
     afterLabel = badge(m.get("ui.compare.after"));
 
-    cropLayer.setMouseTransparent(true);
     stage
         .getChildren()
         .addAll(
@@ -171,7 +168,9 @@ public final class ViewerView extends StackPane {
                   layoutView();
                 }));
     subs.add(histogram.overlayEnabledProperty().subscribe(on -> layoutView()));
-    subs.add(crop.cropProperty().subscribe(c -> drawCrop()));
+    for (FrameEditor e : editors) {
+      subs.add(e.overlayProperty().subscribe(c -> drawCrop()));
+    }
 
     stage.addEventHandler(ScrollEvent.SCROLL, this::onScroll);
     stage.addEventHandler(MouseEvent.MOUSE_PRESSED, this::onPressed);
@@ -379,92 +378,27 @@ public final class ViewerView extends StackPane {
     l.relocate(x, y);
   }
 
+  /** Herramienta de encuadre abierta (la primera con estado), o {@code null}. */
+  private FrameEditor activeEditor() {
+    for (FrameEditor e : editors) {
+      if (e.overlayProperty().get() != null) {
+        return e;
+      }
+    }
+    return null;
+  }
+
+  private FrameOverlayState activeOverlay() {
+    FrameEditor e = activeEditor();
+    return e == null ? null : e.overlayProperty().get();
+  }
+
   private void drawCrop() {
-    cropLayer.getChildren().clear();
-    CropModel c = crop.cropProperty().get();
-    ViewTransform t = vm.transformProperty().get();
-    if (c == null || t == null) {
-      return;
-    }
-    double ix = t.imageToScreen(0, 0).x();
-    double iy = t.imageToScreen(0, 0).y();
-    double iw = t.imageWidth() * t.scale();
-    double ih = t.imageHeight() * t.scale();
-    double l = ix + c.left() * iw;
-    double r = ix + c.right() * iw;
-    double top = iy + c.top() * ih;
-    double b = iy + c.bottom() * ih;
-
-    shade(ix, iy, iw, top - iy);
-    shade(ix, b, iw, iy + ih - b);
-    shade(ix, top, l - ix, b - top);
-    shade(r, top, ix + iw - r, b - top);
-
-    for (int i = 1; i <= 2; i++) {
-      double fx = l + (r - l) * i / 3;
-      double fy = top + (b - top) * i / 3;
-      third(fx, top, fx, b);
-      third(l, fy, r, fy);
-    }
-    Rectangle border = new Rectangle(l, top, r - l, b - top);
-    border.getStyleClass().add("crop-border");
-    cropLayer.getChildren().add(border);
-    for (double[] p : handles(l, top, r, b)) {
-      Circle dot = new Circle(p[0], p[1], CROP_HANDLE_RADIUS);
-      dot.getStyleClass().add("crop-handle");
-      cropLayer.getChildren().add(dot);
-    }
-  }
-
-  private void shade(double x, double y, double w, double h) {
-    Rectangle s = new Rectangle(x, y, Math.max(0, w), Math.max(0, h));
-    s.getStyleClass().add("crop-shade");
-    cropLayer.getChildren().add(s);
-  }
-
-  private void third(double x1, double y1, double x2, double y2) {
-    Line line = new Line(x1, y1, x2, y2);
-    line.getStyleClass().add("crop-third");
-    cropLayer.getChildren().add(line);
-  }
-
-  private static double[][] handles(double l, double t, double r, double b) {
-    double cx = (l + r) / 2;
-    double cy = (t + b) / 2;
-    return new double[][] {
-      {l, t}, {cx, t}, {r, t}, {r, cy}, {r, b}, {cx, b}, {l, b}, {l, cy}
-    };
+    cropLayer.draw(activeOverlay(), vm.transformProperty().get());
   }
 
   private CropModel.Handle hitCropHandle(double x, double y) {
-    CropModel c = crop.cropProperty().get();
-    ViewTransform t = vm.transformProperty().get();
-    if (c == null || t == null) {
-      return null;
-    }
-    double iw = t.imageWidth() * t.scale();
-    double ih = t.imageHeight() * t.scale();
-    double l = t.tx() + c.left() * iw;
-    double r = t.tx() + c.right() * iw;
-    double top = t.ty() + c.top() * ih;
-    double b = t.ty() + c.bottom() * ih;
-    double[][] points = handles(l, top, r, b);
-    CropModel.Handle[] names = {
-      CropModel.Handle.NW,
-      CropModel.Handle.N,
-      CropModel.Handle.NE,
-      CropModel.Handle.E,
-      CropModel.Handle.SE,
-      CropModel.Handle.S,
-      CropModel.Handle.SW,
-      CropModel.Handle.W
-    };
-    for (int i = 0; i < points.length; i++) {
-      if (Math.hypot(x - points[i][0], y - points[i][1]) <= CROP_GRAB) {
-        return names[i];
-      }
-    }
-    return x > l && x < r && y > top && y < b ? CropModel.Handle.BODY : null;
+    return FrameOverlay.hit(activeOverlay(), vm.transformProperty().get(), x, y);
   }
 
   private double localX(double x) {
@@ -513,15 +447,19 @@ public final class ViewerView extends StackPane {
   }
 
   private void dragCrop(MouseEvent e, ViewTransform t) {
-    CropModel c = crop.cropProperty().get();
+    FrameEditor editor = activeEditor();
+    if (editor == null) {
+      return;
+    }
+    CropModel c = editor.overlayProperty().get().frame();
     if (draggingHandle == CropModel.Handle.BODY) {
-      crop.setCrop(
+      editor.setFrame(
           c.movedBy(
               (e.getX() - lastX) / (t.imageWidth() * t.scale()),
               (e.getY() - lastY) / (t.imageHeight() * t.scale())));
     } else {
       ViewTransform.Point p = t.screenToImage(e.getX(), e.getY());
-      crop.setCrop(c.dragged(draggingHandle, p.x() / t.imageWidth(), p.y() / t.imageHeight()));
+      editor.setFrame(c.dragged(draggingHandle, p.x() / t.imageWidth(), p.y() / t.imageHeight()));
     }
   }
 
@@ -529,6 +467,12 @@ public final class ViewerView extends StackPane {
     boolean still = Math.hypot(e.getX() - pressX, e.getY() - pressY) < 3;
     if (still && !draggingCurtain && draggingHandle == null) {
       vm.pick(localX(e.getX()), e.getY());
+    }
+    if (draggingHandle != null) {
+      FrameEditor editor = activeEditor();
+      if (editor != null) {
+        editor.frameGestureEnded();
+      }
     }
     draggingCurtain = false;
     draggingHandle = null;
