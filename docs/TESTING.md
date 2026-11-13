@@ -13,7 +13,7 @@ Los tests corren en modo headless, salvo el humo de interfaz (perfil `ui-smoke`)
 ./mvnw test -Dtest=LegacyPinTest
 ./mvnw test -DexcludedGroups=exhaustive   # sin los tests de 2^24 colores (~2 min menos)
 ./mvnw test -pl core-imaging              # solo el núcleo
-./mvnw verify -Dskip.memory=true          # sin el test de memoria (JVM aparte con -Xmx1536m)
+./mvnw verify -Dskip.memory=true          # sin los tests de memoria (JVM aparte con -Xmx1536m)
 ./mvnw -Pui-smoke -pl app -am test        # humo con el toolkit real (pantalla o xvfb-run)
 ```
 
@@ -136,6 +136,21 @@ Fuera de las pruebas automáticas: `tools/jlink-check.sh` y los archivos reales 
 | `AiRealTest` (`ai-real`) | ai-engine | Modelo real: tiempo, memoria, costuras y cancelación. Fuera de `verify`; ver [AI.md](AI.md) |
 
 Los modelos sintéticos los genera `tools/models/make_test_models.py`, con su hash en `SHA256SUMS`.
+
+## Wallpapers (fase 6)
+
+| Test | Módulo | Qué comprueba |
+|---|---|---|
+| `JsonTest`, `PresetCodecTest`, `PresetCatalogTest`, `UserPresetStoreTest` | wallpapers | Lector JSON estricto; los 35 integrados válidos y coherentes; archivos propios rotos, duplicados, enormes, sin UTF-8, enlaces (con `Assumptions` donde el sistema no deja crearlos); ids que nunca son rutas |
+| `FitTest`, `ResamplerTest` | wallpapers | Tamaño exacto para la matriz de fuentes (1×1 a 8000×1200) × todos los presets y extremos; identidad bit a bit; líneas en su sitio (≤ 0,02 px, salida de 8 bits); simetría; mismo resultado con 1 o N hilos |
+| `FacePreservingFramerTest` | wallpapers | Encuadre v3: sin caras, centrado exacto; caras dentro cuando caben; la mayor si no; ojos y boca si ni la mayor cabe; invariancia de escala |
+| `FillsTest`, `PlannerTest`, `WallpaperJobTest` | wallpapers | Rellenos deterministas y sin costura; banding < 0,01 niveles con tramado; Auto, insignias, escala de mejora requerida; fallos y cancelación de la tanda; nombres que no salen de la carpeta |
+| `YuNetDecoderTest`, `YuNetDetectorTest` | ai-engine | Decodificación y NMS con tensores sintéticos; modelo incluido con su hash; ORT real con imágenes sin caras, repetible |
+| `YuNetRealTest` (`ai-real`) | ai-engine | Retrato de la NASA (dominio público, `faces/NOTICE.md`): una cara, bit a bit en dos ejecuciones |
+| `WallpaperExportTest`, `WallpaperRecipeIntegrationTest` | app | Archivos con tamaño y nombre exactos, colisiones, cancelación sin restos, un destino fallido no para los demás, carpeta de solo lectura, metadatos por escaneo de bytes; parte del resultado de la receta y nunca lanza la IA |
+| `WallpapersViewModelTest` | app | Selección inicial, "Mi pantalla", análisis en caché por receta, encuadre manual y Auto, reinicio al cambiar la proporción, rellenos, presets propios, exportación con una sola pregunta de colisión |
+| `WallpaperMemoryTest` (`memory`) | app | 24 MP × 8 destinos con `-Xmx1536m`: todos escritos y pico de heap < 1 GB |
+| `WallpapersArchitectureTest`, `WallpaperArchitectureRulesTest` | wallpapers, app | Sin AWT, JavaFX, ORT ni red en la lógica; render, tanda y detectores solo en la capa de sesión |
 
 ## Defectos conocidos verificados
 

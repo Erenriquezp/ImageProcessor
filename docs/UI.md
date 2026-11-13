@@ -7,9 +7,10 @@ Editor con un único visor, inspector fijo y pila de ajustes visible. El criteri
 | Zona | Contenido |
 |---|---|
 | Barra superior | Abrir, Exportar, deshacer, rehacer, Restablecer, modo de comparación, zoom |
-| Riel izquierdo | Ajustes, Filtros, Recortar, Mejorar (y Lab con `--lab`). Mejorar: ver [AI.md](AI.md) |
-| Cajón izquierdo | Catálogo con buscador, o la herramienta de recorte. Flota sobre el visor por debajo de 1280 px |
-| Visor | Zoom y pan únicos, cortina, lado a lado, superposición de recorte |
+| Riel izquierdo | Ajustes, Filtros, Recortar, Mejorar, Wallpapers (y Lab con `--lab`). Mejorar: ver [AI.md](AI.md); Wallpapers: ver [WALLPAPERS.md](WALLPAPERS.md) |
+| Cajón izquierdo | Catálogo con buscador, o el panel de la herramienta abierta. Flota sobre el visor por debajo de 1280 px |
+| Visor | Zoom y pan únicos, cortina, lado a lado, superposición de encuadre (Recortar y Wallpapers, con zonas seguras) |
+| Tira inferior | Solo en Wallpapers: miniaturas de todos los destinos con su insignia de calidad |
 | Inspector | Histograma, zona contextual (Ajustes básicos o parámetros del paso) y pila |
 | Barra de estado | Mensaje, píxel bajo el cursor, formato y tamaño |
 
@@ -50,7 +51,7 @@ Las vistas son cableado delgado. La lógica vive en ViewModels que no conocen no
 
 | Paquete | Contenido |
 |---|---|
-| `app.model` | Sin JavaFX: `ViewTransform`, `Curtain`, `ControlSpec`, `CropModel`, `RecipeEdits`, `ClippingOverlay` |
+| `app.model` | Sin JavaFX: `ViewTransform`, `Curtain`, `ControlSpec`, `CropModel`, `FrameOverlayState`, `RecipeEdits`, `ClippingOverlay` |
 | `app.viewmodel` | Solo `javafx.base`: `StudioViewModel` y uno por panel; se prueban sin toolkit |
 | `app.view`, `app.shell` | Nodos y ventana |
 | `app.catalog` | Filtros que ve el usuario: es presentación, el núcleo no la conoce |
@@ -72,6 +73,13 @@ Módulo opcional `lab-plugin`, fuera del instalador: operaciones didácticas, Ge
 
 ## Herramientas de desarrollo
 
-En `app/src/test/.../app/shell`; no se distribuyen. `SnapshotTool` genera capturas de todos los estados, `StressTool` ejercita la interfaz con el monitor de bloqueos y `ColdStartProbe` mide el arranque. Se lanzan con `--patch-module` sobre `target/test-classes`.
+En `app/src/test/.../app/shell`; no se distribuyen. `SnapshotTool` genera capturas de todos los estados, `StressTool` ejercita la interfaz con el monitor de bloqueos y `ColdStartProbe` mide el arranque. Se lanzan con `--patch-module` sobre `target/test-classes`:
+
+```bash
+./mvnw -q -pl app test-compile dependency:build-classpath -Dmdep.outputFile=cp.txt
+java --enable-native-access=javafx.graphics,com.microsoft.onnxruntime -Drora.fxStallMonitor=true   -Donnxruntime.native.path=ai-engine/target/ort-native/ai/onnxruntime/native/win-x64   --module-path "app/target/classes;$(cat cp.txt)"   --patch-module io.github.erenriquezp.rora.app=app/target/test-classes   -m io.github.erenriquezp.rora.app/io.github.erenriquezp.rora.app.shell.SnapshotTool foto.jpg salida rota.png
+```
+
+La superposición de encuadre (`FrameOverlay`) la comparten las herramientas que implementan `FrameEditor`: el visor dibuja la primera que está abierta.
 
 Humo con toolkit real (necesita pantalla o `xvfb-run`): `./mvnw -Pui-smoke -pl app -am test`.

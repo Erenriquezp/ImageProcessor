@@ -27,6 +27,10 @@
             <artifactId>rora-ai-engine</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.github.erenriquezp</groupId>
+            <artifactId>rora-wallpapers</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
         </dependency>
@@ -77,6 +81,7 @@
         <!-- JavaFX 25 exige JDK 23 o superior; core-imaging sigue en 21 -->
         <maven.compiler.release>25</maven.compiler.release>
         <archunit.version>1.4.1</archunit.version>
+        <skip.memory>false</skip.memory>
     </properties>
 
     <profiles>
@@ -91,6 +96,37 @@
 
     <build>
         <plugins>
+            <!-- La prueba de memoria de Wallpapers corre aparte, en un JVM con -Xmx1536m (saltable con -Dskip.memory=true) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/WallpaperMemoryTest.java</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>memory</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.memory}</skip>
+                            <excludes combine.self="override"/>
+                            <includes>
+                                <include>**/WallpaperMemoryTest.java</include>
+                            </includes>
+                            <forkCount>1</forkCount>
+                            <reuseForks>false</reuseForks>
+                            <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
+                            <reportsDirectory>${project.build.directory}/surefire-reports-memory</reportsDirectory>
+                            <argLine>@{argLine} -Xmx1536m -XX:+UseG1GC -Djava.awt.headless=true -Dfile.encoding=UTF-8</argLine>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>

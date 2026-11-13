@@ -13,3 +13,18 @@
 Atribución: Real-ESRGAN, Xintao Wang, Liangbin Xie, Chao Dong, Ying Shan. <https://github.com/xinntao/Real-ESRGAN>
 
 Riesgo conocido, sin que esto sea consejo legal: el código y los pesos se publican bajo BSD-3-Clause, pero `docs/Training.md` del proyecto original nombra los conjuntos DF2K y OST sin indicar la licencia de esos datos.
+
+# Modelo incluido: face_detection_yunet_2023mar
+
+| Campo | Valor |
+|---|---|
+| Archivo | `face_detection_yunet_2023mar.onnx` |
+| SHA-256 | `8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4` |
+| Tamaño | 232 589 bytes |
+| Origen | OpenCV Zoo, `models/face_detection_yunet/face_detection_yunet_2023mar.onnx` (<https://github.com/opencv/opencv_zoo>) |
+| Licencia | MIT (Copyright (c) 2020 Shiqi Yu), según el `LICENSE` del directorio del modelo, leído el 2026-11-12 |
+| Uso | Detector de caras de la herramienta Wallpapers (encuadre automático). Solo en local, sin red |
+
+Atribución: YuNet, Shiqi Yu et al. <https://github.com/ShiqiYu/libfacedetection>
+
+Riesgo conocido, sin que esto sea consejo legal: el modelo se publica bajo MIT, pero no consta la licencia de los datos de entrenamiento (WIDER FACE).

@@ -77,7 +77,21 @@ public class SnapshotTool extends StudioApp {
     double w = 1400;
     double h = 860;
     shots.add(new Shot("01-vacio", w, h, () -> {}));
-    shots.add(new Shot("02-cargada", w, h, () -> vm.open(image)));
+    shots.add(
+        new Shot(
+            "34-wallpapers-sin-foto",
+            w,
+            h,
+            () -> vm.toolProperty().set(StudioViewModel.Tool.WALLPAPERS)));
+    shots.add(
+        new Shot(
+            "02-cargada",
+            w,
+            h,
+            () -> {
+              vm.toolProperty().set(StudioViewModel.Tool.ADJUST);
+              vm.open(image);
+            }));
     shots.add(
         new Shot(
             "03-ajustes",
@@ -236,6 +250,7 @@ public class SnapshotTool extends StudioApp {
               vm.open(g16);
             }));
     addEnhanceShots(vm, image, w, h);
+    addWallpaperShots(vm, image, w, h);
     if (args.contains("--lab")) {
       shots.add(
           new Shot(
@@ -357,6 +372,109 @@ public class SnapshotTool extends StudioApp {
                     ExportTarget.Collision.NUMBER)));
   }
 
+  /** Estados de Wallpapers (fase 6), con el detector y la IA reales. */
+  private void addWallpaperShots(
+      StudioViewModel<WritableImage> vm, File image, double w, double h) {
+    var wp = vm.wallpapers();
+    shots.add(
+        new Shot(
+            "35-wallpapers-seleccion",
+            w,
+            h,
+            () -> {
+              if (vm.promptProperty().get() != null) {
+                var c = vm.promptProperty().get().choices();
+                c.get(c.size() - 1).action().run();
+              }
+              vm.notifications().notices().clear();
+              vm.open(image);
+              vm.toolProperty().set(StudioViewModel.Tool.WALLPAPERS);
+            }));
+    shots.add(
+        new Shot("36-wallpapers-zona-segura", w, h, () -> wp.select("phone-1179-2556")));
+    shots.add(
+        new Shot(
+            "37-wallpapers-relleno",
+            w,
+            h,
+            () ->
+                wp.fitProperty()
+                    .set(io.github.erenriquezp.rora.wallpapers.plan.Target.FitMode.CONTAIN)));
+    File small = new File(output, "pequena-1mp.png");
+    shots.add(
+        new Shot(
+            "38-wallpapers-sugerencia-ia",
+            w,
+            h,
+            () -> {
+              try {
+                BufferedImage b = new BufferedImage(1155, 866, BufferedImage.TYPE_INT_RGB);
+                java.awt.Graphics2D g = b.createGraphics();
+                g.setPaint(
+                    new java.awt.GradientPaint(
+                        0, 0, new java.awt.Color(40, 90, 160), 1155, 866, new java.awt.Color(230, 170, 90)));
+                g.fillRect(0, 0, 1155, 866);
+                g.dispose();
+                ImageIO.write(b, "png", small);
+              } catch (java.io.IOException ex) {
+                throw new java.io.UncheckedIOException(ex);
+              }
+              vm.open(small);
+            }));
+    File big = new File(output, "grande-24mp.png");
+    shots.add(
+        new Shot(
+            "39-wallpapers-24mp",
+            w,
+            h,
+            () -> {
+              try {
+                BufferedImage b = new BufferedImage(6000, 4000, BufferedImage.TYPE_INT_RGB);
+                java.awt.Graphics2D g = b.createGraphics();
+                g.setPaint(
+                    new java.awt.GradientPaint(
+                        0, 0, new java.awt.Color(20, 40, 80), 6000, 4000, new java.awt.Color(240, 200, 120)));
+                g.fillRect(0, 0, 6000, 4000);
+                g.dispose();
+                ImageIO.write(b, "png", big);
+              } catch (java.io.IOException ex) {
+                throw new java.io.UncheckedIOException(ex);
+              }
+              vm.open(big);
+            }));
+    shots.add(
+        new Shot(
+            "40-wallpapers-exportando",
+            w,
+            h,
+            () -> {
+              wp.folderProperty().set(new File(output, "wallpapers-ok").getAbsolutePath());
+              wp.showExport();
+              wp.confirmExport();
+            }));
+    shots.add(new Shot(WAIT_FOR_ENHANCE + "40b-wallpapers-informe", w, h, () -> {}));
+    shots.add(
+        new Shot(
+            WAIT_FOR_ENHANCE + "41-wallpapers-informe-fallo",
+            w,
+            h,
+            () -> {
+              wp.closeReport();
+              File bad = new File(output, "wallpapers-fallo");
+              File base = new File(bad, "grande-24mp - wallpapers");
+              base.mkdirs();
+              try {
+                java.nio.file.Files.writeString(new File(base, "Móvil").toPath(), "estorbo");
+              } catch (java.io.IOException ex) {
+                throw new java.io.UncheckedIOException(ex);
+              }
+              wp.folderProperty().set(bad.getAbsolutePath());
+              wp.showExport();
+              wp.confirmExport();
+            }));
+    shots.add(new Shot("42-wallpapers-ventana-estrecha", 1100, 700, wp::closeReport));
+  }
+
   private void next() {
     Shot shot = shots.poll();
     if (shot == null) {
@@ -373,7 +491,8 @@ public class SnapshotTool extends StudioApp {
   private void waitUntilLoaded(Shot shot) {
     boolean enhancing =
         shot.name().startsWith(WAIT_FOR_ENHANCE)
-            && viewModel().enhance().runningProperty().get();
+            && (viewModel().enhance().runningProperty().get()
+                || viewModel().wallpapers().exportingProperty().get());
     if (enhancing || viewModel().statusProperty().get().startsWith("Abriendo")) {
       PauseTransition poll = new PauseTransition(Duration.millis(100));
       poll.setOnFinished(e -> waitUntilLoaded(shot));

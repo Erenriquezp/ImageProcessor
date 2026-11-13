@@ -12,6 +12,14 @@ public final class AiEngines {
     return new OnnxEngine();
   }
 
+  /**
+   * Detector de caras YuNet incluido. No carga nada hasta la primera detección; un fallo del motor
+   * llega como {@code AiFailure} en {@code detect}.
+   */
+  public static io.github.erenriquezp.rora.wallpapers.subject.SubjectDetector faceDetector() {
+    return new io.github.erenriquezp.rora.ai.onnx.YuNetDetector();
+  }
+
   /** El modelo incluido con la aplicación. */
   public static ModelSource bundledModel() {
     return new BundledModelSource();

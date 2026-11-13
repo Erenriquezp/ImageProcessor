@@ -28,6 +28,7 @@ Editor de fotos de escritorio, no destructivo, con ajustes en luz lineal y pila 
 - **Filtros**: 15 entradas con buscador.
 - **Abrir fotos reales**: JPEG, PNG, TIFF, WebP, BMP y GIF, con perfiles de color, orientación EXIF, CMYK, grises y 16 bits.
 - **Exportar**: JPEG, PNG y TIFF con calidad, límite de lado y de peso, plantillas de nombre, estimación de tamaño y escritura atómica.
+- **Wallpapers**: una foto se convierte en fondos con la resolución exacta de varios dispositivos a la vez: encuadre automático que no corta caras, relleno desenfocado cuando la proporción no encaja, aviso de calidad y zonas seguras del móvil. Ver [docs/WALLPAPERS.md](docs/WALLPAPERS.md).
 - **Mejorar con IA**: ampliación ×2 o ×4 con un modelo local (Real-ESRGAN), sin red y solo cuando lo pides. Al exportar, el archivo puede indicar que se usó IA. Ver [docs/AI.md](docs/AI.md).
 - **Privacidad**: por defecto se elimina la ubicación, y la miniatura incrustada no se copia nunca.
 - **Trabajo en segundo plano**: la interfaz no se bloquea con fotos de 24 MP.
@@ -54,7 +55,7 @@ cd ImageProcessor
 
 ## Uso
 
-Abre o arrastra una foto, mueve los **Ajustes** de la derecha y compara con la **Cortina**. Para añadir efectos, abre **Filtros** en el riel izquierdo: cada uno entra en la pila y se puede editar después. **Mejorar** amplía la foto con IA. **Exportar** guarda en JPEG, PNG o TIFF.
+Abre o arrastra una foto, mueve los **Ajustes** de la derecha y compara con la **Cortina**. Para añadir efectos, abre **Filtros** en el riel izquierdo: cada uno entra en la pila y se puede editar después. **Mejorar** amplía la foto con IA. **Wallpapers** la exporta a la vez para tus pantallas, móviles y tabletas. **Exportar** guarda en JPEG, PNG o TIFF.
 
 Los atajos y la arquitectura de la interfaz están en [docs/UI.md](docs/UI.md).
 
@@ -74,7 +75,8 @@ Se edita en sRGB de 8 bits: los archivos de 16 bits o gamut ancho se convierten 
 |---|---|
 | `core-imaging` | Núcleo puro, solo `java.base`: imagen, operaciones, recetas y render |
 | `imaging-io` | Abrir y exportar: códecs sobre `ImageIO`, color y metadatos |
-| `ai-engine` | Inferencia local con ONNX Runtime por tiles, el modelo incluido y la caché de resultados |
+| `wallpapers` | Lógica pura de Wallpapers: presets, encuadre, remuestreo en luz lineal, rellenos y exportación por lotes |
+| `ai-engine` | Inferencia local con ONNX Runtime por tiles, los modelos incluidos (Real-ESRGAN y el detector de caras YuNet) y la caché de resultados |
 | `app` | Interfaz JavaFX y sesión de edición |
 | `lab-plugin` | Opcional, fuera del instalador: operaciones didácticas, generador, blending y código heredado de referencia |
 | `bench` | Benchmarks JMH (perfil `-Pbench`) |
@@ -95,4 +97,4 @@ Nació como trabajo académico (conservado en el tag `v0.1.0-academic` y la rama
 
 ## English summary
 
-Rora Studio is a non-destructive desktop photo editor built with Java 25 and JavaFX 25: linear-light adjustments, an editable step stack, before/after comparison and a live histogram. Requires JDK 25; run `./mvnw install -DskipTests` then `./mvnw -pl app javafx:run`.
+Rora Studio is a non-destructive desktop photo editor built with Java 25 and JavaFX 25: linear-light adjustments, an editable step stack, before/after comparison, a live histogram, local AI upscaling and multi-device wallpaper export. Requires JDK 25; run `./mvnw install -DskipTests` then `./mvnw -pl app javafx:run`.

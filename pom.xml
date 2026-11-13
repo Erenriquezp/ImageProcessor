@@ -13,6 +13,7 @@
     <modules>
         <module>core-imaging</module>
         <module>imaging-io</module>
+        <module>wallpapers</module>
         <module>ai-engine</module>
         <module>app</module>
         <module>lab-plugin</module>
@@ -92,6 +93,11 @@
             <dependency>
                 <groupId>io.github.erenriquezp</groupId>
                 <artifactId>rora-imaging-io</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.erenriquezp</groupId>
+                <artifactId>rora-wallpapers</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -86,7 +86,7 @@ image/bin/java -Djava.awt.headless=true -m t.probe/t.Probe \
 
 # --- Motor de IA: ONNX Runtime es un modulo automatico y su JAR lleva los nativos de todas las
 # plataformas. Se le quitan, se le inyecta module-info y solo se copia win-x64 a la imagen.
-# Requisito previo: ./mvnw -q -B -DskipTests -pl ai-engine -am package
+# Requisito previo: ./mvnw -q -B -DskipTests -pl ai-engine -am package (incluye wallpapers)
 ORT_SHA=d3f903af31fe8f01300adb6b2b67297aa5bee7895909afc32e76ef29a3921149
 mkdir -p ort/libs ort/x ort/gen ort/mi ort/probe/src/t.ai/t ort/probe/classes
 cd "$ROOT"
@@ -112,6 +112,7 @@ cat > probe/src/t.ai/module-info.java <<'EOF'
 module t.ai {
   requires io.github.erenriquezp.rora.ai;
   requires io.github.erenriquezp.rora.core;
+  requires io.github.erenriquezp.rora.wallpapers;
 }
 EOF
 cat > probe/src/t.ai/t/Probe.java <<'EOF'
@@ -121,9 +122,30 @@ import io.github.erenriquezp.rora.ai.api.AiEngines;
 import io.github.erenriquezp.rora.ai.api.ModelSource;
 import io.github.erenriquezp.rora.ai.api.TileRunner;
 import io.github.erenriquezp.rora.core.exec.CancellationToken;
+import io.github.erenriquezp.rora.core.exec.Progress;
+import io.github.erenriquezp.rora.core.exec.TileExecutor;
+import io.github.erenriquezp.rora.core.image.Img;
+import io.github.erenriquezp.rora.wallpapers.plan.PlannedTarget;
+import io.github.erenriquezp.rora.wallpapers.plan.Planner;
+import io.github.erenriquezp.rora.wallpapers.plan.Target;
+import io.github.erenriquezp.rora.wallpapers.preset.PresetCatalog;
+import io.github.erenriquezp.rora.wallpapers.render.TargetRenderer;
+import io.github.erenriquezp.rora.wallpapers.subject.SubjectDetector;
+import java.util.List;
 
 public class Probe {
   public static void main(String[] a) throws Exception {
+    Img src = Img.create(800, 600);
+    try (SubjectDetector d = AiEngines.faceDetector()) {
+      System.out.println(d.id() + " ejecutado: " + d.detect(src, CancellationToken.none()).size() + " caras");
+    }
+    Target t = Target.of(PresetCatalog.builtIns().getFirst());
+    PlannedTarget p = Planner.plan(800, 600, List.of(), t);
+    Img wp = TargetRenderer.render(src,
+        new TargetRenderer.Job(t.width(), t.height(), p.frame(), p.content(), t.fill(), false),
+        new float[3], TileExecutor.sequential(), CancellationToken.none(), Progress.NONE);
+    System.out.println("Wallpaper " + t.id() + ": " + wp.width() + "x" + wp.height()
+        + " (" + PresetCatalog.builtIns().size() + " presets)");
     ModelSource m = AiEngines.bundledModel();
     float[] in = new float[3 * 32 * 32];
     java.util.Arrays.fill(in, 0.5f);
@@ -136,7 +158,7 @@ public class Probe {
 EOF
 
 ROOTREL=../../../..
-AIMP="$ROOTREL/core-imaging/target/classes${SEP}$ROOTREL/ai-engine/target/classes${SEP}libs"
+AIMP="$ROOTREL/core-imaging/target/classes${SEP}$ROOTREL/wallpapers/target/classes${SEP}$ROOTREL/ai-engine/target/classes${SEP}libs"
 # shellcheck disable=SC2046
 javac -d probe/classes/t.ai --module-path "$AIMP" $(find probe/src/t.ai -name '*.java')
 jlink --module-path "${JMODS}${AIMP}${SEP}probe/classes" \

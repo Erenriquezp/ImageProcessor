@@ -156,11 +156,76 @@ public class StressTool extends StudioApp {
                     exportDir(image),
                     "stress-" + System.nanoTime() + ".png",
                     ExportTarget.Collision.ASK)));
+    addWallpaperSections(vm, image);
     // El arranque de la ventana (CSS, fuentes, Prism) no forma parte de lo que se mide.
     System.out.println("SECTION startup");
     PauseTransition warm = new PauseTransition(Duration.seconds(4));
     warm.setOnFinished(e -> next());
     warm.play();
+  }
+
+  /** Fase 6: reencuadrar, cambiar destinos y exportar con la fuente de 24 MP. */
+  private void addWallpaperSections(StudioViewModel<WritableImage> vm, File image) {
+    var wp = vm.wallpapers();
+    sections.add(
+        new Section(
+            "wallpapers-open-tool",
+            60,
+            i -> {
+              if (i == 0) {
+                vm.reset();
+                vm.toolProperty().set(StudioViewModel.Tool.WALLPAPERS);
+              }
+            }));
+    sections.add(
+        new Section(
+            "wallpapers-reframe",
+            300,
+            i -> {
+              if (i == 0) {
+                wp.select("pc-4k");
+              }
+              var o = wp.overlayProperty().get();
+              if (o != null && o.editable()) {
+                double dy = 0.004 * Math.sin(i / 10.0);
+                double dx = 0.004 * Math.cos(i / 13.0);
+                wp.setFrame(o.frame().movedBy(dx, dy));
+              }
+            }));
+    List<String> ids =
+        List.of("pc-4k", "pc-qhd", "phone-1080-2400", "phone-1179-2556", "tablet-1668-2388");
+    sections.add(
+        new Section(
+            "wallpapers-switch-targets",
+            150,
+            i -> {
+              if (i % 10 == 0) {
+                wp.select(ids.get((i / 10) % ids.size()));
+              }
+            }));
+    sections.add(
+        new Section(
+            "wallpapers-fit-fill",
+            90,
+            i -> {
+              if (i % 15 == 0) {
+                wp.fitProperty()
+                    .set(
+                        io.github.erenriquezp.rora.wallpapers.plan.Target.FitMode.values()[
+                            (i / 15) % 3]);
+              }
+            }));
+    sections.add(
+        new Section(
+            "wallpapers-export-24mp",
+            1,
+            i -> {
+              wp.autoAll();
+              wp.folderProperty()
+                  .set(exportDir(image).resolve("stress-wallpapers-" + System.nanoTime()).toString());
+              wp.showExport();
+              wp.confirmExport();
+            }));
   }
 
   private static Path exportDir(File image) {
@@ -189,7 +254,9 @@ public class StressTool extends StudioApp {
 
   private void settle() {
     String st = viewModel().statusProperty().get();
-    if (st.startsWith("Abriendo") || st.startsWith("Exportando")) {
+    if (st.startsWith("Abriendo")
+        || st.startsWith("Exportando")
+        || viewModel().wallpapers().exportingProperty().get()) {
       PauseTransition poll = new PauseTransition(Duration.millis(100));
       poll.setOnFinished(e -> settle());
       poll.play();
