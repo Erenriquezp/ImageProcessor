@@ -60,6 +60,7 @@ public final class WallpaperWorkspace implements AutoCloseable {
 
   private final Supplier<SubjectDetector> detectors;
   private final TileExecutor executor;
+  private final boolean ownsExecutor;
   private SubjectDetector detector;
   private Object cachedKey;
   private Analysis cached;
@@ -69,15 +70,22 @@ public final class WallpaperWorkspace implements AutoCloseable {
    * @param executor hilos para renderizar los destinos
    */
   public WallpaperWorkspace(Supplier<SubjectDetector> detectors, TileExecutor executor) {
+    this(detectors, executor, false);
+  }
+
+  private WallpaperWorkspace(
+      Supplier<SubjectDetector> detectors, TileExecutor executor, boolean ownsExecutor) {
     this.detectors = Objects.requireNonNull(detectors, "detectors");
     this.executor = Objects.requireNonNull(executor, "executor");
+    this.ownsExecutor = ownsExecutor;
   }
 
   /** Con YuNet incluido y un hilo menos que núcleos para renderizar (la aplicación). */
   public static WallpaperWorkspace withBundledDetector() {
     return new WallpaperWorkspace(
         io.github.erenriquezp.rora.app.session.ai.FaceDetectors::bundled,
-        TileExecutor.create(TileExecutor.defaultParallelism()));
+        TileExecutor.create(TileExecutor.defaultParallelism()),
+        true);
   }
 
   /** Sin detector de rostros y en el hilo que llama (tests y entornos sin IA). */
@@ -242,6 +250,9 @@ public final class WallpaperWorkspace implements AutoCloseable {
     if (detector != null) {
       detector.close();
       detector = null;
+    }
+    if (ownsExecutor) {
+      executor.close();
     }
   }
 }
