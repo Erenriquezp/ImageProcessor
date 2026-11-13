@@ -1,5 +1,7 @@
 package io.github.erenriquezp.rora.app.shell;
 
+import io.github.erenriquezp.rora.app.session.wallpaper.WallpaperWorkspace;
+import io.github.erenriquezp.rora.wallpapers.preset.UserPresetStore;
 import io.github.erenriquezp.rora.app.catalog.Catalog;
 import io.github.erenriquezp.rora.app.fx.FxImages;
 import io.github.erenriquezp.rora.app.i18n.Messages;
@@ -97,7 +99,18 @@ public class StudioApp extends Application {
                 io,
                 labEntries),
             img -> FxImages.toFx(img, beforePool, format),
-            img -> FxImages.toFx(img, overlayPool, format));
+            img -> FxImages.toFx(img, overlayPool, format),
+            img -> {
+              WritableImage w = new WritableImage(img.width(), img.height());
+              FxImages.write(img, w, format);
+              return w;
+            },
+            WallpaperWorkspace.withBundledDetector(),
+            new UserPresetStore(
+                UserPresetStore.defaultDirectory(
+                    System.getenv(),
+                    System.getProperty("os.name", ""),
+                    System.getProperty("user.home", "."))));
 
     if (usesCustomChrome()) {
       stage.initStyle(StageStyle.UNDECORATED);

@@ -270,3 +270,18 @@
 .enhance-notice { -fx-text-fill: -token-accent; -fx-font-size: 12px; }
 .enhance-legal { -fx-text-fill: -token-text-2; -fx-font-size: 11px; -fx-graphic-text-gap: 6; }
 .enhance-legal .ikonli-font-icon { -fx-icon-color: -token-text-2; -fx-icon-size: 12; }
+
+/* Wallpapers */
+.wallpapers-devices { -fx-background-color: -token-surface-1; }
+.wallpapers-group { -fx-text-fill: -token-text-3; -fx-font-size: 11px; -fx-font-weight: bold; -fx-background-color: transparent; -fx-padding: 8 4 2 4; }
+.wallpapers-strip { -fx-background-color: -token-bg; -fx-border-color: -token-border transparent transparent transparent; }
+.wallpapers-strip > .viewport { -fx-background-color: -token-bg; }
+.wallpapers-thumb { -fx-background-color: -token-canvas; -fx-border-color: -token-border; -fx-border-width: 1; -fx-cursor: hand; }
+.wallpapers-thumb.current { -fx-border-color: -token-accent; -fx-border-width: 2; }
+.wallpapers-badge { -fx-font-size: 11px; -fx-padding: 1 6 1 6; -fx-background-radius: 8; }
+.wallpapers-badge.badge-excellent { -fx-text-fill: -token-ok; }
+.wallpapers-badge.badge-acceptable { -fx-text-fill: -token-text-2; }
+.wallpapers-badge.badge-blurry { -fx-text-fill: -token-warn; }
+.wallpapers-anchor { -fx-background-color: -token-surface-3; -fx-background-radius: 2; -fx-padding: 0; }
+.wallpapers-anchor:hover { -fx-background-color: -token-accent-fill; }
+.wallpapers-suggestion { -fx-background-color: -token-surface-2; -fx-border-color: -token-warn; -fx-border-width: 0 0 0 3; -fx-padding: 8; }

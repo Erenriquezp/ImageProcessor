@@ -16,6 +16,9 @@ import io.github.erenriquezp.rora.app.view.NotificationsView;
 import io.github.erenriquezp.rora.app.view.Subscriptions;
 import io.github.erenriquezp.rora.app.view.ViewerView;
 import io.github.erenriquezp.rora.app.viewmodel.ExportPrefs;
+import io.github.erenriquezp.rora.app.viewmodel.WallpapersViewModel;
+import io.github.erenriquezp.rora.app.view.WallpaperDialogs;
+import io.github.erenriquezp.rora.app.view.WallpapersView;
 import io.github.erenriquezp.rora.app.viewmodel.Prompt;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel.Tool;
@@ -112,7 +115,7 @@ final class MainWindow {
         new ViewerView(
             vm.viewer(),
             vm.histogram(),
-            java.util.List.of(vm.crop()),
+            java.util.List.of(vm.crop(), vm.wallpapers()),
             afterPool,
             beforePool,
             overlayPool,
@@ -130,7 +133,8 @@ final class MainWindow {
     VBox catalog = DrawerViews.catalog(vm.catalog(), m, subs);
     VBox crop = DrawerViews.crop(vm.crop(), m, subs);
     VBox enhance = EnhanceView.build(vm.enhance(), m, subs);
-    drawerHost.getChildren().addAll(catalog, crop, enhance);
+    VBox wallpapers = WallpapersView.panel(vm.wallpapers(), m, subs);
+    drawerHost.getChildren().addAll(catalog, crop, enhance, wallpapers);
     drawerHost.setMaxWidth(Region.USE_PREF_SIZE);
     subs.add(
         vm.toolProperty()
@@ -139,6 +143,7 @@ final class MainWindow {
                   catalog.setVisible(tool == Tool.FILTERS);
                   crop.setVisible(tool == Tool.CROP);
                   enhance.setVisible(tool == Tool.ENHANCE);
+                  wallpapers.setVisible(tool == Tool.WALLPAPERS);
                   updateDrawer();
                 }));
 
@@ -149,8 +154,14 @@ final class MainWindow {
     StackPane.setAlignment(progress, Pos.BOTTOM_CENTER);
     centerStack.setMinSize(0, 0);
 
+    Node strip = WallpapersView.strip(vm.wallpapers(), m, subs);
+    BorderPane viewerWithStrip = new BorderPane(centerStack);
+    viewerWithStrip.setMinSize(0, 0);
+    subs.add(
+        vm.toolProperty()
+            .subscribe(t -> viewerWithStrip.setBottom(t == Tool.WALLPAPERS ? strip : null)));
     workArea = new BorderPane();
-    workArea.setCenter(centerStack);
+    workArea.setCenter(viewerWithStrip);
     workArea.setLeft(toolRail());
     workArea.setRight(withResizeHandle(inspector));
 
@@ -390,7 +401,8 @@ final class MainWindow {
             toolButton(group, Tool.ADJUST, "ui.tool.adjust", "fas-sliders-h"),
             toolButton(group, Tool.FILTERS, "ui.tool.filters", "fas-magic"),
             toolButton(group, Tool.CROP, "ui.tool.crop", "fas-crop-alt"),
-            toolButton(group, Tool.ENHANCE, "ui.tool.enhance", "fas-expand-arrows-alt"));
+            toolButton(group, Tool.ENHANCE, "ui.tool.enhance", "fas-expand-arrows-alt"),
+            toolButton(group, Tool.WALLPAPERS, "ui.tool.wallpapers", "fas-desktop"));
     rail.getStyleClass().add("tool-rail");
     if (openLab != null) {
       Button lab = new Button(m.get("ui.tool.lab"), new FontIcon("fas-flask"));
@@ -526,6 +538,19 @@ final class MainWindow {
     }
   }
 
+  /** "Mi pantalla": cada monitor en píxeles físicos (tamaño lógico por la escala del sistema). */
+  private void pushScreens() {
+    java.util.List<WallpapersViewModel.Screen> list = new java.util.ArrayList<>();
+    for (javafx.stage.Screen sc : javafx.stage.Screen.getScreens()) {
+      javafx.geometry.Rectangle2D b = sc.getBounds();
+      list.add(
+          new WallpapersViewModel.Screen(
+              (int) Math.round(b.getWidth() * sc.getOutputScaleX()),
+              (int) Math.round(b.getHeight() * sc.getOutputScaleY())));
+    }
+    vm.wallpapers().setScreens(list);
+  }
+
   private void installDialogs() {
     vm.exportDialog()
         .usePrefs(
@@ -541,6 +566,23 @@ final class MainWindow {
               }
             });
     vm.setRevealer(MainWindow::revealInFolder);
+    vm.wallpapers()
+        .usePrefs(
+            new ExportPrefs() {
+              @Override
+              public String get(String key, String fallback) {
+                return layout.getString(key, fallback);
+              }
+
+              @Override
+              public void put(String key, String value) {
+                layout.putString(key, value);
+              }
+            });
+    WallpaperDialogs.install(stage, vm.wallpapers(), m, subs, Theme::apply);
+    pushScreens();
+    javafx.stage.Screen.getScreens()
+        .addListener((javafx.collections.ListChangeListener<javafx.stage.Screen>) c -> pushScreens());
     subs.add(
         vm.exportDialog()
             .visibleProperty()

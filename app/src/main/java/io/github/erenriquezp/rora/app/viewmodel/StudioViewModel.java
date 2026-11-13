@@ -1,5 +1,11 @@
 package io.github.erenriquezp.rora.app.viewmodel;
 
+import java.time.LocalDateTime;
+import io.github.erenriquezp.rora.core.io.FileNames;
+
+
+import io.github.erenriquezp.rora.wallpapers.preset.UserPresetStore;
+import io.github.erenriquezp.rora.app.session.wallpaper.WallpaperWorkspace;
 import io.github.erenriquezp.rora.app.i18n.Messages;
 import io.github.erenriquezp.rora.app.session.EditSession;
 import io.github.erenriquezp.rora.app.session.ExportTarget;
@@ -42,7 +48,8 @@ public final class StudioViewModel<F> implements AutoCloseable {
     ADJUST,
     FILTERS,
     CROP,
-    ENHANCE
+    ENHANCE,
+    WALLPAPERS
   }
 
   private static final long SHOW_PROGRESS_AFTER_NANOS = 300_000_000L;
@@ -58,6 +65,7 @@ public final class StudioViewModel<F> implements AutoCloseable {
   private final CatalogViewModel<F> catalog;
   private final CropViewModel<F> crop;
   private final EnhanceViewModel<F> enhance;
+  private final WallpapersViewModel<F> wallpapers;
   private final AiJobService.Listener aiListener;
   private final NotificationsViewModel<F> notifications;
   private final IoProgressViewModel<F> ioProgress;
@@ -83,6 +91,28 @@ public final class StudioViewModel<F> implements AutoCloseable {
   private Consumer<Path> revealer = p -> {};
 
   public StudioViewModel(Env<F> env, Function<Img, F> auxConverter, Function<Img, F> overlay) {
+    this(
+        env,
+        auxConverter,
+        overlay,
+        auxConverter,
+        WallpaperWorkspace.withoutDetector(),
+        new UserPresetStore(
+            Path.of(System.getProperty("java.io.tmpdir"), "rora-wallpapers-unused")));
+  }
+
+  /**
+   * @param thumbs conversión de las miniaturas de Wallpapers (sin pool: varias viven a la vez)
+   * @param workspace análisis, miniaturas y exportación de Wallpapers
+   * @param userPresets dónde viven los presets propios
+   */
+  public StudioViewModel(
+      Env<F> env,
+      Function<Img, F> auxConverter,
+      Function<Img, F> overlay,
+      Function<Img, F> thumbs,
+      WallpaperWorkspace workspace,
+      UserPresetStore userPresets) {
     this.env = env;
     this.m = env.messages();
     this.gesture = new GestureTracker(env.session(), env.scheduler(), env.publisher());
@@ -127,12 +157,15 @@ public final class StudioViewModel<F> implements AutoCloseable {
     this.crop = new CropViewModel<>(env, gesture, () -> tool.set(Tool.ADJUST));
     this.enhance = new EnhanceViewModel<>(env, gesture, prompt::set, this::problem);
     stack.onEnhanceSelected(() -> tool.set(Tool.ENHANCE));
+    this.wallpapers =
+        new WallpapersViewModel<>(env, wallpaperHost(), enhance, workspace, thumbs, userPresets);
     this.aiListener =
         new AiJobService.Listener() {
           @Override
           public void stateChanged() {
             stack.sync(env.session().recipe());
             enhance.stateChanged();
+            wallpapers.enhanceChanged();
           }
 
           @Override
@@ -162,6 +195,16 @@ public final class StudioViewModel<F> implements AutoCloseable {
           }
           if (now == Tool.ENHANCE) {
             enhance.refresh();
+          }
+          if (now == Tool.WALLPAPERS) {
+            env.session()
+                .source()
+                .flatMap(SessionSource::origin)
+                .map(Path::getParent)
+                .ifPresent(p -> wallpapers.suggestFolder(p.toString()));
+            wallpapers.activate();
+          } else if (was == Tool.WALLPAPERS) {
+            wallpapers.deactivate();
           }
         });
 
@@ -222,6 +265,59 @@ public final class StudioViewModel<F> implements AutoCloseable {
 
   public EnhanceViewModel<F> enhance() {
     return enhance;
+  }
+
+  public WallpapersViewModel<F> wallpapers() {
+    return wallpapers;
+  }
+
+  private WallpapersViewModel.Host wallpaperHost() {
+    return new WallpapersViewModel.Host() {
+      @Override
+      public void prompt(Prompt p) {
+        prompt.set(p);
+      }
+
+      @Override
+      public Optional<Img> previewPixels() {
+        return Optional.ofNullable(latestPixels);
+      }
+
+      @Override
+      public String sourceBaseName() {
+        return FileNames.baseName(fileName.get());
+      }
+
+      @Override
+      public ImageMetadata metadata() {
+        return env.session().source().map(SessionSource::metadata).orElse(ImageMetadata.EMPTY);
+      }
+
+      @Override
+      public Optional<ProvenanceXmp.Provenance> provenance() {
+        return StudioViewModel.this.provenance();
+      }
+
+      @Override
+      public void reveal(Path file) {
+        revealer.accept(file);
+      }
+
+      @Override
+      public void notice(String message) {
+        notifications.info(message);
+      }
+
+      @Override
+      public void error(String message, String details) {
+        notifications.error(message, details);
+      }
+
+      @Override
+      public LocalDateTime now() {
+        return LocalDateTime.now();
+      }
+    };
   }
 
   public NotificationsViewModel<F> notifications() {
@@ -289,12 +385,14 @@ public final class StudioViewModel<F> implements AutoCloseable {
     params.show(stack.selectedProperty().get());
     crop.sync(recipe);
     enhance.sync(recipe);
+    wallpapers.recipeChanged();
     markRenderStart();
   }
 
   private void onFrame(EditSession.Frame<F> frame) {
     latestPixels = frame.pixels();
     viewer.frameReady(frame);
+    wallpapers.previewChanged();
     histogram.accept(frame);
     size.set(m.format("ui.status.size", frame.fullWidth(), frame.fullHeight()));
     status.set(restingStatus);
@@ -465,6 +563,7 @@ public final class StudioViewModel<F> implements AutoCloseable {
     enhance.resetChoices();
     env.session().load(source);
     hasImage.set(true);
+    wallpapers.imageChanged();
     fileName.set(name);
     format.set(label);
     setStatus(m.format("ui.status.opened", name));
@@ -718,5 +817,6 @@ public final class StudioViewModel<F> implements AutoCloseable {
     env.session().removeListener(listener);
     env.session().ai().ifPresent(ai -> ai.removeListener(aiListener));
     histogram.close();
+    wallpapers.close();
   }
 }

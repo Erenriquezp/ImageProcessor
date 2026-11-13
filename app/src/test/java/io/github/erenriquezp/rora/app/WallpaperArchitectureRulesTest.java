@@ -2,16 +2,19 @@ package io.github.erenriquezp.rora.app;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
+import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import io.github.erenriquezp.rora.wallpapers.render.FillSpec;
 import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * Wallpapers en {@code app}: el render, la tanda y los detectores solo desde {@code
- * app.session.wallpaper} (y la creación del detector, desde {@code app.session.ai}); vistas y
- * ViewModels solo ven el plan y los presets. Sin red.
+ * Wallpapers en {@code app}: el render (salvo el valor {@code FillSpec}), la tanda y los detectores
+ * solo desde {@code app.session.wallpaper} (y la creación del detector, desde {@code
+ * app.session.ai}); vistas y ViewModels solo ven el plan y los presets. Sin red.
  */
 class WallpaperArchitectureRulesTest {
 
@@ -43,8 +46,12 @@ class WallpaperArchitectureRulesTest {
         .that()
         .resideOutsideOfPackage(WALLPAPER_SESSION)
         .should()
-        .dependOnClassesThat()
-        .resideInAPackage("io.github.erenriquezp.rora.wallpapers.render..")
+        .dependOnClassesThat(
+            JavaClass.Predicates.resideInAPackage("io.github.erenriquezp.rora.wallpapers.render..")
+                .and(
+                    DescribedPredicate.not(
+                        JavaClass.Predicates.equivalentTo(FillSpec.class)
+                            .or(JavaClass.Predicates.equivalentTo(FillSpec.Kind.class)))))
         .orShould()
         .dependOnClassesThat()
         .haveFullyQualifiedName("io.github.erenriquezp.rora.wallpapers.plan.WallpaperJob")
