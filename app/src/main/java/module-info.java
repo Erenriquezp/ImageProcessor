@@ -7,6 +7,7 @@ module io.github.erenriquezp.rora.app {
     requires io.github.erenriquezp.rora.core;
     requires io.github.erenriquezp.rora.imaging.io;
     requires io.github.erenriquezp.rora.ai;
+    requires io.github.erenriquezp.rora.wallpapers;
     requires org.kordamp.ikonli.javafx;
     requires org.kordamp.ikonli.fontawesome6;
 
