@@ -51,7 +51,6 @@ class WallpapersArchitectureTest {
     Set<String> requires =
         d.requires().stream().map(ModuleDescriptor.Requires::name).collect(Collectors.toSet());
     // Surefire añade lecturas con --add-reads, no requires: el descriptor es el compilado.
-    assertThat(requires)
-        .containsExactlyInAnyOrder("java.base", "io.github.erenriquezp.rora.core");
+    assertThat(requires).containsExactlyInAnyOrder("java.base", "io.github.erenriquezp.rora.core");
   }
 }

@@ -4,4 +4,6 @@
  */
 module io.github.erenriquezp.rora.wallpapers {
   requires io.github.erenriquezp.rora.core;
+
+  exports io.github.erenriquezp.rora.wallpapers.preset;
 }
