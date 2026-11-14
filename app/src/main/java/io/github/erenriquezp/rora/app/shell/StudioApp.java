@@ -26,6 +26,7 @@ import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel;
 import io.github.erenriquezp.rora.wallpapers.preset.UserPresetStore;
 import java.awt.Desktop;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
@@ -168,9 +169,28 @@ public class StudioApp extends Application {
     if (labRequested && labs.isEmpty()) {
       viewModel.labMissing();
     }
-    if (Diagnostics.logs().isPresent()) {
+    // Solo al arrancar por Launcher: las herramientas de desarrollo pasan sus propios argumentos.
+    if (Diagnostics.errors().isPresent()) {
       help.checkPreviousCrash();
+      fileArgument(arguments()).ifPresent(viewModel::open);
     }
+  }
+
+  /**
+   * Foto pasada por la línea de órdenes o arrastrada sobre el icono (Windows la pasa como
+   * argumento): el primer argumento que no es una opción y es un archivo.
+   */
+  static Optional<File> fileArgument(List<String> args) {
+    for (String a : args) {
+      if (a == null || a.isBlank() || a.startsWith("--")) {
+        continue;
+      }
+      File f = new File(a);
+      if (f.isFile()) {
+        return Optional.of(f);
+      }
+    }
+    return Optional.empty();
   }
 
   /** ViewModel de ayuda; la herramienta de capturas lo usa para sus estados. */
