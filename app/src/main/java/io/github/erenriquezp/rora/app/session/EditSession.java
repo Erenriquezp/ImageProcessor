@@ -948,6 +948,17 @@ public final class EditSession<F> implements AutoCloseable {
     return coordinator.isIdle();
   }
 
+  /**
+   * Tras un {@code OutOfMemoryError}: cancela la IA en curso y vacía la caché de resultados. Se
+   * puede llamar desde cualquier hilo; la vista se vuelve a pedir sola en el siguiente cambio.
+   */
+  public void releaseMemory() {
+    if (ai != null) {
+      ai.cancel();
+    }
+    renderer.cache().clear();
+  }
+
   @Override
   public void close() {
     coordinator.close();
