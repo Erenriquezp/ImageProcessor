@@ -136,7 +136,15 @@ try {
   $dirty = (& git status --porcelain --untracked-files=no) -join "`n"
   $commit = (& git rev-parse --short HEAD).Trim()
   $epoch = [long] (& git log -1 --format=%ct).Trim()
+  # Un checkout anterior a .gitattributes puede conservar CRLF en archivos que van dentro del
+  # paquete (LICENSE): el ZIP ya no coincidiría con el de un clon nuevo o el del CI.
+  $staleEol = @(& git ls-files --eol | Where-Object { $_ -match '^\S+\s+w/crlf\s+attr/.*eol=lf' } |
+      ForEach-Object { ($_ -split "`t", 2)[1] })
 } finally { Pop-Location }
+if ($staleEol.Count -gt 0) {
+  throw ("Archivos con CRLF en el checkout aunque .gitattributes pide LF: $($staleEol -join ', '). " +
+    'Bórralos y recupéralos con git checkout -- <archivo> (el contenido en Git no cambia).')
+}
 if ($dirty) { Write-Warning 'Hay cambios sin confirmar: el paquete no corresponde exactamente a un commit.' }
 $fxDir = Get-PinnedTool $Fx
 $fxJmods = (Get-ChildItem $fxDir -Recurse -Filter 'javafx.base.jmod' | Select-Object -First 1).DirectoryName
