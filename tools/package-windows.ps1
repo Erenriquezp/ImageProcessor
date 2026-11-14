@@ -47,7 +47,7 @@ $UpgradeUuid = 'b9b3690b-c081-4d82-b116-ca087d07dcce'
 $Name = 'Rora Studio'
 $FileBase = 'RoraStudio'
 $MainModule = 'io.github.erenriquezp.rora.app/io.github.erenriquezp.rora.app.shell.Launcher'
-$ProjectUrl = 'https://github.com/Erenriquezp/ImageProcessor'
+$ProjectUrl = 'https://github.com/Erenriquezp/rora-studio'
 # Comillas simples: $LOCALAPPDATA lo expande el lanzador al arrancar, no PowerShell.
 $JavaOptions = @(
   '--enable-native-access=javafx.graphics,com.microsoft.onnxruntime',

@@ -8,7 +8,7 @@ La única conexión que puede hacer la aplicación es **Ayuda → Buscar actuali
 
 | Aspecto | Qué hace |
 |---|---|
-| Petición | `GET https://api.github.com/repos/Erenriquezp/ImageProcessor/releases?per_page=10` |
+| Petición | `GET https://api.github.com/repos/Erenriquezp/rora-studio/releases?per_page=10` |
 | Cabeceras | `Accept`, `X-GitHub-Api-Version` y `User-Agent: RoraStudio/<versión>`. Sin cookies, sin autenticación, sin identificadores |
 | Límites | 5 s para conectar, 10 s en total, 256 KiB como máximo, redirecciones solo por HTTPS |
 | Resultado | Te dice si hay una versión nueva y abre su página de GitHub en tu navegador si lo pides. No descarga ni ejecuta nada |

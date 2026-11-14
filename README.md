@@ -7,7 +7,7 @@ Editor de fotos de escritorio, no destructivo, con ajustes en luz lineal y pila 
 [![Java](https://img.shields.io/badge/Java-25-orange)](https://openjdk.org/)
 [![JavaFX](https://img.shields.io/badge/JavaFX-25-1f8acb)](https://openjfx.io/)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
-[![CI](https://github.com/Erenriquezp/ImageProcessor/actions/workflows/ci.yml/badge.svg)](https://github.com/Erenriquezp/ImageProcessor/actions/workflows/ci.yml)
+[![CI](https://github.com/Erenriquezp/rora-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Erenriquezp/rora-studio/actions/workflows/ci.yml)
 
 ![Captura de pantalla de Rora Studio](docs/img/captura.png)
 
@@ -35,7 +35,7 @@ Editor de fotos de escritorio, no destructivo, con ajustes en luz lineal y pila 
 
 ## Descargar e instalar (Windows)
 
-Descarga la última versión en [Releases](https://github.com/Erenriquezp/ImageProcessor/releases). Hay dos formatos:
+Descarga la última versión en [Releases](https://github.com/Erenriquezp/rora-studio/releases). Hay dos formatos:
 
 | Archivo | Para qué |
 |---|---|
@@ -82,7 +82,7 @@ Sin cuentas, sin telemetría y sin envíos automáticos. Tus fotos no salen del 
 ### Informar de un problema
 
 1. **Ayuda → Informe de diagnóstico…**: revisa el texto (no debería contener tu nombre ni rutas) y pulsa **Copiar**.
-2. Abre una [incidencia](https://github.com/Erenriquezp/ImageProcessor/issues/new?template=bug_report.md) con los pasos para reproducirlo y pega el informe.
+2. Abre una [incidencia](https://github.com/Erenriquezp/rora-studio/issues/new?template=bug_report.md) con los pasos para reproducirlo y pega el informe.
 
 Nada se envía solo: tú decides qué compartes.
 
@@ -97,8 +97,8 @@ Nada se envía solo: tú decides qué compartes.
 ### Inicio rápido
 
 ```bash
-git clone https://github.com/Erenriquezp/ImageProcessor.git
-cd ImageProcessor
+git clone https://github.com/Erenriquezp/rora-studio.git
+cd rora-studio
 
 ./mvnw install -DskipTests         # Windows (PowerShell): .\mvnw.cmd install -DskipTests
 ./mvnw -pl app javafx:run          # el editor

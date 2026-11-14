@@ -64,7 +64,7 @@ class RedactorTest {
     String trace =
         "java.nio.file.AccessDeniedException: x\n\tat java.base/sun.nio.fs.WindowsException"
             + ".translateToIOException(WindowsException.java:89)\n"
-            + "https://github.com/Erenriquezp/ImageProcessor/releases 10:15 1/2 ERROR: fallo";
+            + "https://github.com/Erenriquezp/rora-studio/releases 10:15 1/2 ERROR: fallo";
     assertThat(R.redact(trace)).isEqualTo(trace);
   }
 
@@ -118,7 +118,7 @@ class RedactorTest {
   void posixRuleLeavesUrlsMimeTypesModulesAndFractionsAlone() {
     String s =
         "at java.base/java.nio.file.Files.read(Files.java:1) image/jpeg 3 / 4 1/2 "
-            + "https://api.github.com/repos/Erenriquezp/ImageProcessor/releases /tmp";
+            + "https://api.github.com/repos/Erenriquezp/rora-studio/releases /tmp";
     assertThat(R.redact(s)).isEqualTo(s);
   }
 

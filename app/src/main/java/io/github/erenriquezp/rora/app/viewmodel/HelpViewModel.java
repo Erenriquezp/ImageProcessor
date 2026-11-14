@@ -33,7 +33,7 @@ import javafx.beans.property.StringProperty;
 public final class HelpViewModel implements GlobalErrors.Listener {
 
   /** Página de incidencias del proyecto (se abre en el navegador del usuario). */
-  public static final String ISSUES_URL = "https://github.com/Erenriquezp/ImageProcessor/issues";
+  public static final String ISSUES_URL = "https://github.com/Erenriquezp/rora-studio/issues";
 
   /** Lo que la vista aporta: portapapeles, explorador, navegador y datos de la interfaz. */
   public interface Host {
