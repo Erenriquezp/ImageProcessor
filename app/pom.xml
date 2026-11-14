@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.erenriquezp</groupId>
         <artifactId>rora-parent</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>0.1.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>rora-app</artifactId>
@@ -95,6 +95,23 @@
     </profiles>
 
     <build>
+        <!-- Solo build.properties se filtra (version y canal desde el POM); el resto se copia tal cual -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/build.properties</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/build.properties</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <!-- La prueba de memoria de Wallpapers corre aparte, en un JVM con -Xmx1536m (saltable con -Dskip.memory=true) -->
             <plugin>
