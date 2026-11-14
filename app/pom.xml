@@ -137,6 +137,8 @@
                     <excludes>
                         <exclude>**/WallpaperMemoryTest.java</exclude>
                     </excludes>
+                    <!-- Solo los tests leen jdk.httpserver: servidor local para las actualizaciones -->
+                    <argLine>@{argLine} -Djava.awt.headless=true -Dfile.encoding=UTF-8 --add-modules jdk.httpserver --add-reads io.github.erenriquezp.rora.app=jdk.httpserver</argLine>
                 </configuration>
                 <executions>
                     <execution>
@@ -156,6 +158,24 @@
                             <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
                             <reportsDirectory>${project.build.directory}/surefire-reports-memory</reportsDirectory>
                             <argLine>@{argLine} -Xmx1536m -XX:+UseG1GC -Djava.awt.headless=true -Dfile.encoding=UTF-8</argLine>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <!-- Solo los tests leen jdk.httpserver (servidor HTTP local de pruebas) -->
+                        <id>default-testCompile</id>
+                        <configuration>
+                            <compilerArgs>
+                                <arg>--add-modules</arg>
+                                <arg>jdk.httpserver</arg>
+                                <arg>--add-reads</arg>
+                                <arg>io.github.erenriquezp.rora.app=jdk.httpserver</arg>
+                            </compilerArgs>
                         </configuration>
                     </execution>
                 </executions>

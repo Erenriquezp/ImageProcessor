@@ -20,9 +20,12 @@ import io.github.erenriquezp.rora.app.session.Scheduler;
 import io.github.erenriquezp.rora.app.session.StallMonitor;
 import io.github.erenriquezp.rora.app.session.wallpaper.WallpaperWorkspace;
 import io.github.erenriquezp.rora.app.theme.Theme;
+import io.github.erenriquezp.rora.app.update.GitHubReleasesClient;
+import io.github.erenriquezp.rora.app.update.UpdateChecker;
 import io.github.erenriquezp.rora.app.viewmodel.Env;
 import io.github.erenriquezp.rora.app.viewmodel.HelpViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel;
+import io.github.erenriquezp.rora.app.viewmodel.UpdateViewModel;
 import io.github.erenriquezp.rora.wallpapers.preset.UserPresetStore;
 import java.awt.Desktop;
 import java.awt.image.BufferedImage;
@@ -61,6 +64,8 @@ public class StudioApp extends Application {
       RenderCoordinator.singleThread("rora-io", Thread.NORM_PRIORITY);
   private final ExecutorService helpWorker =
       RenderCoordinator.singleThread("rora-help", Thread.NORM_PRIORITY);
+  private final ExecutorService updateWorker =
+      RenderCoordinator.singleThread("rora-update", Thread.NORM_PRIORITY);
   private final FramePool<WritableImage> afterPool = FxImages.newPool();
   private final FramePool<WritableImage> beforePool = FxImages.newPool();
   private final FramePool<WritableImage> overlayPool = FxImages.newPool();
@@ -156,7 +161,8 @@ public class StudioApp extends Application {
                             viewModel.wallpapers().cancelExport();
                           });
                     }));
-    window = new MainWindow(viewModel, stage, layoutStore(), openLab, help);
+    window =
+        new MainWindow(viewModel, stage, layoutStore(), openLab, help, updateViewModel(messages));
     Scene scene = window.build(afterPool, beforePool, overlayPool);
     Theme.apply(scene);
     stage.setScene(scene);
@@ -191,6 +197,20 @@ public class StudioApp extends Application {
       }
     }
     return Optional.empty();
+  }
+
+  /** Comprobación manual de actualizaciones; la única red de la app, y solo al pedirla. */
+  protected UpdateViewModel updateViewModel(Messages messages) {
+    AppInfo info = AppInfo.current();
+    return new UpdateViewModel(
+        messages,
+        Platform::runLater,
+        updateWorker,
+        new UpdateChecker(
+            new GitHubReleasesClient(info.userAgent()),
+            UpdateChecker.enabledByProperty(System.getProperty("rora.updates"))),
+        info,
+        url -> getHostServices().showDocument(url));
   }
 
   /** ViewModel de ayuda; la herramienta de capturas lo usa para sus estados. */
@@ -378,5 +398,6 @@ public class StudioApp extends Application {
     background.shutdownNow();
     io.shutdownNow();
     helpWorker.shutdownNow();
+    updateWorker.shutdownNow();
   }
 }

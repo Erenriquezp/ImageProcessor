@@ -11,4 +11,7 @@ module io.github.erenriquezp.rora.wallpapers {
   exports io.github.erenriquezp.rora.wallpapers.preset;
   exports io.github.erenriquezp.rora.wallpapers.render;
   exports io.github.erenriquezp.rora.wallpapers.subject;
+  // Solo para leer la lista de releases en la comprobación de actualizaciones de la app.
+  exports io.github.erenriquezp.rora.wallpapers.json to
+      io.github.erenriquezp.rora.app;
 }

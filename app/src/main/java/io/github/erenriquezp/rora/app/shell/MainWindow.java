@@ -15,6 +15,7 @@ import io.github.erenriquezp.rora.app.view.InspectorView;
 import io.github.erenriquezp.rora.app.view.IoProgressView;
 import io.github.erenriquezp.rora.app.view.NotificationsView;
 import io.github.erenriquezp.rora.app.view.Subscriptions;
+import io.github.erenriquezp.rora.app.view.UpdateViews;
 import io.github.erenriquezp.rora.app.view.ViewerView;
 import io.github.erenriquezp.rora.app.view.WallpaperDialogs;
 import io.github.erenriquezp.rora.app.view.WallpapersView;
@@ -23,6 +24,7 @@ import io.github.erenriquezp.rora.app.viewmodel.HelpViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.Prompt;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel.Tool;
+import io.github.erenriquezp.rora.app.viewmodel.UpdateViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.ViewerViewModel.CompareMode;
 import io.github.erenriquezp.rora.app.viewmodel.ViewerViewModel.PixelReadout;
 import io.github.erenriquezp.rora.app.viewmodel.WallpapersViewModel;
@@ -88,6 +90,7 @@ final class MainWindow {
   private final LayoutStore layout;
   private final Runnable openLab;
   private final HelpViewModel help;
+  private final UpdateViewModel update;
   private final Subscriptions subs = new Subscriptions();
   private final BorderPane root = new BorderPane();
   private final StackPane drawerHost = new StackPane();
@@ -107,9 +110,11 @@ final class MainWindow {
       Stage stage,
       LayoutStore layout,
       Runnable openLab,
-      HelpViewModel help) {
+      HelpViewModel help,
+      UpdateViewModel update) {
     this.openLab = openLab;
     this.help = help;
+    this.update = update;
     this.vm = vm;
     this.m = vm.messages();
     this.stage = stage;
@@ -340,7 +345,7 @@ final class MainWindow {
             zoom,
             in,
             separator(),
-            HelpViews.helpButton(help, m, null));
+            HelpViews.helpButton(help, m, UpdateViews.menuItem(update, m)));
     bar.getStyleClass().add("top-bar");
     return bar;
   }
@@ -597,6 +602,7 @@ final class MainWindow {
             });
     WallpaperDialogs.install(stage, vm.wallpapers(), m, subs, Theme::apply);
     HelpViews.install(stage, help, m, subs, Theme::apply);
+    UpdateViews.install(stage, update, m, subs, Theme::apply);
     pushScreens();
     javafx.stage.Screen.getScreens()
         .addListener((javafx.collections.ListChangeListener<javafx.stage.Screen>) c -> pushScreens());
