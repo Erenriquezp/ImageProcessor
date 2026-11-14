@@ -54,7 +54,7 @@
         <ikonli.version>12.4.0</ikonli.version>
         <!-- BSD (POM del proyecto). Solo lectura de WebP, en ejecucion -->
         <twelvemonkeys.version>3.15.3</twelvemonkeys.version>
-        <junit.version>5.12.1</junit.version>
+        <junit.version>6.1.3</junit.version>
         <!-- Versiones de plugins de calidad (todos de codigo abierto) -->
         <compiler.version>3.13.0</compiler.version>
         <enforcer.version>3.5.0</enforcer.version>
