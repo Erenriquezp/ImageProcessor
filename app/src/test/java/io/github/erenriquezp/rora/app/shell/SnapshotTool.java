@@ -37,6 +37,36 @@ public class SnapshotTool extends StudioApp {
 
   private record Shot(String name, double width, double height, Runnable action) {}
 
+  /** Comprobador de actualizaciones falso: la herramienta nunca sale a la red. */
+  private volatile boolean updateOffline;
+
+  private io.github.erenriquezp.rora.app.viewmodel.UpdateViewModel update;
+
+  @Override
+  protected io.github.erenriquezp.rora.app.viewmodel.UpdateViewModel updateViewModel(
+      io.github.erenriquezp.rora.app.i18n.Messages messages) {
+    update =
+        new io.github.erenriquezp.rora.app.viewmodel.UpdateViewModel(
+            messages,
+            Platform::runLater,
+            r -> new Thread(r, "captura-actualizaciones").start(),
+            new io.github.erenriquezp.rora.app.update.UpdateChecker(
+                () -> {
+                  if (updateOffline) {
+                    throw new io.github.erenriquezp.rora.app.update.UpdateChecker.SourceException(
+                        io.github.erenriquezp.rora.app.update.UpdateResult.Reason.NO_NETWORK,
+                        "captura sin red");
+                  }
+                  return "[{\"tag_name\":\"v0.2.0\",\"draft\":false,\"html_url\":\""
+                      + io.github.erenriquezp.rora.app.update.ReleaseFeed.RELEASES_PAGE
+                      + "/tag/v0.2.0\",\"published_at\":\"2027-01-10T10:00:00Z\"}]";
+                },
+                true),
+            new io.github.erenriquezp.rora.app.diag.AppInfo("0.1.0", "beta"),
+            url -> {});
+    return update;
+  }
+
   private Stage stage;
   private File output;
   private final Deque<Shot> shots = new ArrayDeque<>();
@@ -473,6 +503,87 @@ public class SnapshotTool extends StudioApp {
               wp.confirmExport();
             }));
     shots.add(new Shot("42-wallpapers-ventana-estrecha", 1100, 700, wp::closeReport));
+    // Fase 8: estimación de tamaño, ayuda, "Acerca de", informe, actualizaciones y errores.
+    shots.add(new Shot("43-wallpapers-estimacion", w, h, wp::showExport));
+    shots.add(
+        new Shot(
+            "44-ayuda-menu",
+            w,
+            h,
+            () -> {
+              wp.closeExport();
+              if (stage.getScene().lookup(".help-button")
+                  instanceof javafx.scene.control.MenuButton b) {
+                b.show();
+              }
+            }));
+    shots.add(
+        new Shot(
+            "45-acerca-de",
+            w,
+            h,
+            () -> {
+              if (stage.getScene().lookup(".help-button")
+                  instanceof javafx.scene.control.MenuButton b) {
+                b.hide();
+              }
+              help().showAbout();
+            }));
+    shots.add(
+        new Shot(
+            "46-informe-diagnostico",
+            w,
+            h,
+            () -> {
+              help().closeAbout();
+              help().openReport();
+            }));
+    shots.add(
+        new Shot(
+            "47-actualizacion-nueva",
+            w,
+            h,
+            () -> {
+              help().closeReport();
+              update.check();
+            }));
+    shots.add(
+        new Shot(
+            "48-actualizacion-sin-red",
+            w,
+            h,
+            () -> {
+              update.close();
+              updateOffline = true;
+              update.check();
+            }));
+    shots.add(
+        new Shot(
+            "49-error-generico",
+            w,
+            h,
+            () -> {
+              update.close();
+              help().onError(new IllegalStateException("captura simulada"));
+            }));
+    shots.add(
+        new Shot(
+            "50-error-ia-vcruntime",
+            w,
+            h,
+            () -> {
+              vm.promptProperty().set(null);
+              vm.notifications()
+                  .notices()
+                  .add(
+                      new NotificationsViewModel.Notice(
+                          NotificationsViewModel.Kind.ERROR,
+                          vm.messages().get("ui.error.vcRuntime"),
+                          "captura simulada",
+                          new NotificationsViewModel.Action(
+                              vm.messages().get("ui.error.vcRuntimeDownload"), () -> {})));
+            }));
+    shots.add(new Shot("51-memoria-agotada", w, h, () -> help().onOutOfMemory(false)));
   }
 
   private void next() {
