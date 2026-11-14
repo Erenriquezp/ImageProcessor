@@ -56,6 +56,11 @@ public final class NotificationsViewModel<F> {
     timed(new Notice(Kind.WARNING, message, "", null), WARNING_NANOS);
   }
 
+  /** Advertencia con un botón (p. ej. ver el informe de un fallo anterior). */
+  void warning(String message, Action action) {
+    timed(new Notice(Kind.WARNING, message, "", action), WARNING_NANOS);
+  }
+
   private void timed(Notice n, long nanos) {
     add(n);
     env.scheduler().schedule(() -> env.publisher().execute(() -> notices.remove(n)), nanos);

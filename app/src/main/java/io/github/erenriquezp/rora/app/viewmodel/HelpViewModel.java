@@ -433,7 +433,7 @@ public final class HelpViewModel implements GlobalErrors.Listener {
           }
           publisher.execute(
               () ->
-                  notifications.info(
+                  notifications.warning(
                       m.get("ui.crash.previous"),
                       new NotificationsViewModel.Action(
                           m.get("ui.crash.view"),

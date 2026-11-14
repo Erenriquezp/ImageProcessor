@@ -211,6 +211,8 @@ class HelpViewModelTest {
     vm.checkPreviousCrash();
     drain();
     assertThat(notices()).containsExactly(M.get("ui.crash.previous"));
+    assertThat(notifications.notices().getFirst().kind())
+        .isEqualTo(NotificationsViewModel.Kind.WARNING);
     assertThat(logs.resolve("hs_err_pid77.log.visto")).exists();
     notifications.notices().getFirst().action().run().run();
     drain();
