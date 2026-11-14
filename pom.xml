@@ -72,7 +72,7 @@
         <dependency-plugin.version>3.7.0</dependency-plugin.version>
         <!-- MIT. SHA-256 del JAR fijado: d3f903af31fe8f01300adb6b2b67297aa5bee7895909afc32e76ef29a3921149
              (lo comprueba tools/jlink-check.sh; los nativos, OrtNative) -->
-        <onnxruntime.version>1.31.0</onnxruntime.version>
+        <onnxruntime.version>1.31.1</onnxruntime.version>
         <ort.platform>win-x64</ort.platform>
         <ort.unpack.dir>${maven.multiModuleProjectDirectory}/ai-engine/target/ort-native</ort.unpack.dir>
         <ort.native.dir>${ort.unpack.dir}/ai/onnxruntime/native/${ort.platform}</ort.native.dir>
