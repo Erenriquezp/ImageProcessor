@@ -4,13 +4,27 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # Los cambios entran por develop; main solo recibe versiones publicadas.
+    target-branch: "develop"
     commit-message:
       prefix: "build"
     open-pull-requests-limit: 5
+    # Regla del proyecto: solo versiones publicadas hace más de 14 días.
+    cooldown:
+      default-days: 14
+    ignore:
+      # JavaFX sigue en la LTS 25: el empaquetado usa sus jmods con el hash fijado.
+      - dependency-name: "org.openjfx:*"
+        update-types: ["version-update:semver-major"]
+    # ONNX Runtime no se ignora, pero su PR fallará a propósito: OrtNative exige el SHA-256
+    # fijado de las DLL. Actualizarlo es una tarea aparte (hashes, Visual C++, modelo real).
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    target-branch: "develop"
     commit-message:
       prefix: "ci"
+    cooldown:
+      default-days: 14
