@@ -5,6 +5,7 @@ import io.github.erenriquezp.rora.core.exec.CancelledException;
 import io.github.erenriquezp.rora.core.exec.Progress;
 import io.github.erenriquezp.rora.core.exec.TileExecutor;
 import io.github.erenriquezp.rora.core.op.OpContext;
+import io.github.erenriquezp.rora.core.op.OpSpec;
 import io.github.erenriquezp.rora.core.op.RenderKey;
 import io.github.erenriquezp.rora.core.op.Renderer;
 import java.util.ArrayDeque;
@@ -327,7 +328,7 @@ public final class RenderLane implements AutoCloseable {
       Throwable logged = error;
       LOG.log(
           job.superseded ? System.Logger.Level.DEBUG : System.Logger.Level.WARNING,
-          () -> name + ": fallo en el render " + job.key,
+          () -> name + ": fallo en el render " + describe(job.key),
           logged);
     }
     if (job.superseded) {
@@ -351,7 +352,10 @@ public final class RenderLane implements AutoCloseable {
         try {
           prepared[i] = targets.get(i).listener().prepare(r);
         } catch (RuntimeException | Error e) {
-          LOG.log(System.Logger.Level.WARNING, () -> name + ": fallo al preparar " + job.key, e);
+          LOG.log(
+              System.Logger.Level.WARNING,
+              () -> name + ": fallo al preparar " + describe(job.key),
+              e);
           prepareFailed[i] = RenderFailure.of(e);
         }
       }
@@ -432,5 +436,18 @@ public final class RenderLane implements AutoCloseable {
       }
       pendingProtected.clear();
     }
+  }
+
+  /**
+   * Lo que se puede registrar de una clave: nivel e ids de los pasos. Nunca los parámetros, que son
+   * contenido de la receta del usuario.
+   */
+  static String describe(RenderKey key) {
+    if (key == null) {
+      return "[]";
+    }
+    return key.level().getClass().getSimpleName()
+        + " "
+        + key.steps().stream().map(OpSpec::opId).toList();
   }
 }
