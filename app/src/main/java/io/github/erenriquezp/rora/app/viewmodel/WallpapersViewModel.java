@@ -7,6 +7,7 @@ import io.github.erenriquezp.rora.app.session.ExportTarget;
 import io.github.erenriquezp.rora.app.session.wallpaper.WallpaperExport;
 import io.github.erenriquezp.rora.app.session.wallpaper.WallpaperWorkspace;
 import io.github.erenriquezp.rora.core.exec.CancellationToken;
+import io.github.erenriquezp.rora.core.exec.CancelledException;
 import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.image.ProxyPolicy.Size;
 import io.github.erenriquezp.rora.core.io.ExportSettings.MetadataPolicy;
@@ -949,7 +950,11 @@ public final class WallpapersViewModel<F> implements FrameEditor {
               List<Long> sizes;
               try {
                 sizes = WallpaperExport.estimate(px, pl, items, s, token);
+              } catch (CancelledException e) {
+                sizes = null;
               } catch (Exception e) {
+                System.getLogger("rora.wallpapers")
+                    .log(System.Logger.Level.WARNING, "No se pudo estimar el tamaño", e);
                 sizes = null;
               }
               List<Long> result = sizes;

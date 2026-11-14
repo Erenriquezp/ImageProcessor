@@ -53,7 +53,15 @@ public final class UpdateViews {
                     theme.accept(scene);
                     s.setScene(scene);
                     s.setResizable(false);
-                    s.setOnHidden(e -> vm.close());
+                    // El resultado llega después de abrir: el diálogo crece para mostrarlo entero.
+                    javafx.beans.value.ChangeListener<String> fit =
+                        (o, a, b) -> javafx.application.Platform.runLater(s::sizeToScene);
+                    vm.messageProperty().addListener(fit);
+                    s.setOnHidden(
+                        e -> {
+                          vm.messageProperty().removeListener(fit);
+                          vm.close();
+                        });
                     dialog[0] = s;
                     s.show();
                   } else if (!open && dialog[0] != null) {
@@ -78,6 +86,8 @@ public final class UpdateViews {
     text.textProperty().bind(vm.messageProperty());
     text.setWrapText(true);
     text.setPrefWidth(420);
+    text.setMinHeight(Region.USE_PREF_SIZE);
+    HBox.setHgrow(text, Priority.ALWAYS);
     HBox top = new HBox(12, busy, warn, text);
     top.setAlignment(Pos.CENTER_LEFT);
 

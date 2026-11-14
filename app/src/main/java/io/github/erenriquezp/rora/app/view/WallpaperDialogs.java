@@ -56,7 +56,17 @@ public final class WallpaperDialogs {
                             m.get("ui.wallpapers.dialog.title"),
                             exportPane(owner, vm, m),
                             theme);
-                    export[0].setOnHidden(e -> vm.closeExport());
+                    // La estimación llega después de abrir: el diálogo crece para no cortar nada.
+                    // Escucha débil: vive lo que viva el diálogo.
+                    Stage shown = export[0];
+                    javafx.beans.InvalidationListener fit =
+                        o -> javafx.application.Platform.runLater(shown::sizeToScene);
+                    shown.getProperties().put("estimate-fit", fit);
+                    javafx.beans.WeakInvalidationListener weak =
+                        new javafx.beans.WeakInvalidationListener(fit);
+                    vm.estimateTotalProperty().addListener(weak);
+                    vm.estimates().addListener(weak);
+                    shown.setOnHidden(e -> vm.closeExport());
                     export[0].show();
                   } else if (!open && export[0] != null) {
                     Stage s = export[0];
@@ -200,7 +210,9 @@ public final class WallpaperDialogs {
                               return l;
                             })
                         .toList());
-    vm.estimates().addListener((javafx.beans.Observable o) -> fillRows.run());
+    javafx.beans.InvalidationListener rowsListener = o -> fillRows.run();
+    perTarget.getProperties().put("estimate-rows", rowsListener);
+    vm.estimates().addListener(new javafx.beans.WeakInvalidationListener(rowsListener));
     fillRows.run();
     ScrollPane rows = new ScrollPane(perTarget);
     rows.setFitToWidth(true);
