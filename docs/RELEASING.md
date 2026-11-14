@@ -30,7 +30,7 @@ Con `-Snapshot` los archivos llevan el sufijo `-dev` (`RoraStudio-0.1.0-dev-win-
 ## Pasos para publicar `X.Y.Z`
 
 1. Parte de `develop` con todo fundido y `./mvnw -B clean verify` en verde.
-2. `CHANGELOG.md`: renombra `## [Unreleased]` a `## [X.Y.Z] - AAAA-MM-DD` y deja un `## [Unreleased]` vacío encima. El workflow toma las notas de esa sección y falla si no existe.
+2. `CHANGELOG.md`: renombra `## [Unreleased]` a `## [X.Y.Z] - AAAA-MM-DD` y deja un `## [Unreleased]` vacío encima. El workflow toma las notas de esa sección y falla si no existe. Para la 0.1.0 la sección ya está escrita: solo hay que poner la fecha real.
 3. Versión en los 8 POM (la raíz y la referencia al padre de cada módulo):
 
    ```powershell

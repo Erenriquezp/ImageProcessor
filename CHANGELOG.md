@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-14
+
+Primera versión distribuible (beta) para Windows x64: instalador MSI por usuario y ZIP portable. Reúne las fases 0 a 8 desde la versión académica.
+
 ### Added
 - Gobernanza del repositorio: `CONTRIBUTING.md`, plantillas de GitHub, `CODEOWNERS`, Dependabot.
 - CI con GitHub Actions (Ubuntu y Windows).
@@ -46,16 +50,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Icono propio, generado por `tools/icon/RoraIcon.java`.
 - Workflow `release.yml` (borrador de release por etiqueta `vX.Y.Z`) y `docs/RELEASING.md`, `docs/PRIVACY.md`. Sin ejecutar todavía.
 
-### Fixed
-- Exportar a JPG una imagen con transparencia ya no falla.
-- Las imágenes en gris se abren sin aclararse.
-
-### Removed
-- Interfaz antigua: pestañas, lista de 44 filtros y comparación 50/50.
-
 ### Changed
-- La aplicación requiere JDK 25 y JavaFX 25; `core-imaging` sigue en Java 21.
-- Exportar guarda en PNG hasta que llegue la exportación avanzada.
+- Compilar requiere JDK 25 y JavaFX 25 (`core-imaging`, `imaging-io` y `wallpapers` siguen en Java 21); el instalador trae su propio runtime.
 - Las preguntas modales se ensanchan en vez de cortar las opciones largas.
 - Restablecer ahora se puede deshacer.
 - Proyecto renombrado a **Rora Studio**: groupId `io.github.erenriquezp`, paquete base `io.github.erenriquezp.rora`, módulo JPMS `io.github.erenriquezp.rora.app`.
@@ -64,7 +60,6 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Ningún trabajo pesado en el hilo FX: filtros, blending, histograma, degradados, carga y guardado corren en segundo plano. El historial guarda recetas en lugar de imágenes (de unos 2,9 GB a KB con 24 MP) y su tope pasa de 30 a 200 pasos.
 - Los errores del preview se muestran en la barra de estado en lugar de descartarse.
 - Maven wrapper actualizado a Maven 3.9.11.
-- README actualizado: requisito real de JDK 21+.
 - Captura de pantalla movida a `docs/img/`.
 - Surefire en modo headless; Spotless solo comprueba el código modificado (`ratchetFrom`).
 - La telemetría que ONNX Runtime trae activada de fábrica se apaga al crear el motor.
@@ -73,7 +68,12 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - CI: acciones fijadas por SHA, JDK 21 para los tres módulos en Java 21 y comprobación de `THIRD_PARTY_LICENSES.md`.
 - Versión única `0.1.0-SNAPSHOT` en todos los módulos, visible en Acerca de como "0.1.0 (beta)".
 
+### Fixed
+- Exportar a JPG una imagen con transparencia ya no falla.
+- Las imágenes en gris se abren sin aclararse.
+
 ### Removed
+- Interfaz antigua: pestañas, lista de 44 filtros y comparación 50/50.
 - Archivos de IDE (`.idea/`) y notas de planeación sacados del control de versiones.
 - `.mvn/jvm.config`: no era necesario y provocaba avisos en Maven.
 
@@ -81,5 +81,6 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 Estado del código en el tag `v0.1.0-academic` (rama `legacy/academic-v0`): editor con 20 filtros, pipeline apilable, histograma, blending de 2 y 3 capas y generador de degradados.
 
-[Unreleased]: https://github.com/Erenriquezp/ImageProcessor/compare/v0.1.0-academic...HEAD
+[Unreleased]: https://github.com/Erenriquezp/ImageProcessor/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Erenriquezp/ImageProcessor/compare/v0.1.0-academic...v0.1.0
 [0.1.0-academic]: https://github.com/Erenriquezp/ImageProcessor/releases/tag/v0.1.0-academic
