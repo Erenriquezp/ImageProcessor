@@ -20,8 +20,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
@@ -99,49 +97,42 @@ public final class WallpapersView {
     search.setPromptText(m.get("ui.wallpapers.search"));
     search.setAccessibleText(m.get("ui.wallpapers.search"));
     search.textProperty().bindBidirectional(vm.queryProperty());
-    ListView<Row> list = new ListView<>(vm.rows());
+    // Una columna de filas dentro del único desplazamiento del cajón (antes, una ListView con su
+    // propia barra dentro del ScrollPane: dos desplazamientos anidados). Son unas 50 filas.
+    VBox list = new VBox(2);
     list.getStyleClass().add("wallpapers-devices");
-    list.setPrefHeight(260);
-    list.setMinHeight(140);
-    list.setCellFactory(
-        lv ->
-            new ListCell<>() {
-              @Override
-              protected void updateItem(Row row, boolean empty) {
-                super.updateItem(row, empty);
-                getStyleClass().remove("wallpapers-group");
-                if (empty || row == null) {
-                  setGraphic(null);
-                  setText(null);
-                  return;
-                }
-                if (row.header()) {
-                  setText(row.label());
-                  setGraphic(null);
-                  getStyleClass().add("wallpapers-group");
-                  return;
-                }
-                setText(null);
-                CheckBox box = new CheckBox(row.label());
-                box.setSelected(row.selected());
-                box.setOnAction(e -> vm.toggle(row.preset()));
-                Label detail = new Label(row.detail());
-                detail.getStyleClass().add("hint");
-                Region gap = new Region();
-                HBox.setHgrow(gap, Priority.ALWAYS);
-                HBox line = new HBox(8, box, gap, detail);
-                line.setAlignment(Pos.CENTER_LEFT);
-                if (row.preset().origin() == DevicePreset.Origin.USER) {
-                  Button del = new Button(null, Icons.icon("fas-trash-alt"));
-                  del.getStyleClass().addAll(Styles.BUTTON_ICON, Styles.FLAT);
-                  del.setAccessibleText(m.get("ui.wallpapers.custom.delete"));
-                  del.setOnAction(e -> vm.deleteCustom(row.preset()));
-                  line.getChildren().add(del);
-                }
-                setGraphic(line);
-              }
-            });
+    Runnable rebuild =
+        () -> list.getChildren().setAll(vm.rows().stream().map(r -> deviceRow(vm, m, r)).toList());
+    subs.add(vm.rows().subscribe(rebuild));
+    rebuild.run();
     return new VBox(6, search, list);
+  }
+
+  private static Node deviceRow(WallpapersViewModel<? extends Image> vm, Messages m, Row row) {
+    if (row.header()) {
+      Label header = new Label(row.label());
+      header.getStyleClass().add("wallpapers-group");
+      header.setMaxWidth(Double.MAX_VALUE);
+      return header;
+    }
+    CheckBox box = new CheckBox(row.label());
+    box.setSelected(row.selected());
+    box.setOnAction(e -> vm.toggle(row.preset()));
+    Label detail = new Label(row.detail());
+    detail.getStyleClass().add("hint");
+    Region gap = new Region();
+    HBox.setHgrow(gap, Priority.ALWAYS);
+    HBox line = new HBox(8, box, gap, detail);
+    line.setAlignment(Pos.CENTER_LEFT);
+    line.setPadding(new Insets(2, 4, 2, 4));
+    if (row.preset().origin() == DevicePreset.Origin.USER) {
+      Button del = new Button(null, Icons.icon("fas-trash-alt"));
+      del.getStyleClass().addAll(Styles.BUTTON_ICON, Styles.FLAT);
+      del.setAccessibleText(m.get("ui.wallpapers.custom.delete"));
+      del.setOnAction(e -> vm.deleteCustom(row.preset()));
+      line.getChildren().add(del);
+    }
+    return line;
   }
 
   private static Node customRow(WallpapersViewModel<?> vm, Messages m) {
