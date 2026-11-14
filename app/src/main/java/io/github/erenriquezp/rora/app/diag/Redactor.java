@@ -109,12 +109,17 @@ public final class Redactor {
               + "|[a-z0-9_.-]+\\.dll|realesr-general-x4v3\\.onnx|face_detection_yunet_2023mar\\.onnx"
               + "|onnxruntime-java\\d*|java\\.exe|javaw\\.exe|rora studio\\.exe)");
 
-  /** Inicio de una ruta: prefijo ya sustituido, unidad (no tras una letra: evita http://) o UNC. */
+  /**
+   * Inicio de una ruta: prefijo ya sustituido, unidad (no tras una letra: evita http://), UNC o
+   * raíz POSIX con al menos dos segmentos ({@code /tmp/x/foto.jpg}; no tras letra, dígito, punto,
+   * {@code :} ni otra barra, para no tocar URLs, tipos MIME, módulos de las trazas ni {@code 1/2}).
+   */
   private static final Pattern PATH =
       Pattern.compile(
           "(%(?:USERPROFILE|LOCALAPPDATA|APPDATA|TEMP)%"
               + "|(?:file:/+)?(?<![\\p{L}\\p{N}])[A-Za-z]:(?=[\\\\/])"
-              + "|(?<![\\\\/])\\\\\\\\[^\\\\/\\s:*?\"<>|]+[\\\\/][^\\\\/\\s:*?\"<>|]+)"
+              + "|(?<![\\\\/])\\\\\\\\[^\\\\/\\s:*?\"<>|]+[\\\\/][^\\\\/\\s:*?\"<>|]+"
+              + "|(?<![\\p{L}\\p{N}_.:/\\\\~$%-])(?=/[^/\\s:*?\"<>|]+/))"
               + "((?:[\\\\/]+[^\\\\/:*?\"<>|\\r\\n\\t!]*)*)");
 
   private static final Pattern SEP = Pattern.compile("[\\\\/]+");
