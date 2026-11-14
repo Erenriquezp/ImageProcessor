@@ -38,6 +38,11 @@ public final class NotificationsViewModel<F> {
     add(new Notice(Kind.ERROR, message, details == null ? "" : details, null));
   }
 
+  /** Error con un botón (p. ej. abrir la página del componente que falta). */
+  void error(String message, String details, Action action) {
+    add(new Notice(Kind.ERROR, message, details == null ? "" : details, action));
+  }
+
   void info(String message) {
     timed(new Notice(Kind.INFO, message, "", null), INFO_NANOS);
   }

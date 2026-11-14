@@ -6,6 +6,7 @@ import io.github.erenriquezp.rora.core.io.FileNames;
 
 import io.github.erenriquezp.rora.wallpapers.preset.UserPresetStore;
 import io.github.erenriquezp.rora.app.session.wallpaper.WallpaperWorkspace;
+import io.github.erenriquezp.rora.app.diag.NativeFailures;
 import io.github.erenriquezp.rora.app.i18n.Messages;
 import io.github.erenriquezp.rora.app.session.EditSession;
 import io.github.erenriquezp.rora.app.session.ExportTarget;
@@ -89,6 +90,7 @@ public final class StudioViewModel<F> implements AutoCloseable {
   private Img latestPixels;
   private Runnable afterExport;
   private Consumer<Path> revealer = p -> {};
+  private Consumer<String> browser = url -> {};
 
   public StudioViewModel(Env<F> env, Function<Img, F> auxConverter, Function<Img, F> overlay) {
     this(
@@ -320,6 +322,11 @@ public final class StudioViewModel<F> implements AutoCloseable {
     };
   }
 
+  /** Abre una dirección en el navegador del usuario (la vista inyecta el del sistema). */
+  public void setBrowser(Consumer<String> browser) {
+    this.browser = browser;
+  }
+
   public NotificationsViewModel<F> notifications() {
     return notifications;
   }
@@ -510,6 +517,17 @@ public final class StudioViewModel<F> implements AutoCloseable {
   }
 
   private void problem(String title, Exception error) {
+    if (NativeFailures.missingNativeLibrary(error)) {
+      // ONNX Runtime no cargó por una biblioteca de Windows: casi siempre el runtime de Visual C++.
+      String details = error instanceof ImagingException e ? e.technical() : "";
+      notifications.error(
+          m.get("ui.error.vcRuntime"),
+          details,
+          new NotificationsViewModel.Action(
+              m.get("ui.error.vcRuntimeDownload"),
+              () -> browser.accept(NativeFailures.VC_REDIST_PAGE)));
+      return;
+    }
     if (error instanceof ImagingException e) {
       notifications.error(
           m.format("ui.error.titled", title, m.format(e.messageKey(), e.args().toArray())),

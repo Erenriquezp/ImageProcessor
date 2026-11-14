@@ -147,6 +147,7 @@ public class StudioApp extends Application {
     Runnable openLab =
         tools.isEmpty() ? null : () -> LabWindow.open(stage, tools, labContext(stage));
     help = helpViewModel(messages);
+    viewModel.setBrowser(url -> getHostServices().showDocument(url));
     Diagnostics.errors()
         .ifPresent(
             g ->
