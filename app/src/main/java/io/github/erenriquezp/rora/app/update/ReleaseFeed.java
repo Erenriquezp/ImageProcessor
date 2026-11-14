@@ -13,8 +13,7 @@ import java.util.Optional;
 public final class ReleaseFeed {
 
   /** Solo se abre en el navegador una página de releases del propio proyecto. */
-  public static final String RELEASES_PAGE =
-      "https://github.com/Erenriquezp/ImageProcessor/releases";
+  public static final String RELEASES_PAGE = "https://github.com/Erenriquezp/rora-studio/releases";
 
   private ReleaseFeed() {}
 

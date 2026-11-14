@@ -24,7 +24,7 @@ public final class GitHubReleasesClient implements UpdateChecker.Source {
 
   /** Lista y no {@code /latest}: esta última excluye las versiones marcadas como prerelease. */
   public static final String ENDPOINT =
-      "https://api.github.com/repos/Erenriquezp/ImageProcessor/releases?per_page=10";
+      "https://api.github.com/repos/Erenriquezp/rora-studio/releases?per_page=10";
 
   public static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
   public static final Duration TIMEOUT = Duration.ofSeconds(10);

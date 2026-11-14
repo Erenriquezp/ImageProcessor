@@ -6,7 +6,7 @@
 
     <groupId>io.github.erenriquezp</groupId>
     <artifactId>rora-parent</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Rora Studio (parent)</name>
 
@@ -57,17 +57,17 @@
         <junit.version>5.12.1</junit.version>
         <!-- Versiones de plugins de calidad (todos de codigo abierto) -->
         <compiler.version>3.13.0</compiler.version>
-        <enforcer.version>3.5.0</enforcer.version>
+        <enforcer.version>3.7.0</enforcer.version>
         <surefire.version>3.6.1</surefire.version>
         <spotless.version>2.44.5</spotless.version>
         <google-java-format.version>1.28.0</google-java-format.version>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
         <checkstyle.version>10.21.4</checkstyle.version>
         <spotbugs-plugin.version>4.10.5.0</spotbugs-plugin.version>
-        <jacoco.version>0.8.14</jacoco.version>
+        <jacoco.version>0.8.16</jacoco.version>
         <!-- LGPL-3 (POM), solo en build -->
         <license-plugin.version>2.8.0</license-plugin.version>
-        <assertj.version>3.27.3</assertj.version>
+        <assertj.version>3.27.7</assertj.version>
         <javafx-plugin.version>0.0.8</javafx-plugin.version>
         <dependency-plugin.version>3.7.0</dependency-plugin.version>
         <!-- MIT. SHA-256 del JAR fijado: d3f903af31fe8f01300adb6b2b67297aa5bee7895909afc32e76ef29a3921149

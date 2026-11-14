@@ -5,6 +5,9 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+### Changed
+- El repositorio pasa a llamarse `rora-studio` (antes `ImageProcessor`): actualizados la comprobación de actualizaciones, los enlaces de ayuda y la documentación. La 0.1.0 sigue funcionando gracias a las redirecciones de GitHub.
+
 ## [0.1.0] - 2026-11-14
 
 Primera versión distribuible (beta) para Windows x64: instalador MSI por usuario y ZIP portable. Reúne las fases 0 a 8 desde la versión académica.
@@ -81,6 +84,6 @@ Primera versión distribuible (beta) para Windows x64: instalador MSI por usuari
 
 Estado del código en el tag `v0.1.0-academic` (rama `legacy/academic-v0`): editor con 20 filtros, pipeline apilable, histograma, blending de 2 y 3 capas y generador de degradados.
 
-[Unreleased]: https://github.com/Erenriquezp/ImageProcessor/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Erenriquezp/ImageProcessor/compare/v0.1.0-academic...v0.1.0
-[0.1.0-academic]: https://github.com/Erenriquezp/ImageProcessor/releases/tag/v0.1.0-academic
+[Unreleased]: https://github.com/Erenriquezp/rora-studio/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Erenriquezp/rora-studio/compare/v0.1.0-academic...v0.1.0
+[0.1.0-academic]: https://github.com/Erenriquezp/rora-studio/releases/tag/v0.1.0-academic
