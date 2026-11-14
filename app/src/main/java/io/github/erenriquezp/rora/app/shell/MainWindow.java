@@ -10,20 +10,22 @@ import io.github.erenriquezp.rora.app.ui.WindowResizer;
 import io.github.erenriquezp.rora.app.view.DrawerViews;
 import io.github.erenriquezp.rora.app.view.EnhanceView;
 import io.github.erenriquezp.rora.app.view.ExportDialog;
+import io.github.erenriquezp.rora.app.view.HelpViews;
 import io.github.erenriquezp.rora.app.view.InspectorView;
 import io.github.erenriquezp.rora.app.view.IoProgressView;
 import io.github.erenriquezp.rora.app.view.NotificationsView;
 import io.github.erenriquezp.rora.app.view.Subscriptions;
 import io.github.erenriquezp.rora.app.view.ViewerView;
-import io.github.erenriquezp.rora.app.viewmodel.ExportPrefs;
-import io.github.erenriquezp.rora.app.viewmodel.WallpapersViewModel;
 import io.github.erenriquezp.rora.app.view.WallpaperDialogs;
 import io.github.erenriquezp.rora.app.view.WallpapersView;
+import io.github.erenriquezp.rora.app.viewmodel.ExportPrefs;
+import io.github.erenriquezp.rora.app.viewmodel.HelpViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.Prompt;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel.Tool;
 import io.github.erenriquezp.rora.app.viewmodel.ViewerViewModel.CompareMode;
 import io.github.erenriquezp.rora.app.viewmodel.ViewerViewModel.PixelReadout;
+import io.github.erenriquezp.rora.app.viewmodel.WallpapersViewModel;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
@@ -85,6 +87,7 @@ final class MainWindow {
   private final Stage stage;
   private final LayoutStore layout;
   private final Runnable openLab;
+  private final HelpViewModel help;
   private final Subscriptions subs = new Subscriptions();
   private final BorderPane root = new BorderPane();
   private final StackPane drawerHost = new StackPane();
@@ -99,8 +102,14 @@ final class MainWindow {
   private Stage exportStage;
   private Stage promptStage;
 
-  MainWindow(StudioViewModel<WritableImage> vm, Stage stage, LayoutStore layout, Runnable openLab) {
+  MainWindow(
+      StudioViewModel<WritableImage> vm,
+      Stage stage,
+      LayoutStore layout,
+      Runnable openLab,
+      HelpViewModel help) {
     this.openLab = openLab;
+    this.help = help;
     this.vm = vm;
     this.m = vm.messages();
     this.stage = stage;
@@ -329,7 +338,9 @@ final class MainWindow {
             actual,
             out,
             zoom,
-            in);
+            in,
+            separator(),
+            HelpViews.helpButton(help, m, null));
     bar.getStyleClass().add("top-bar");
     return bar;
   }
@@ -585,6 +596,7 @@ final class MainWindow {
               }
             });
     WallpaperDialogs.install(stage, vm.wallpapers(), m, subs, Theme::apply);
+    HelpViews.install(stage, help, m, subs, Theme::apply);
     pushScreens();
     javafx.stage.Screen.getScreens()
         .addListener((javafx.collections.ListChangeListener<javafx.stage.Screen>) c -> pushScreens());

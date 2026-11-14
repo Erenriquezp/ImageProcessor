@@ -111,6 +111,22 @@
                     <include>**/build.properties</include>
                 </includes>
             </resource>
+            <!-- Avisos que muestra "Acerca de": una sola fuente en el repo, copiada al construir -->
+            <resource>
+                <directory>${maven.multiModuleProjectDirectory}</directory>
+                <includes>
+                    <include>THIRD_PARTY_LICENSES.md</include>
+                    <include>LICENSE</include>
+                </includes>
+                <targetPath>io/github/erenriquezp/rora/app/diag/legal</targetPath>
+            </resource>
+            <resource>
+                <directory>${maven.multiModuleProjectDirectory}/ai-engine/src/main/resources/io/github/erenriquezp/rora/ai/models</directory>
+                <includes>
+                    <include>MODEL_NOTICE.md</include>
+                </includes>
+                <targetPath>io/github/erenriquezp/rora/app/diag/legal</targetPath>
+            </resource>
         </resources>
         <plugins>
             <!-- La prueba de memoria de Wallpapers corre aparte, en un JVM con -Xmx1536m (saltable con -Dskip.memory=true) -->

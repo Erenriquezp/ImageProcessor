@@ -363,6 +363,16 @@ public final class EditSession<F> implements AutoCloseable {
     return history.current();
   }
 
+  /** Ids de los pasos activos de la receta efectiva, para el informe; nunca sus parámetros. */
+  public List<String> activeStepIds() {
+    return effectiveRecipe().activeSteps().stream().map(OpSpec::opId).toList();
+  }
+
+  /** Bytes que ocupa ahora la caché de resultados. */
+  public long cacheBytes() {
+    return renderer.cache().weightBytes();
+  }
+
   public Optional<OpSpec> pending() {
     return Optional.ofNullable(pending);
   }

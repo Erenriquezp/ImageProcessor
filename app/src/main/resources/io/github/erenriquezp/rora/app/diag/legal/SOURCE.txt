@@ -1,0 +1,22 @@
+Código fuente de los componentes con licencia GPLv2 + Classpath Exception
+=========================================================================
+
+Rora Studio incluye, sin modificar, un runtime de Java reducido con jlink y las
+bibliotecas de JavaFX. Ambos se distribuyen bajo la GNU General Public License,
+versión 2, con la Classpath Exception (textos en runtime\legal\).
+
+El código fuente correspondiente está disponible en:
+
+  Eclipse Temurin 25.0.5+8 (runtime de Java)
+    https://github.com/adoptium/jdk25u   (etiqueta jdk-25.0.5+8)
+    Scripts de compilación: https://github.com/adoptium/temurin-build
+
+  OpenJFX 25.0.5 (JavaFX, compilación de Gluon)
+    https://github.com/openjdk/jfx25u    (etiqueta 25.0.5+1)
+
+Si alguno de estos enlaces deja de funcionar, abre una incidencia en
+https://github.com/Erenriquezp/ImageProcessor/issues y te facilitaremos una
+copia del código fuente de la versión exacta incluida.
+
+Source code of the GPLv2 + Classpath Exception components (Java runtime and
+JavaFX) is available at the repositories and tags listed above.

@@ -1,8 +1,11 @@
 package io.github.erenriquezp.rora.app.shell;
 
-import io.github.erenriquezp.rora.app.session.wallpaper.WallpaperWorkspace;
-import io.github.erenriquezp.rora.wallpapers.preset.UserPresetStore;
 import io.github.erenriquezp.rora.app.catalog.Catalog;
+import io.github.erenriquezp.rora.app.diag.AppDirs;
+import io.github.erenriquezp.rora.app.diag.AppInfo;
+import io.github.erenriquezp.rora.app.diag.Diagnostics;
+import io.github.erenriquezp.rora.app.diag.Notices;
+import io.github.erenriquezp.rora.app.diag.Redactor;
 import io.github.erenriquezp.rora.app.fx.FxImages;
 import io.github.erenriquezp.rora.app.i18n.Messages;
 import io.github.erenriquezp.rora.app.lab.LabBundle;
@@ -15,21 +18,33 @@ import io.github.erenriquezp.rora.app.session.RenderCoordinator;
 import io.github.erenriquezp.rora.app.session.RenderFailure;
 import io.github.erenriquezp.rora.app.session.Scheduler;
 import io.github.erenriquezp.rora.app.session.StallMonitor;
+import io.github.erenriquezp.rora.app.session.wallpaper.WallpaperWorkspace;
 import io.github.erenriquezp.rora.app.theme.Theme;
 import io.github.erenriquezp.rora.app.viewmodel.Env;
+import io.github.erenriquezp.rora.app.viewmodel.HelpViewModel;
 import io.github.erenriquezp.rora.app.viewmodel.StudioViewModel;
+import io.github.erenriquezp.rora.wallpapers.preset.UserPresetStore;
+import java.awt.Desktop;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import javafx.application.Application;
+import javafx.application.ConditionalFeature;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.WritableImage;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
@@ -43,6 +58,8 @@ public class StudioApp extends Application {
       RenderCoordinator.singleThread("rora-histogram", Thread.NORM_PRIORITY);
   private final ExecutorService io =
       RenderCoordinator.singleThread("rora-io", Thread.NORM_PRIORITY);
+  private final ExecutorService helpWorker =
+      RenderCoordinator.singleThread("rora-help", Thread.NORM_PRIORITY);
   private final FramePool<WritableImage> afterPool = FxImages.newPool();
   private final FramePool<WritableImage> beforePool = FxImages.newPool();
   private final FramePool<WritableImage> overlayPool = FxImages.newPool();
@@ -50,6 +67,7 @@ public class StudioApp extends Application {
   private StudioViewModel<WritableImage> viewModel;
   private MainWindow window;
   private StallMonitor stallMonitor;
+  private HelpViewModel help;
 
   /** Ventana propia solo en Windows; en macOS y Linux, la decoración nativa. */
   static boolean usesCustomChrome() {
@@ -122,7 +140,22 @@ public class StudioApp extends Application {
     }
     Runnable openLab =
         tools.isEmpty() ? null : () -> LabWindow.open(stage, tools, labContext(stage));
-    window = new MainWindow(viewModel, stage, layoutStore(), openLab);
+    help = helpViewModel(messages);
+    Diagnostics.errors()
+        .ifPresent(
+            g ->
+                g.attach(
+                    help,
+                    Platform::runLater,
+                    () -> {
+                      session.releaseMemory();
+                      Platform.runLater(
+                          () -> {
+                            viewModel.enhance().cancel();
+                            viewModel.wallpapers().cancelExport();
+                          });
+                    }));
+    window = new MainWindow(viewModel, stage, layoutStore(), openLab, help);
     Scene scene = window.build(afterPool, beforePool, overlayPool);
     Theme.apply(scene);
     stage.setScene(scene);
@@ -135,6 +168,125 @@ public class StudioApp extends Application {
     if (labRequested && labs.isEmpty()) {
       viewModel.labMissing();
     }
+    if (Diagnostics.logs().isPresent()) {
+      help.checkPreviousCrash();
+    }
+  }
+
+  /** ViewModel de ayuda; la herramienta de capturas lo usa para sus estados. */
+  protected final HelpViewModel help() {
+    return help;
+  }
+
+  private HelpViewModel helpViewModel(Messages messages) {
+    boolean packaged = Diagnostics.packaged();
+    Optional<Path> legal =
+        packaged
+            ? Optional.of(
+                Path.of(System.getProperty("java.home"))
+                    .toAbsolutePath()
+                    .getParent()
+                    .resolve("legal"))
+            : Optional.empty();
+    return new HelpViewModel(
+        messages,
+        Platform::runLater,
+        helpWorker,
+        viewModel.notifications(),
+        viewModel.promptProperty(),
+        new HelpViewModel.Context(
+            AppInfo.current(),
+            AppDirs.fromSystem(),
+            new Redactor(Redactor.Context.fromSystem()),
+            Diagnostics.logs(),
+            Diagnostics.errors(),
+            packaged,
+            legal,
+            ZonedDateTime::now),
+        new HelpViewModel.Host() {
+          @Override
+          public void copyToClipboard(String text) {
+            ClipboardContent c = new ClipboardContent();
+            c.putString(text);
+            Clipboard.getSystemClipboard().setContent(c);
+          }
+
+          @Override
+          public void openFolder(Path dir) {
+            StudioApp.openFolder(dir);
+          }
+
+          @Override
+          public void browse(String url) {
+            getHostServices().showDocument(url);
+          }
+
+          @Override
+          public HelpViewModel.UiFacts uiFacts() {
+            return StudioApp.this.uiFacts(messages);
+          }
+        });
+  }
+
+  private HelpViewModel.UiFacts uiFacts(Messages messages) {
+    List<String> screens = new ArrayList<>();
+    for (Screen s : Screen.getScreens()) {
+      screens.add(
+          String.format(
+              Locale.ROOT,
+              "%.0f×%.0f lógicos, escala %.0f %%",
+              s.getBounds().getWidth(),
+              s.getBounds().getHeight(),
+              s.getOutputScaleX() * 100));
+    }
+    String size = viewModel.sizeProperty().get();
+    String fmt = viewModel.formatProperty().get();
+    Optional<String> image =
+        session.hasImage() ? Optional.of((size + " " + fmt).strip()) : Optional.empty();
+    String ai =
+        session
+            .ai()
+            .map(
+                a ->
+                    a.modelId()
+                        + " "
+                        + a.modelVersion()
+                        + ", "
+                        + a.threads()
+                        + " hilos (el motor se carga al usar Mejorar o Wallpapers)")
+            .orElse("no incluido");
+    return new HelpViewModel.UiFacts(
+        messages.locale().toLanguageTag()
+            + " (sistema "
+            + Locale.getDefault().toLanguageTag()
+            + ")",
+        Notices.javafxVersion().orElse("?"),
+        Optional.of(Platform.isSupported(ConditionalFeature.SCENE3D)),
+        screens,
+        image,
+        session.activeStepIds(),
+        ai,
+        session.cacheBytes());
+  }
+
+  /** Abre una carpeta en el explorador, fuera del hilo de la interfaz. */
+  static void openFolder(Path dir) {
+    Thread t =
+        new Thread(
+            () -> {
+              try {
+                if (usesCustomChrome()) {
+                  new ProcessBuilder("explorer.exe", dir.toString()).start();
+                } else if (Desktop.isDesktopSupported()) {
+                  Desktop.getDesktop().open(dir.toFile());
+                }
+              } catch (IOException | RuntimeException e) {
+                LOG.log(System.Logger.Level.WARNING, "No se pudo abrir la carpeta " + dir, e);
+              }
+            },
+            "rora-open-folder");
+    t.setDaemon(true);
+    t.start();
   }
 
   /** La bandera {@code --lab} activa el Laboratorio si su módulo está disponible. */
@@ -205,5 +357,6 @@ public class StudioApp extends Application {
     session.close();
     background.shutdownNow();
     io.shutdownNow();
+    helpWorker.shutdownNow();
   }
 }
