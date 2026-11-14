@@ -163,6 +163,9 @@ try {
     Invoke-Checked "$root\mvnw.cmd" $mvnArgs
     Step 'THIRD_PARTY_LICENSES.md'
     Invoke-Checked "$root\mvnw.cmd" @('-B', '-ntp', '-q', 'license:aggregate-add-third-party@third-party')
+    # El plugin escribe CRLF en Windows; el repositorio usa LF.
+    $tpl = Join-Path $root 'THIRD_PARTY_LICENSES.md'
+    [IO.File]::WriteAllText($tpl, ([IO.File]::ReadAllText($tpl) -replace "`r`n", "`n"))
     & git diff --quiet -- THIRD_PARTY_LICENSES.md
     if ($LASTEXITCODE -ne 0 -and -not $UpdateLicenses) {
       throw 'THIRD_PARTY_LICENSES.md no estaba al día: revisa el cambio, confírmalo y vuelve a empaquetar (o usa -UpdateLicenses).'
