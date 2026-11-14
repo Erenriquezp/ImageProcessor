@@ -15,7 +15,7 @@ El código fuente correspondiente está disponible en:
     https://github.com/openjdk/jfx25u    (etiqueta 25.0.5+1)
 
 Si alguno de estos enlaces deja de funcionar, abre una incidencia en
-https://github.com/Erenriquezp/ImageProcessor/issues y te facilitaremos una
+https://github.com/Erenriquezp/rora-studio/issues y te facilitaremos una
 copia del código fuente de la versión exacta incluida.
 
 Source code of the GPLv2 + Classpath Exception components (Java runtime and

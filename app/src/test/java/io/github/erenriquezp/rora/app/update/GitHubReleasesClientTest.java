@@ -225,6 +225,6 @@ class GitHubReleasesClientTest {
                     "http://api.github.com/x", UA, Duration.ofSeconds(1), Duration.ofSeconds(1)))
         .isInstanceOf(IllegalArgumentException.class);
     assertThat(GitHubReleasesClient.ENDPOINT)
-        .startsWith("https://api.github.com/repos/Erenriquezp/ImageProcessor/releases");
+        .startsWith("https://api.github.com/repos/Erenriquezp/rora-studio/releases");
   }
 }
