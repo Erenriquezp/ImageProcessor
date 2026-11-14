@@ -11,7 +11,7 @@ Editor de fotos de escritorio, no destructivo, con ajustes en luz lineal y pila 
 
 ![Captura de pantalla de Rora Studio](docs/img/captura.png)
 
-<sub>Foto de la captura: Pixel.la Free Stock Photos, CC0 1.0, vía Wikimedia Commons.</sub>
+<sub>Foto de la captura: retrato oficial de la NASA (S69-31741), dominio público, vía Wikimedia Commons.</sub>
 
 </div>
 

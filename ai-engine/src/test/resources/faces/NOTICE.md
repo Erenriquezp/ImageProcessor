@@ -7,4 +7,4 @@
 | Origen | <https://commons.wikimedia.org/wiki/File:Neil_Armstrong_pose.jpg>, que cita <https://www.nasa.gov/images/content/464436main_S69-31741_full.jpg> |
 | Licencia | Dominio público (obra de la NASA, gobierno de EE. UU.), según Wikimedia Commons, consultado el 2026-11-13 |
 
-Solo la usa el test `ai-real` de YuNet (`YuNetRealTest`).
+La usan el test `ai-real` de YuNet (`YuNetRealTest`) y las capturas de la documentación (`docs/img/captura.png`, `docs/img/wallpapers.jpg`).
