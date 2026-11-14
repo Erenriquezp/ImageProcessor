@@ -3,7 +3,6 @@ package io.github.erenriquezp.rora.ai.onnx;
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
-import ai.onnxruntime.OrtLoggingLevel;
 import ai.onnxruntime.OrtSession;
 import io.github.erenriquezp.rora.ai.face.YuNetDecoder;
 import io.github.erenriquezp.rora.ai.face.YuNetModel;
@@ -45,7 +44,12 @@ public final class YuNetDetector implements SubjectDetector {
     open();
     YuNetDecoder.Letterbox lb = YuNetDecoder.input(image, TileExecutor.sequential(), token);
     token.throwIfCancelled();
-    OrtEnvironment env = OrtEnvironment.getEnvironment();
+    OrtEnvironment env;
+    try {
+      env = OrtEnvironments.quiet();
+    } catch (OrtException e) {
+      throw new AiFailure(Reason.FAILURE, "Fallo al obtener el entorno de ONNX Runtime", e);
+    }
     try (OnnxTensor in =
             OnnxTensor.createTensor(
                 env, direct(lb.chw()), new long[] {1, 3, YuNetDecoder.SIZE, YuNetDecoder.SIZE});
@@ -82,8 +86,7 @@ public final class YuNetDetector implements SubjectDetector {
     OrtNative.prepare();
     byte[] bytes = YuNetModel.readVerified();
     try {
-      OrtEnvironment env =
-          OrtEnvironment.getEnvironment(OrtLoggingLevel.ORT_LOGGING_LEVEL_FATAL, "rora");
+      OrtEnvironment env = OrtEnvironments.quiet();
       try (OrtSession.SessionOptions o = new OrtSession.SessionOptions()) {
         o.setIntraOpNumThreads(1);
         o.setInterOpNumThreads(1);

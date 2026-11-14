@@ -14,10 +14,18 @@ labels: bug
 2.
 3.
 
-## Entorno
+## Informe de diagnóstico
 
-- Sistema operativo:
-- Versión de Java (`java -version`):
-- Versión / commit de ImageProcessor:
+En Rora Studio: botón **?** (arriba a la derecha) → **Informe de diagnóstico…** → revísalo y pulsa **Copiar**. Pégalo entre las dos líneas de abajo.
 
-## Capturas o registros
+El informe nunca se envía solo y la app ya quita tu nombre de usuario, las rutas y los nombres de las fotos, pero revísalo antes de pegarlo: puedes borrar cualquier cosa que no quieras compartir.
+
+```
+(pega aquí el informe)
+```
+
+Si la app no llega a abrirse, indica la versión (archivo descargado), tu versión de Windows y el texto exacto de cualquier error.
+
+## Capturas (opcional)
+
+No adjuntes fotos personales: si el fallo depende de una imagen, describe su formato y tamaño.

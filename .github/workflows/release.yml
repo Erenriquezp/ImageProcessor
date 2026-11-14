@@ -1,0 +1,96 @@
+name: Release
+
+# Al subir una etiqueta vX.Y.Z: construye el MSI, el ZIP y SHA256SUMS en Windows y crea un
+# BORRADOR de release. Publicarlo es manual (docs/RELEASING.md). Sin ejecutar hasta la primera
+# etiqueta: lo verificado de verdad es tools/package-windows.ps1 en local.
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "!v*-academic"
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Empaquetar (Windows x64)
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configurar Temurin 25.0.5+8
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "25.0.5+8"
+          cache: maven
+
+      - name: La etiqueta coincide con la versión del POM
+        shell: pwsh
+        run: |
+          [xml] $pom = Get-Content pom.xml
+          $tag = "${{ github.ref_name }}".TrimStart('v')
+          if ($pom.project.version -ne $tag) { throw "Etiqueta $tag y POM $($pom.project.version) no coinciden" }
+
+      # windows-latest trae WiX 3.14.1 (variable WIX). El script comprueba la versión exacta.
+      - name: WiX 3.14.1 en el PATH
+        shell: pwsh
+        run: |
+          if ($env:WIX) { Add-Content $env:GITHUB_PATH (Join-Path $env:WIX 'bin') }
+
+      # -FetchTools: descarga solo los jmods de JavaFX fijados (y WiX si faltara), con su SHA-256.
+      - name: Empaquetar
+        shell: pwsh
+        run: ./tools/package-windows.ps1 -FetchTools
+
+      - name: Reproducibilidad del ZIP
+        shell: pwsh
+        run: ./tools/package/verify-repro.ps1
+
+      - name: Subir artefactos
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  release:
+    name: Borrador de release
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # crear el borrador y subir los artefactos
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Descargar artefactos
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+
+      - name: Notas desde el CHANGELOG
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v v="$VERSION" 'index($0, "## [" v "]") == 1 { on = 1; next }
+            on && index($0, "## [") == 1 { exit }
+            on { print }' CHANGELOG.md > notes.md
+          test -s notes.md || { echo "No hay sección [$VERSION] en CHANGELOG.md"; exit 1; }
+
+      - name: Crear borrador
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
+            --title "Rora Studio $VERSION" --notes-file notes.md dist/*

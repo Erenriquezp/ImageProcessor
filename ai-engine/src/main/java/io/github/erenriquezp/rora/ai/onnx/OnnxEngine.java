@@ -3,7 +3,6 @@ package io.github.erenriquezp.rora.ai.onnx;
 import ai.onnxruntime.NodeInfo;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
-import ai.onnxruntime.OrtLoggingLevel;
 import ai.onnxruntime.OrtSession;
 import ai.onnxruntime.TensorInfo;
 import io.github.erenriquezp.rora.ai.api.AiEngine;
@@ -35,8 +34,7 @@ public final class OnnxEngine implements AiEngine {
     OrtNative.prepare();
     byte[] bytes = model.readVerified();
     try {
-      OrtEnvironment env =
-          OrtEnvironment.getEnvironment(OrtLoggingLevel.ORT_LOGGING_LEVEL_FATAL, "rora");
+      OrtEnvironment env = OrtEnvironments.quiet();
       try (OrtSession.SessionOptions o = new OrtSession.SessionOptions()) {
         o.setIntraOpNumThreads(threads);
         o.setInterOpNumThreads(1);

@@ -7,6 +7,7 @@ import io.github.erenriquezp.rora.app.session.ExportTarget;
 import io.github.erenriquezp.rora.app.session.wallpaper.WallpaperExport;
 import io.github.erenriquezp.rora.app.session.wallpaper.WallpaperWorkspace;
 import io.github.erenriquezp.rora.core.exec.CancellationToken;
+import io.github.erenriquezp.rora.core.exec.CancelledException;
 import io.github.erenriquezp.rora.core.image.Img;
 import io.github.erenriquezp.rora.core.image.ProxyPolicy.Size;
 import io.github.erenriquezp.rora.core.io.ExportSettings.MetadataPolicy;
@@ -182,6 +183,8 @@ public final class WallpapersViewModel<F> implements FrameEditor {
   private final ObjectProperty<MetadataPolicy> metadata =
       new SimpleObjectProperty<>(MetadataPolicy.REMOVE_ALL);
   private final StringProperty namePreview = new SimpleStringProperty("");
+  private final ObservableList<String> estimates = FXCollections.observableArrayList();
+  private final StringProperty estimateTotal = new SimpleStringProperty("");
 
   private final BooleanProperty exporting = new SimpleBooleanProperty(false);
   private final DoubleProperty progress = new SimpleDoubleProperty(-1);
@@ -199,6 +202,8 @@ public final class WallpapersViewModel<F> implements FrameEditor {
   private WallpaperWorkspace.Analysis lastAnalysis;
   private double lastAspect = Double.NaN;
   private long thumbGeneration;
+  private long estimateGeneration;
+  private CancellationToken estimateToken = CancellationToken.create();
   private CancellationToken exportToken = CancellationToken.create();
   private boolean restored;
 
@@ -240,6 +245,9 @@ public final class WallpapersViewModel<F> implements FrameEditor {
     for (StringProperty p : List.of(folderTemplate, fileTemplate)) {
       p.addListener((o, a, b) -> refreshNamePreview());
     }
+    // El peso estimado depende del formato y de la calidad JPEG.
+    format.addListener((o, a, b) -> refreshEstimateIfOpen());
+    quality.addListener((o, a, b) -> refreshEstimateIfOpen());
     restorePrefs();
     updateExportState();
   }
@@ -878,10 +886,111 @@ public final class WallpapersViewModel<F> implements FrameEditor {
     }
     refreshNamePreview();
     dialogOpen.set(true);
+    refreshEstimate();
   }
 
   public void closeExport() {
     dialogOpen.set(false);
+    cancelEstimate();
+    estimates.clear();
+    estimateTotal.set("");
+  }
+
+  /** Peso aproximado de cada archivo ("PC 4K UHD: ≈ 3,4 MB"), en el orden de la tanda. */
+  public ObservableList<String> estimates() {
+    return estimates;
+  }
+
+  /** Total aproximado de la tanda, o el aviso de que se está calculando. */
+  public ReadOnlyStringProperty estimateTotalProperty() {
+    return estimateTotal;
+  }
+
+  private void refreshEstimateIfOpen() {
+    if (dialogOpen.get()) {
+      refreshEstimate();
+    }
+  }
+
+  private void cancelEstimate() {
+    estimateGeneration++;
+    estimateToken.cancel();
+  }
+
+  /**
+   * Estima el peso de cada destino sobre la vista reducida, fuera del hilo de la interfaz; una
+   * estimación nueva cancela la anterior y solo se publica la última.
+   */
+  private void refreshEstimate() {
+    cancelEstimate();
+    long gen = estimateGeneration;
+    WallpaperPlan pl = plan.get();
+    Optional<Img> preview = host.previewPixels();
+    estimates.clear();
+    if (pl == null || pl.targets().isEmpty() || preview.isEmpty() || folder.get().isBlank()) {
+      estimateTotal.set("");
+      return;
+    }
+    WallpaperExport.Settings s;
+    List<WallpaperExport.Item> items;
+    try {
+      s = settings(ExportTarget.Collision.NUMBER);
+      items = WallpaperExport.layout(pl, s, batch(), this::groupName);
+    } catch (RuntimeException e) {
+      estimateTotal.set("");
+      return;
+    }
+    CancellationToken token = CancellationToken.create();
+    estimateToken = token;
+    estimateTotal.set(m.get("ui.wallpapers.dialog.estimating"));
+    Img px = preview.get();
+    env.background()
+        .execute(
+            () -> {
+              List<Long> sizes;
+              try {
+                sizes = WallpaperExport.estimate(px, pl, items, s, token);
+              } catch (CancelledException e) {
+                sizes = null;
+              } catch (Exception e) {
+                System.getLogger("rora.wallpapers")
+                    .log(System.Logger.Level.WARNING, "No se pudo estimar el tamaño", e);
+                sizes = null;
+              }
+              List<Long> result = sizes;
+              env.publisher()
+                  .execute(
+                      () -> {
+                        if (gen != estimateGeneration) {
+                          return;
+                        }
+                        if (result == null) {
+                          estimateTotal.set("");
+                          return;
+                        }
+                        long total = 0;
+                        List<String> lines = new ArrayList<>();
+                        for (int i = 0; i < result.size(); i++) {
+                          total += result.get(i);
+                          lines.add(
+                              m.format(
+                                  "ui.wallpapers.dialog.estimateRow",
+                                  items.get(i).planned().target().name(),
+                                  humanSize(result.get(i))));
+                        }
+                        estimates.setAll(lines);
+                        estimateTotal.set(
+                            m.format("ui.wallpapers.dialog.estimate", humanSize(total)));
+                      });
+            });
+  }
+
+  String humanSize(long bytes) {
+    Locale l = m.locale();
+    if (bytes >= 1024L * 1024) {
+      return String.format(l, "%.1f MB", bytes / (1024.0 * 1024));
+    }
+    return String.format(l, "%d KB", Math.max(1, bytes / 1024));
   }
 
   private WallpaperExport.Settings settings(ExportTarget.Collision collision) {
@@ -924,6 +1033,7 @@ public final class WallpapersViewModel<F> implements FrameEditor {
       return;
     }
     dialogOpen.set(false);
+    cancelEstimate();
     savePrefs();
     Runnable proceed = () -> checkCollisions(pl);
     if (enhance.needsDecision()) {

@@ -52,6 +52,8 @@ ehthumbs.db
 ### Empaquetado (jpackage / jlink / javafx-maven-plugin) ###
 /build/
 /dist/
+# Herramientas fijadas por hash para tools/package-windows.ps1 (jmods de JavaFX, WiX)
+/tools/.cache/
 /installer/
 *.msi
 *.exe

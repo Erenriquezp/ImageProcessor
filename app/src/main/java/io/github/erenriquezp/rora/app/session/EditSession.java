@@ -363,6 +363,16 @@ public final class EditSession<F> implements AutoCloseable {
     return history.current();
   }
 
+  /** Ids de los pasos activos de la receta efectiva, para el informe; nunca sus parámetros. */
+  public List<String> activeStepIds() {
+    return effectiveRecipe().activeSteps().stream().map(OpSpec::opId).toList();
+  }
+
+  /** Bytes que ocupa ahora la caché de resultados. */
+  public long cacheBytes() {
+    return renderer.cache().weightBytes();
+  }
+
   public Optional<OpSpec> pending() {
     return Optional.ofNullable(pending);
   }
@@ -946,6 +956,17 @@ public final class EditSession<F> implements AutoCloseable {
 
   public boolean isIdle() {
     return coordinator.isIdle();
+  }
+
+  /**
+   * Tras un {@code OutOfMemoryError}: cancela la IA en curso y vacía la caché de resultados. Se
+   * puede llamar desde cualquier hilo; la vista se vuelve a pedir sola en el siguiente cambio.
+   */
+  public void releaseMemory() {
+    if (ai != null) {
+      ai.cancel();
+    }
+    renderer.cache().clear();
   }
 
   @Override

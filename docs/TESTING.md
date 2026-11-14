@@ -152,6 +152,29 @@ Los modelos sintéticos los genera `tools/models/make_test_models.py`, con su ha
 | `WallpaperMemoryTest` (`memory`) | app | 24 MP × 8 destinos con `-Xmx1536m`: todos escritos y pico de heap < 1 GB |
 | `WallpapersArchitectureTest`, `WallpaperArchitectureRulesTest` | wallpapers, app | Sin AWT, JavaFX, ORT ni red en la lógica; render, tanda y detectores solo en la capa de sesión |
 
+## Distribución, registro y errores (fase 8)
+
+| Test | Módulo | Qué comprueba |
+|---|---|---|
+| `RedactorTest`, `LogsTest` | app | Redacción con tildes, espacios, emoji, UNC, rutas de más de 260 caracteres, forma 8.3, barras mezcladas y nombres de usuario cortos que no tocan otras palabras; rotación (5 archivos, ninguno de más de 1 MiB), 8 hilos escribiendo a la vez sin líneas mezcladas, nivel por propiedad e interruptor |
+| `NoImageDataInLogsTest`, `RenderLaneLogTest` | app | Un fallo de render y otro de exportación con una foto con GPS: el registro no contiene valores de la receta, nombres ni GPS; solo los ids de las operaciones |
+| `DiagnosticReportTest`, `HelpViewModelTest` | app | Secciones en orden; casos adversariales (ruta de usuario con tildes, nombre de la foto en el registro y en el error, ruta UNC, nombre del equipo) y opciones de la JVM sin rutas; nada se copia ni guarda hasta pulsar; "Borrar registros y temporales" solo dentro de sus carpetas; un `hs_err` anterior se ofrece una vez, como advertencia, y queda como visto |
+| `GlobalErrorsTest`, `EditSessionMemoryReleaseTest`, `HsErrScannerTest` | app | Errores no capturados agrupados; `OutOfMemoryError` libera la reserva, cancela y vacía cachés, y la sesión sigue; cabecera de `hs_err` redactada |
+| `GitHubReleasesClientTest`, `ReleaseFeedTest`, `UpdateViewModelTest` | app | Servidor `com.sun.net.httpserver` en 127.0.0.1: versión nueva, igual, `major` mayor, etiquetas raras y `-academic`, JSON inválido, cuerpo enorme, límite de GitHub, tiempo agotado, redirección, cabeceras exactas; ninguna petición al arrancar ni con `-Drora.updates=off` |
+| `NetworkIsolationRulesTest`, `OrtTelemetryTest` | app, ai-engine | Red solo en `GitHubReleasesClient`; telemetría de ORT apagada |
+| `VcRuntimeMessageTest`, `FileArgumentTest`, `AppInfoTest`, `AppTempTest` | app | Aviso de Visual C++ ante un fallo de biblioteca nativa; selección de la ruta por argumento; versión única; temporal propio |
+| `WallpaperExportEstimateTest`, `WallpapersEstimateTest` | app | Estimación de tamaño dentro de un factor 2 del archivo real; fuera del hilo FX y cancelable |
+
+Fuera de `verify`, en Windows (herramientas de desarrollo; ver [RELEASING.md](RELEASING.md)):
+
+| Herramienta | Qué comprueba |
+|---|---|
+| `tools/package/verify-package.ps1` | Árbol del MSI y del ZIP: solo nativos win-x64, avisos legales, modelos, versión coincidente, opciones de la JVM, sin `java.sql` ni volcados (lo llama el empaquetado) |
+| `tools/package/verify-repro.ps1` | El ZIP sale idéntico en dos empaquetados |
+| `tools/package/smoke-package.ps1` (`PackageSmoke`) | App-image sin JDK en el PATH desde una carpeta con tildes y emoji: abrir 24 MP y WebP, YuNet, x4v3, wallpapers, DLL cargadas solo desde la app, lanzador real con una foto por argumento, cierre limpio, nada en `%TEMP%` |
+| `tools/package/test-msi.ps1` | `msiexec` en silencio y sin administrador: instalar, arrancar, actualizar dejando una sola entrada, desinstalar y listar lo que queda |
+| `tools/sandbox/GUION.md` | Prueba manual de 14 pasos en una máquina limpia |
+
 ## Defectos conocidos verificados
 
 Interpolación = Extrapolación, modos de Reducción 4 bits idénticos (incluido DECIMAL), marco de 1 px sin procesar en la convolución, Blending que deforma el fondo, Escala de grises por promedio y matrices de color sin offsets.

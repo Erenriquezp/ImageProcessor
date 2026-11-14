@@ -9,10 +9,12 @@ import io.github.erenriquezp.rora.core.io.ExportSettings;
 import io.github.erenriquezp.rora.core.io.ExportSettings.MetadataPolicy;
 import io.github.erenriquezp.rora.core.io.FormatId;
 import io.github.erenriquezp.rora.core.io.ImageMetadata;
+import io.github.erenriquezp.rora.core.io.ImagingException;
 import io.github.erenriquezp.rora.core.io.ProvenanceXmp;
 import io.github.erenriquezp.rora.imaging.io.Exporter;
 import io.github.erenriquezp.rora.wallpapers.plan.OutputFormat;
 import io.github.erenriquezp.rora.wallpapers.plan.PlannedTarget;
+import io.github.erenriquezp.rora.wallpapers.plan.Target;
 import io.github.erenriquezp.rora.wallpapers.plan.TargetNames;
 import io.github.erenriquezp.rora.wallpapers.plan.TargetSink;
 import io.github.erenriquezp.rora.wallpapers.plan.WallpaperJob;
@@ -158,6 +160,31 @@ public final class WallpaperExport {
       if (Files.exists(i.file())) {
         out.add(i.file());
       }
+    }
+    return out;
+  }
+
+  /** Lado mayor de las miniaturas sobre las que se estima el peso. */
+  static final int ESTIMATE_SIDE = 768;
+
+  /**
+   * Peso aproximado de cada archivo de la tanda, en bytes y en el orden de {@code items}: cada
+   * destino se dibuja sobre la vista reducida, se codifica en memoria con sus ajustes y se escala
+   * por píxeles. Aproximado (sin tramado y con menos detalle que la foto completa). Hilo de
+   * trabajo.
+   */
+  public static List<Long> estimate(
+      Img preview, WallpaperPlan plan, List<Item> items, Settings s, CancellationToken token)
+      throws ImagingException {
+    List<Img> thumbs = WallpaperWorkspace.thumbnails(preview, plan, ESTIMATE_SIDE);
+    List<Long> out = new ArrayList<>();
+    for (Item it : items) {
+      token.throwIfCancelled();
+      int i = plan.targets().indexOf(it.planned());
+      Target t = it.planned().target();
+      out.add(
+          Exporter.estimateBytes(
+              thumbs.get(i), exportSettings(it.format(), s), t.width(), t.height(), token));
     }
     return out;
   }

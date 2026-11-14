@@ -2,6 +2,8 @@ module io.github.erenriquezp.rora.app {
     requires javafx.controls;
     requires java.desktop;
     requires java.prefs;
+    requires java.logging;
+    requires java.net.http;
     requires jdk.management;
     requires atlantafx.base;
     requires io.github.erenriquezp.rora.core;

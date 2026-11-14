@@ -13,6 +13,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
@@ -55,7 +56,17 @@ public final class WallpaperDialogs {
                             m.get("ui.wallpapers.dialog.title"),
                             exportPane(owner, vm, m),
                             theme);
-                    export[0].setOnHidden(e -> vm.closeExport());
+                    // La estimación llega después de abrir: el diálogo crece para no cortar nada.
+                    // Escucha débil: vive lo que viva el diálogo.
+                    Stage shown = export[0];
+                    javafx.beans.InvalidationListener fit =
+                        o -> javafx.application.Platform.runLater(shown::sizeToScene);
+                    shown.getProperties().put("estimate-fit", fit);
+                    javafx.beans.WeakInvalidationListener weak =
+                        new javafx.beans.WeakInvalidationListener(fit);
+                    vm.estimateTotalProperty().addListener(weak);
+                    vm.estimates().addListener(weak);
+                    shown.setOnHidden(e -> vm.closeExport());
                     export[0].show();
                   } else if (!open && export[0] != null) {
                     Stage s = export[0];
@@ -181,7 +192,36 @@ public final class WallpaperDialogs {
     Region gap = new Region();
     HBox.setHgrow(gap, Priority.ALWAYS);
     HBox buttons = new HBox(8, gap, cancel, ok);
-    VBox box = new VBox(16, grid, buttons);
+    Label total = new Label();
+    total.getStyleClass().add("hint");
+    total.setWrapText(true);
+    total.textProperty().bind(vm.estimateTotalProperty());
+    VBox perTarget = new VBox(2);
+    Runnable fillRows =
+        () ->
+            perTarget
+                .getChildren()
+                .setAll(
+                    vm.estimates().stream()
+                        .map(
+                            t -> {
+                              Label l = new Label(t);
+                              l.getStyleClass().add("hint");
+                              return l;
+                            })
+                        .toList());
+    javafx.beans.InvalidationListener rowsListener = o -> fillRows.run();
+    perTarget.getProperties().put("estimate-rows", rowsListener);
+    vm.estimates().addListener(new javafx.beans.WeakInvalidationListener(rowsListener));
+    fillRows.run();
+    ScrollPane rows = new ScrollPane(perTarget);
+    rows.setFitToWidth(true);
+    rows.setMaxHeight(110);
+    rows.getStyleClass().add("estimate-rows");
+    rows.visibleProperty().bind(javafx.beans.binding.Bindings.isNotEmpty(vm.estimates()));
+    rows.managedProperty().bind(rows.visibleProperty());
+    VBox estimate = new VBox(6, total, rows);
+    VBox box = new VBox(16, grid, estimate, buttons);
     box.setPadding(new Insets(20));
     box.setPrefWidth(620);
     box.getStyleClass().add("dialog-pane");

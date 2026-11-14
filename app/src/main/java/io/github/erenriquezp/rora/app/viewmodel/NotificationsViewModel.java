@@ -38,6 +38,11 @@ public final class NotificationsViewModel<F> {
     add(new Notice(Kind.ERROR, message, details == null ? "" : details, null));
   }
 
+  /** Error con un botón (p. ej. abrir la página del componente que falta). */
+  void error(String message, String details, Action action) {
+    add(new Notice(Kind.ERROR, message, details == null ? "" : details, action));
+  }
+
   void info(String message) {
     timed(new Notice(Kind.INFO, message, "", null), INFO_NANOS);
   }
@@ -49,6 +54,11 @@ public final class NotificationsViewModel<F> {
 
   void warning(String message) {
     timed(new Notice(Kind.WARNING, message, "", null), WARNING_NANOS);
+  }
+
+  /** Advertencia con un botón (p. ej. ver el informe de un fallo anterior). */
+  void warning(String message, Action action) {
+    timed(new Notice(Kind.WARNING, message, "", action), WARNING_NANOS);
   }
 
   private void timed(Notice n, long nanos) {
