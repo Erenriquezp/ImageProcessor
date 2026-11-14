@@ -33,6 +33,8 @@ public final class StudioIo {
   /** Resultado de una exportación. */
   public record Exported(Path file, int width, int height, long bytes, int quality) {}
 
+  private static final System.Logger LOG = System.getLogger("rora.io");
+
   private StudioIo() {}
 
   /**
@@ -44,6 +46,16 @@ public final class StudioIo {
     DecodeOptions options = new DecodeOptions(retainedBytes, Long.getLong("rora.io.maxPixels", 0));
     DecodedImage decoded =
         Codecs.decoder(Codecs.sniff(file)).decode(file, options, token, progress);
+    // Tamaño y formato ayudan a diagnosticar; el nombre del archivo no se registra.
+    LOG.log(
+        System.Logger.Level.INFO,
+        () ->
+            "Imagen abierta: "
+                + decoded.image().width()
+                + "x"
+                + decoded.image().height()
+                + " "
+                + decoded.info().format());
     return new Opened(SessionSource.ofDecoded(decoded, file), decoded);
   }
 
