@@ -106,6 +106,23 @@ class RedactorTest {
   }
 
   @Test
+  void posixPathsAreRedactedToo() {
+    assertThat(R.redact("No se pudo abrir /home/juan/Fotos/Boda Ana/IMG_0001.jpg"))
+        .isEqualTo("No se pudo abrir /…/<foto>.jpg");
+    assertThat(R.redact("export: /tmp/junit123/archivo-normal.jpg (Permission denied)"))
+        .isEqualTo("export: /tmp/…/<foto>.jpg (Permission denied)");
+    assertThat(R.redact("en '/mnt/datos/privado/nota.txt'")).isEqualTo("en '/…/<archivo>.txt'");
+  }
+
+  @Test
+  void posixRuleLeavesUrlsMimeTypesModulesAndFractionsAlone() {
+    String s =
+        "at java.base/java.nio.file.Files.read(Files.java:1) image/jpeg 3 / 4 1/2 "
+            + "https://api.github.com/repos/Erenriquezp/ImageProcessor/releases /tmp";
+    assertThat(R.redact(s)).isEqualTo(s);
+  }
+
+  @Test
   void nullAndEmpty() {
     assertThat(R.redact(null)).isNull();
     assertThat(R.redact("")).isEmpty();
