@@ -22,9 +22,21 @@ $failed = $false
 function Note([string] $s) { Write-Host $s }
 function Fail([string] $s) { $script:failed = $true; Write-Host "FALLO: $s" -ForegroundColor Red }
 
+# Productos instalados con ese nombre, según Windows Installer (un MSI por usuario no aparece en
+# la clave Uninstall de HKCU: sus datos están en UserData).
 function Entries {
-  @(Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' -ErrorAction SilentlyContinue |
-      ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.PSObject.Properties['DisplayName'] -and $_.DisplayName -eq $name })
+  $wi = New-Object -ComObject WindowsInstaller.Installer
+  $out = @()
+  foreach ($code in $wi.GetType().InvokeMember('Products', 'GetProperty', $null, $wi, $null)) {
+    $pn = $wi.GetType().InvokeMember('ProductInfo', 'GetProperty', $null, $wi, @($code, 'ProductName'))
+    if ($pn -eq $name) {
+      $out += [pscustomobject]@{
+        Code = $code
+        DisplayVersion = $wi.GetType().InvokeMember('ProductInfo', 'GetProperty', $null, $wi, @($code, 'VersionString'))
+      }
+    }
+  }
+  return $out
 }
 
 function Msiexec([string[]] $arguments, [string] $log) {
@@ -32,14 +44,14 @@ function Msiexec([string[]] $arguments, [string] $log) {
   return $p.ExitCode
 }
 
-if ((Entries).Count -gt 0) { throw "$name ya está instalado: desinstálalo antes de la prueba." }
+if (@(Entries).Count -gt 0) { throw "$name ya está instalado: desinstálalo antes de la prueba." }
 
 # 1. Versión antigua
 $sw = [Diagnostics.Stopwatch]::StartNew()
 $code = Msiexec @('/i', "`"$OldMsi`"") (Join-Path $LogDir 'install-old.log')
 Note "instalar $(Split-Path -Leaf $OldMsi): código $code en $([int]$sw.Elapsed.TotalSeconds) s"
 if ($code -ne 0) { Fail 'la instalación falló' }
-$e = Entries
+$e = @(Entries)
 Note "entradas en Aplicaciones: $($e.Count) · versión $(@($e | ForEach-Object DisplayVersion) -join ', ')"
 Note "carpeta: $(Test-Path (Join-Path $installDir "$name.exe")) · menú Inicio: $(Test-Path $startMenu) · escritorio: $(Test-Path (Join-Path $desktop "$name.lnk"))"
 if (-not (Test-Path (Join-Path $installDir "$name.exe"))) { Fail "no está en $installDir" }
@@ -65,14 +77,14 @@ if ($jvm) {
 
 # 3. Versión nueva encima
 $code = Msiexec @('/i', "`"$NewMsi`"") (Join-Path $LogDir 'install-new.log')
-$e = Entries
+$e = @(Entries)
 Note "actualizar a $(Split-Path -Leaf $NewMsi): código $code · entradas: $($e.Count) · versión $(@($e | ForEach-Object DisplayVersion) -join ', ')"
 if ($code -ne 0 -or $e.Count -ne 1) { Fail 'la actualización no dejó una sola entrada' }
 
 # 4. Desinstalar
 $code = Msiexec @('/x', "`"$NewMsi`"") (Join-Path $LogDir 'uninstall.log')
-Note "desinstalar: código $code · entradas: $((Entries).Count)"
-if ($code -ne 0 -or (Entries).Count -ne 0) { Fail 'la desinstalación falló' }
+Note "desinstalar: código $code · entradas: $(@(Entries).Count)"
+if ($code -ne 0 -or @(Entries).Count -ne 0) { Fail 'la desinstalación falló' }
 Note 'después de desinstalar:'
 Note "  $installDir existe: $(Test-Path $installDir)"
 Note "  $(Join-Path $env:LOCALAPPDATA 'Programs') existe: $(Test-Path (Join-Path $env:LOCALAPPDATA 'Programs'))"
