@@ -7,7 +7,7 @@ rora-parent (pom raíz: versiones, plugins, calidad)
 ├── core-imaging   módulo ...rora.core — solo requiere java.base (ni JavaFX ni AWT); --release 21
 ├── imaging-io     módulo ...rora.imaging.io — códecs sobre ImageIO; --release 21, sin JavaFX
 ├── wallpapers     módulo ...rora.wallpapers — lógica pura de Wallpapers; solo java.base y el núcleo; --release 21
-├── ai-engine      módulo ...rora.ai — ONNX Runtime por tiles, modelo incluido y caché; sin JavaFX ni red
+├── ai-engine      módulo ...rora.ai — ONNX Runtime por tiles, modelo incluido y caché; sin JavaFX ni red (telemetría de ORT apagada)
 ├── app            módulo ...rora.app  — JavaFX 25: interfaz, sesión, puente AWT; --release 25
 ├── lab-plugin     módulo ...rora.lab  — opcional: didácticas, generador, blending y código heredado
 └── bench          benchmarks JMH (perfil -Pbench, fuera del build por defecto, no se distribuye)
@@ -34,6 +34,8 @@ Paquetes de interfaz en [`docs/UI.md`](UI.md).
 - `app/session/` (sin JavaFX, se prueba en headless): `EditSession` (fuente, receta, historial, proxy), `RenderLane`/`RenderCoordinator`, `LatestWins`, `FramePool`, `StallMonitor`.
 - `app/imaging/`: puente exacto `BufferedImage ↔ Img` (`AwtImg`, `ImageBridge`), lectura y escritura heredadas (`ImageIOService`, `@Deprecated`: solo Laboratorio y tests diferenciales) y formato de origen (`SourceFormat`).
 - `app/lab/`: SPI del Laboratorio.
+- `app/diag/` (sin JavaFX): versión (`AppInfo`, de `build.properties` filtrado por Maven), carpetas de datos (`AppDirs`, `AppTemp`), registro JUL con rotación (`Logs`) y redacción (`Redactor`, `RedactingFormatter`), manejador global de errores con reserva para `OutOfMemoryError` (`GlobalErrors`), fallos nativos anteriores (`HsErrScanner`), informe de diagnóstico (`DiagnosticReport`, `Diagnostics`), avisos legales (`Notices`) y clasificación de fallos de bibliotecas nativas (`NativeFailures`).
+- `app/update/`: comprobación manual de actualizaciones. `ReleaseFeed` y `VersionTag` son puros; `GitHubReleasesClient` es **la única clase del proyecto con red** (ver "Distribución" abajo).
 
 ### `imaging-io`
 
@@ -155,6 +157,29 @@ Solo existen cuando hay proxy. Lo exportado, el histograma, el blending, el diag
 
 **Geometría.** `Operation.outputSize` declara el tamaño de salida y `Operation.forPreview` adapta los parámetros al proxy. La escala de los parámetros en píxeles se calcula en cada paso, no solo con la fuente. El recorte es normalizado a 0..1, independiente de la resolución.
 
+## Distribución, registro y errores (fase 8)
+
+**Arranque.** `Launcher.main`, en el paquete, crea el temporal propio (`%LOCALAPPDATA%\RoraStudio\tmp`; ORT exige que exista); después instala el manejador global, configura el registro y escribe una línea de sesión sin nombre de usuario ni rutas. `StudioApp` abre la ruta recibida como argumento (también al arrastrar una foto sobre el icono) después de mostrar la ventana, y al arrancar ofrece el `hs_err` de una sesión que murió.
+
+**Paquete Windows** (`tools/package-windows.ps1`): runtime con `jlink` desde los jmods de Temurin y de JavaFX, sin `java.sql` ni comandos nativos; app-image con `jpackage`; ZIP reproducible (`tools/package/ReproZip.java`: orden y fechas fijos); MSI por usuario con WiX 3.14.1 y `tools/package/wix/main.wxs` propio. Árbol instalado:
+
+```
+Rora Studio\
+├── Rora Studio.exe          lanzador de jpackage (manifiesto con página de códigos UTF-8)
+├── app\Rora Studio.cfg      opciones de la JVM y módulo principal
+├── legal\                   licencias del proyecto, ORT, fuentes y modelos; SOURCE.txt
+└── runtime\
+    ├── bin\, bin\javafx\     JVM y DLL de JavaFX (no se extraen a %USERPROFILE%\.openjfx)
+    ├── ort-native\          onnxruntime.dll y su JNI (onnxruntime.native.path; nada en %TEMP%)
+    ├── legal\<módulo>\       avisos de Temurin y OpenJFX
+    └── lib\modules          imagen de módulos con la aplicación
+```
+
+Opciones de la JVM, con su motivo: `-XX:MaxRAMPercentage=50` (la IA y el presupuesto de decodificación miden contra el heap; caso de 64 MP medido con 2 y 4 GB), `--enable-native-access=javafx.graphics,com.microsoft.onnxruntime`, `-XX:ErrorFile=$LOCALAPPDATA\RoraStudio\logs\hs_err_pid%p.log`, `-XX:-CreateCoredumpOnCrash` y sin volcado de heap (contendrían la foto), `-XX:-UsePerfData` (nada en `%TEMP%`) y `-Djava.io.tmpdir` propio. `tools/package/verify-package.ps1` comprueba todo esto en cada empaquetado.
+
+**Red.** `NetworkIsolationRulesTest` (ArchUnit, todos los módulos propios): solo `app.update.GitHubReleasesClient` puede usar `java.net.http`, sockets, `URLConnection`, `InetAddress`, proxies o `javax.net`, o abrir una `URL`. `URL` y `URI` como valores (recursos locales) están permitidos. `OrtTelemetryTest` comprueba que todo entorno de ORT se crea con la telemetría apagada. Privacidad: [`docs/PRIVACY.md`](PRIVACY.md). Publicación: [`docs/RELEASING.md`](RELEASING.md).
+
 ## Dirección prevista
 
-- Motor de IA opcional en su propio módulo; distribución con `jlink` + `jpackage`.
+- Firma de código (SignPath Foundation u otra) en el workflow de release.
+- Caché AOT de JDK 25 para el arranque (−31 % medido; pospuesta).
