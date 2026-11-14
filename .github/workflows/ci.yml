@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Mínimos: solo leer el repositorio. Ningún job publica nada.
 permissions:
   contents: read
 
@@ -19,24 +20,28 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         java: ["21", "25"]
     steps:
-      - uses: actions/checkout@v4
+      # Acciones oficiales fijadas por SHA de commit (la etiqueta va en el comentario).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Configurar JDK ${{ matrix.java }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: ${{ matrix.java }}
           cache: maven
 
-      # El nucleo sigue en Java 21; app y bench exigen JDK 25 (JavaFX 25)
-      # verify: compila, ejecuta tests, Checkstyle (informe) y JaCoCo (informe, sin umbral)
+      # JDK 21: los módulos que siguen en Java 21. JDK 25: todo.
+      # Los tests del modelo real (ai-real) quedan fuera por el POM de ai-engine; el humo con
+      # pantalla va aparte (ui-smoke). verify: tests, Checkstyle (informe) y JaCoCo (informe).
       - name: Build y tests
-        run: ./mvnw -B -ntp verify ${{ matrix.java == '21' && '-pl core-imaging' || '' }}
+        run: ./mvnw -B -ntp verify ${{ matrix.java == '21' && '-pl core-imaging,imaging-io,wallpapers -am' || '' }}
         shell: bash
 
       - name: Subir informe de JaCoCo
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: jacoco-${{ matrix.os }}-jdk${{ matrix.java }}
           path: |
@@ -46,7 +51,7 @@ jobs:
 
       - name: Subir resultados de surefire
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: surefire-${{ matrix.os }}-jdk${{ matrix.java }}
           path: |
@@ -54,16 +59,40 @@ jobs:
             **/target/checkstyle-result.xml
           if-no-files-found: ignore
 
+  # THIRD_PARTY_LICENSES.md debe coincidir con lo que genera el plugin de licencias.
+  licenses:
+    name: Licencias de terceros al día
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Regenerar y comparar
+        run: |
+          ./mvnw -B -ntp -DskipTests install
+          ./mvnw -B -ntp license:aggregate-add-third-party@third-party
+          git diff --exit-code -- THIRD_PARTY_LICENSES.md
+
   # Humo de la interfaz con el toolkit real; no bloquea mientras no tenga historial
   ui-smoke:
     name: Humo de la interfaz (xvfb)
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Configurar JDK 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: "25"
@@ -77,12 +106,13 @@ jobs:
     name: Informes de calidad (no bloquean)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # Spotless ratchet necesita el historial y origin/develop
+          persist-credentials: false
 
       - name: Configurar JDK 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: "25"
@@ -97,10 +127,12 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Configurar JDK 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: "25"
@@ -112,7 +144,7 @@ jobs:
 
       - name: Subir informe de SpotBugs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: spotbugs-report
           path: "**/target/spotbugsXml.xml"
