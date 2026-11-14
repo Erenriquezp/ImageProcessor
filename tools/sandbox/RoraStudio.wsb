@@ -1,0 +1,26 @@
+<!--
+  Windows Sandbox para probar Rora Studio en un Windows limpio (sin JDK ni Visual C++).
+  Requiere Windows 11 Pro, Enterprise o Education: Windows Sandbox no existe en Home.
+  Antes de abrirlo, cambia HostFolder por la ruta absoluta de la carpeta que contiene el
+  .msi, el .zip y SHA256SUMS (por ejemplo, la carpeta dist de tools/package-windows.ps1).
+  Guion de la prueba: tools/sandbox/GUION.md
+-->
+<Configuration>
+  <!-- Sin GPU virtual: JavaFX usa el renderizado por software, como un equipo sin aceleración. -->
+  <VGpu>Disable</VGpu>
+  <!-- Sin red en la primera pasada: "Buscar actualizaciones" debe fallar con un mensaje claro.
+       Para la segunda pasada (con red), cambia a Default. -->
+  <Networking>Disable</Networking>
+  <MemoryInMB>8192</MemoryInMB>
+  <ClipboardRedirection>Enable</ClipboardRedirection>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>C:\CAMBIAR\RoraStudio\dist</HostFolder>
+      <SandboxFolder>C:\Users\WDAGUtilityAccount\Desktop\dist</SandboxFolder>
+      <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>explorer.exe C:\Users\WDAGUtilityAccount\Desktop\dist</Command>
+  </LogonCommand>
+</Configuration>
